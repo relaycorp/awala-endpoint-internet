@@ -76,19 +76,6 @@ Emitted by the app.
 - `time`: The creation time of the parcel.
 - `expiry` (`Timestamp`, custom attribute): The time at which the parcel expires.
 
-### `undelivered-service-message`
-
-Emitted by the middleware if a parcel message couldn't be delivered to the gateway.
-
-- `specversion`: `1.0`
-- `id`: The parcel id (as specified in the original `outgoing-service-message`).
-- `type`: `com.relaycorp.awala.endpoint-internet.undelivered-service-message`
-- `source`: The parcel sender's private address, or the constant `https://relaycorp.tech/awala-endpoint-internet`.
-- `subject`: The parcel recipient's private address.
-- `datacontenttype`: `application/vnd.relaycorp.awala.undelivered-service-message`.
-- `data`: A JSON problem type.
-- `time`: The creation time of the parcel.
-
 ## Changes to VeraId Authority
 
 - CloudEvents from Structured to Binary format.
