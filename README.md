@@ -4,7 +4,11 @@ This is a Message-Oriented Middleware (MOM) that allows server-side apps to comm
 
 ## Components
 
-The middleware itself is split into a [PoHTTP](https://specs.awala.network/RS-007) server and a client.
+The middleware itself is split into a [PoHTTP](https://specs.awala.network/RS-007) server and a client, which interact with the third-party app.
+
+The following diagram illustrates how they'd interact with each other when the app implements the [Awala Ping service](https://specs.awala.network/RS-014):
+
+![](./diagram.png)
 
 ### PoHTTP server
 
@@ -17,6 +21,10 @@ Publicly accessible from the Internet. No auth required:
   3. Process service message:
     - If it's an Awala PDA, store it.
     - If it's a service message, send it to the broker.
+
+Configuration:
+
+- `INTERNET_ENDPOINT_PEER_SESSION_MAX_AGE` (optional): The number of seconds that the peers' session keys (received in the PDAs) will be valid for.
 
 ### App
 
