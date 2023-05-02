@@ -4,7 +4,7 @@ This is a Message-Oriented Middleware (MOM) that allows server-side apps to comm
 
 ## Components
 
-The middleware itself is split into a [PoHTTP](https://specs.awala.network/RS-007) server and a client, which interact with the third-party app.
+The middleware itself is split into a [PoHTTP](https://specs.awala.network/RS-007) server and a client, which interact with the third-party app via a broker (e.g., [Google PubSub](https://cloud.google.com/pubsub)).
 
 The following diagram illustrates how they'd interact with each other when the app implements the [Awala Ping service](https://specs.awala.network/RS-014):
 
@@ -75,8 +75,3 @@ Emitted by the app.
 - `data`: The service message.
 - `time`: The creation time of the parcel.
 - `expiry` (`Timestamp`, custom attribute): The time at which the parcel expires.
-
-## Changes to VeraId Authority
-
-- CloudEvents from Structured to Binary format.
-- Create a third server: Another CloudEvents server.
