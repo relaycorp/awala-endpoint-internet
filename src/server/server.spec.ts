@@ -3,6 +3,7 @@ import pino from 'pino';
 import type { FastifyInstance } from 'fastify';
 
 import { mockSpy } from '../testUtils/jest.js';
+
 const mockFastify: FastifyInstance = {
   register: mockSpy(jest.fn()),
 } as any;
@@ -10,12 +11,12 @@ jest.unstable_mockModule('../utilities/fastify/server.js', () => ({
   makeFastify: jest.fn<() => Promise<any>>().mockResolvedValue(mockFastify),
 }));
 
-const { makeApiServer } = await import('./server.js');
+const { makePohttpServer } = await import('./server.js');
 const { makeFastify } = await import('../utilities/fastify/server.js');
 
-describe('makeApiServer', () => {
+describe('makePohttpServer', () => {
   test('No logger should be passed by default', async () => {
-    await makeApiServer();
+    await makePohttpServer();
 
     expect(makeFastify).toHaveBeenCalledWith(expect.anything(), undefined);
   });
@@ -23,15 +24,14 @@ describe('makeApiServer', () => {
   test('Any explicit logger should be honored', async () => {
     const logger = pino();
 
-    await makeApiServer(logger);
+    await makePohttpServer(logger);
 
     expect(makeFastify).toHaveBeenCalledWith(expect.anything(), logger);
   });
 
   test('Server instance should be returned', async () => {
-    const serverInstance = await makeApiServer();
+    const serverInstance = await makePohttpServer();
 
     expect(serverInstance).toBe(mockFastify);
-
   });
 });

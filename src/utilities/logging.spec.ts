@@ -1,13 +1,10 @@
 import { jest } from '@jest/globals';
-import env from 'env-var';
 import { symbols as pinoSymbols } from 'pino';
 
 import { configureMockEnvVars as configureMockEnvironmentVariables } from '../testUtils/envVars.js';
 import { getMockInstance } from '../testUtils/jest.js';
 
-const REQUIRED_ENV_VARS = {
-  AUTHORITY_VERSION: '1.0.1',
-};
+const REQUIRED_ENV_VARS = {};
 const mockEnvironmentVariables = configureMockEnvironmentVariables(REQUIRED_ENV_VARS);
 
 jest.unstable_mockModule('@relaycorp/pino-cloud', () => ({
@@ -43,12 +40,6 @@ describe('makeLogger', () => {
     expect(logger).toHaveProperty('level', loglevel.toLowerCase());
   });
 
-  test('AUTHORITY_VERSION env var should be required', () => {
-    mockEnvironmentVariables({ ...REQUIRED_ENV_VARS, AUTHORITY_VERSION: undefined });
-
-    expect(() => makeLogger()).toThrowWithMessage(env.EnvVarError, /AUTHORITY_VERSION/u);
-  });
-
   test('Cloud logging options should be used', () => {
     const messageKey = 'foo';
     getMockInstance(getPinoOptions).mockReturnValue({ messageKey });
@@ -68,23 +59,12 @@ describe('makeLogger', () => {
     );
   });
 
-  test('App name should be "veraid-authority" if LOG_ENV_NAME if absent', () => {
+  test('App name should be "awala-endpoint-internet" if LOG_ENV_NAME if absent', () => {
     makeLogger();
 
     expect(getPinoOptions).toHaveBeenCalledWith(
       undefined,
-      expect.objectContaining({ name: 'veraid-authority' }),
-    );
-  });
-
-  test('AUTHORITY_VERSION should be passed to cloud logging config', () => {
-    makeLogger();
-
-    expect(getPinoOptions).toHaveBeenCalledWith(
-      undefined,
-      expect.objectContaining({
-        version: REQUIRED_ENV_VARS.AUTHORITY_VERSION,
-      }),
+      expect.objectContaining({ name: 'awala-endpoint-internet' }),
     );
   });
 

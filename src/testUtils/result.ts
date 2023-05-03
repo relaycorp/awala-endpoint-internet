@@ -1,7 +1,7 @@
 import type { FailureResult, Result, SuccessfulResult } from '../utilities/result.js';
 
 export function requireSuccessfulResult<Type>(
-  result: Result<Type, unknown>,
+  result: Result<Type, undefined>,
 ): asserts result is SuccessfulResult<Type> {
   expect(result.didSucceed).toBe(true);
 }

@@ -1,7 +1,6 @@
 import { jest } from '@jest/globals';
 import envVar from 'env-var';
 
-import { AWALA_MIDDLEWARE_ENDPOINT } from './eventing/stubs.js';
 import { MONGODB_URI } from './db.js';
 
 export interface EnvVarSet {
@@ -9,9 +8,7 @@ export interface EnvVarSet {
 }
 
 export const REQUIRED_ENV_VARS = {
-  AUTHORITY_VERSION: '1.2.3',
   MONGODB_URI,
-  AWALA_MIDDLEWARE_ENDPOINT
 };
 
 export type EnvVarMocker = (envVars: EnvVarSet) => void;

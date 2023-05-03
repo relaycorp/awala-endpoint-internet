@@ -111,7 +111,6 @@ describe('makeFastify', () => {
 
     expect(mockFastify.register).toHaveBeenCalledWith(notFoundHandler);
   });
-
 });
 
 describe('runFastify', () => {

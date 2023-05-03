@@ -1,4 +1,4 @@
-import type {FastifyInstance, RouteOptions} from 'fastify';
+import type { FastifyInstance, RouteOptions } from 'fastify';
 import fastifyPlugin from 'fastify-plugin';
 
 import { createMongooseConnectionFromEnv } from '../../mongo.js';

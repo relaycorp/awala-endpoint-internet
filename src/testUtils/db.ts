@@ -5,8 +5,6 @@ import { randomUUID } from 'node:crypto';
 import { createConnection, type Connection, type ConnectOptions, STATES } from 'mongoose';
 import { deleteModelWithClass } from '@typegoose/typegoose';
 
-
-
 const MODEL_SCHEMAS = Object.values([]).filter((schema) => typeof schema === 'function');
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,no-underscore-dangle

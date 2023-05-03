@@ -1,11 +1,8 @@
-// Import Jest, not because we need it, but to work around bug in unstable_mockModule()
-import { describe } from '@jest/globals';
-
 import type { FastifyTypedInstance } from '../../utilities/fastify/FastifyTypedInstance.js';
-import { makeTestApiServer } from '../../testUtils/apiServer.js';
+import { makeTestPohttpServer } from '../../testUtils/pohttpServer';
 
 describe('healthcheck routes', () => {
-  const getTestServerFixture = makeTestApiServer();
+  const getTestServerFixture = makeTestPohttpServer();
   let serverInstance: FastifyTypedInstance;
   beforeEach(() => {
     serverInstance = getTestServerFixture().server;
