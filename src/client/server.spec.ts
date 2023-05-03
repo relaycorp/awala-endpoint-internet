@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { CloudEvent } from 'cloudevents';
 
-import { setUpTestPohttpClient } from '../testUtils/pohttpClient';
+import { setUpTestPohttpClient } from '../testUtils/pohttpClient.js';
 import { HTTP_STATUS_CODES } from '../utilities/http.js';
 import { CE_ID, CE_SOURCE } from '../testUtils/eventing/stubs.js';
 import { postEvent } from '../testUtils/eventing/cloudEvents.js';
