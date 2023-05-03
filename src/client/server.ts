@@ -7,7 +7,7 @@ import { HTTP_STATUS_CODES } from '../utilities/http.js';
 import type { PluginDone } from '../utilities/fastify/PluginDone.js';
 import type { FastifyTypedInstance } from '../utilities/fastify/FastifyTypedInstance.js';
 
-import { ClientProblemType } from './ClientProblemType.js';
+import { PohttpClientProblemType } from './PohttpClientProblemType.js';
 
 function makePohttpClientPlugin(
   server: FastifyTypedInstance,
@@ -32,7 +32,7 @@ function makePohttpClientPlugin(
     } catch {
       await reply
         .status(HTTP_STATUS_CODES.BAD_REQUEST)
-        .send({ type: ClientProblemType.INVALID_EVENT });
+        .send({ type: PohttpClientProblemType.INVALID_EVENT });
       return;
     }
 

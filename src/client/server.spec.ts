@@ -6,7 +6,7 @@ import { HTTP_STATUS_CODES } from '../utilities/http.js';
 import { CE_ID, CE_SOURCE } from '../testUtils/eventing/stubs.js';
 import { postEvent } from '../testUtils/eventing/cloudEvents.js';
 
-import { ClientProblemType } from './ClientProblemType.js';
+import { PohttpClientProblemType } from './PohttpClientProblemType.js';
 
 describe('makePohttpClient', () => {
   const getTestServerFixture = setUpTestPohttpClient();
@@ -48,7 +48,7 @@ describe('makePohttpClient', () => {
       });
 
       expect(response.statusCode).toBe(HTTP_STATUS_CODES.BAD_REQUEST);
-      expect(response.json()).toHaveProperty('type', ClientProblemType.INVALID_EVENT);
+      expect(response.json()).toHaveProperty('type', PohttpClientProblemType.INVALID_EVENT);
     });
   });
 });
