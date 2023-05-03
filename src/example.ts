@@ -1,12 +1,9 @@
 import { CloudEvent } from 'cloudevents';
 
 import type { ServiceOptions } from './serviceTypes.js';
-import type { Result } from './utilities/result.js';
 import { Emitter } from './utilities/eventing/Emitter.js';
 
-export async function exampleFunctionWithEmitter(
-  options: ServiceOptions,
-): Promise<Result<undefined, undefined>> {
+export async function exampleFunctionWithEmitter(options: ServiceOptions): Promise<boolean> {
   const emitter = Emitter.init() as Emitter<{
     testField: string;
   }>;
@@ -23,19 +20,11 @@ export async function exampleFunctionWithEmitter(
 
   options.logger.info({ example: 'test' }, 'Event sent to app');
 
-  return {
-    didSucceed: true,
-  };
+  return true;
 }
 
 export async function examplePromiseRejection() {
   await Promise.reject(new Error('Example error'));
-}
-
-export function exampleFunctionReturnFalse(): Result<undefined, undefined> {
-  return {
-    didSucceed: false,
-  };
 }
 
 export const FOO = 'bar';

@@ -1,9 +1,10 @@
-import type { FastifyTypedInstance } from '../../utilities/fastify/FastifyTypedInstance.js';
+import type { FastifyInstance } from 'fastify';
+
 import { makeTestPohttpServer } from '../../testUtils/pohttpServer.js';
 
 describe('healthcheck routes', () => {
   const getTestServerFixture = makeTestPohttpServer();
-  let serverInstance: FastifyTypedInstance;
+  let serverInstance: FastifyInstance;
   beforeEach(() => {
     serverInstance = getTestServerFixture().server;
   });

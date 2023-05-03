@@ -5,12 +5,11 @@ import type { BaseLogger } from 'pino';
 import { makeFastify } from '../utilities/fastify/server.js';
 import { HTTP_STATUS_CODES } from '../utilities/http.js';
 import type { PluginDone } from '../utilities/fastify/PluginDone.js';
-import type { FastifyTypedInstance } from '../utilities/fastify/FastifyTypedInstance.js';
 
 import { PohttpClientProblemType } from './PohttpClientProblemType.js';
 
 function makePohttpClientPlugin(
-  server: FastifyTypedInstance,
+  server: FastifyInstance,
   _opts: FastifyPluginOptions,
   done: PluginDone,
 ): void {

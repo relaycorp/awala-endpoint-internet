@@ -1,8 +1,7 @@
-import type { HTTPMethods } from 'fastify';
+import type { FastifyInstance, HTTPMethods } from 'fastify';
 
 import { REQUIRED_ENV_VARS } from '../../../testUtils/envVars.js';
 import { HTTP_STATUS_CODES } from '../../http.js';
-import type { FastifyTypedInstance } from '../FastifyTypedInstance.js';
 import { HTTP_METHODS, makeFastify } from '../server.js';
 import { makeTestServer } from '../../../testUtils/server.js';
 
@@ -27,7 +26,7 @@ describe('notFoundHandler', () => {
     REQUIRED_ENV_VARS,
   );
 
-  let serverInstance: FastifyTypedInstance;
+  let serverInstance: FastifyInstance;
   beforeEach(() => {
     serverInstance = getTestServerFixture().server;
   });
