@@ -13,7 +13,7 @@ const MODELS = Object.values([ConfigItem]).filter((schema) => typeof schema === 
 const BASE_MONGO_URI = (global as any).__MONGO_URI__ as string;
 
 // Ensure every Jest worker gets its own database.
-const MONGODB_URI = `${BASE_MONGO_URI}${randomUUID()}`;
+export const MONGODB_URI = `${BASE_MONGO_URI}${randomUUID()}`;
 
 export function setUpTestDbConnection(): () => Connection {
   let connection: Connection;

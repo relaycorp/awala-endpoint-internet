@@ -1,11 +1,18 @@
 import { jest } from '@jest/globals';
 import envVar from 'env-var';
 
-interface EnvVarSet {
+import { MONGODB_URI } from './db.js';
+
+export interface EnvVarSet {
   readonly [key: string]: string | undefined;
 }
 
-type EnvVarMocker = (envVars: EnvVarSet) => void;
+export const REQUIRED_ENV_VARS = {
+  ENDPOINT_VERSION: '1.0.0',
+  MONGODB_URI,
+};
+
+export type EnvVarMocker = (envVars: EnvVarSet) => void;
 
 export function configureMockEnvVars(envVars: EnvVarSet = {}): EnvVarMocker {
   const mockEnvVarGet = jest.spyOn(envVar, 'get');

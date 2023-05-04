@@ -9,9 +9,9 @@ spec:
         autoscaling.knative.dev/min-scale: "1"
     spec:
       containers:
-        - name: queue
+        - name: client
           image: dev.local/awala-endpoint
-          args: [queue]
+          args: [client]
           readinessProbe:
             httpGet:
               path: /

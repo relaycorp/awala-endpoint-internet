@@ -16,6 +16,7 @@
     "clean": "del-cli build test coverage"
   },
   "dependencies": {
+    "@fastify/routes": "^5.1.0",
     "@fastify/type-provider-json-schema-to-ts": "^2.2.2",
     "@relaycorp/awala-keystore-cloud": "^2.1.0",
     "@relaycorp/pino-cloud": "^1.0.28",

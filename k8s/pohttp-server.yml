@@ -11,9 +11,9 @@ spec:
         app.kubernetes.io/name: awala-endpoint
     spec:
       containers:
-        - name: api
+        - name: server
           image: dev.local/awala-endpoint
-          args: [api]
+          args: [server]
           readinessProbe:
             httpGet:
               path: /
