@@ -1,7 +1,6 @@
 import { jest } from '@jest/globals';
 import {
   derSerializePrivateKey,
-  getIdFromIdentityKey,
   MockCertificateStore,
   MockKeyStoreSet,
   MockPublicKeyStore,
@@ -15,7 +14,11 @@ import { mockSpy } from '../../testUtils/jest.js';
 import { MockKms, mockKms } from '../../testUtils/kms/mockKms.js';
 import { Config } from '../config.js';
 import { setUpTestDbConnection } from '../../testUtils/db.js';
-import { INTERNET_ENDPOINT_ID_KEY_PAIR } from '../../testUtils/awala/stubs.js';
+import {
+  INTERNET_ADDRESS,
+  INTERNET_ENDPOINT_ID,
+  INTERNET_ENDPOINT_ID_KEY_PAIR,
+} from '../../testUtils/awala/stubs.js';
 
 import { InternetEndpoint } from './InternetEndpoint.js';
 
@@ -27,10 +30,9 @@ jest.unstable_mockModule('@relaycorp/awala-keystore-cloud', () => ({
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const { InternetEndpointManager } = await import('./InternetEndpointManager.js');
 
-const { privateKey, publicKey } = INTERNET_ENDPOINT_ID_KEY_PAIR;
-
-const privateKeySerialised = await derSerializePrivateKey(privateKey);
+const privateKeySerialised = await derSerializePrivateKey(INTERNET_ENDPOINT_ID_KEY_PAIR.privateKey);
 const REQUIRED_ENV_VARS = {
+  INTERNET_ADDRESS,
   ACTIVE_ID_KEY_REF: privateKeySerialised.toString('base64'),
   PRIVATE_KEY_STORE_ADAPTER: 'GCP',
 };
@@ -100,15 +102,41 @@ describe('InternetEndpointManager', () => {
     });
 
     test('Endpoint should be an Internet one', async () => {
-      const manager = new InternetEndpointManager(privateKeySerialised, kms, config, KEY_STORE_SET);
+      const manager = new InternetEndpointManager(
+        privateKeySerialised,
+        INTERNET_ADDRESS,
+        kms,
+        config,
+        KEY_STORE_SET,
+      );
 
       const endpoint = await manager.getActiveEndpoint();
 
       expect(endpoint).toBeInstanceOf(InternetEndpoint);
     });
 
+    test('Internet address should be set', async () => {
+      const manager = new InternetEndpointManager(
+        privateKeySerialised,
+        INTERNET_ADDRESS,
+        kms,
+        config,
+        KEY_STORE_SET,
+      );
+
+      const { internetAddress } = await manager.getActiveEndpoint();
+
+      expect(internetAddress).toBe(INTERNET_ADDRESS);
+    });
+
     test('Private key should be loaded by reference from KMS', async () => {
-      const manager = new InternetEndpointManager(privateKeySerialised, kms, config, KEY_STORE_SET);
+      const manager = new InternetEndpointManager(
+        privateKeySerialised,
+        INTERNET_ADDRESS,
+        kms,
+        config,
+        KEY_STORE_SET,
+      );
 
       const { identityPrivateKey } = await manager.getActiveEndpoint();
 
@@ -118,16 +146,27 @@ describe('InternetEndpointManager', () => {
     });
 
     test('Id should be derived from public key', async () => {
-      const manager = new InternetEndpointManager(privateKeySerialised, kms, config, KEY_STORE_SET);
+      const manager = new InternetEndpointManager(
+        privateKeySerialised,
+        INTERNET_ADDRESS,
+        kms,
+        config,
+        KEY_STORE_SET,
+      );
 
       const { id } = await manager.getActiveEndpoint();
 
-      const expectedId = await getIdFromIdentityKey(publicKey);
-      expect(id).toBe(expectedId);
+      expect(id).toBe(INTERNET_ENDPOINT_ID);
     });
 
     test('Key store set should be inherited from manager', async () => {
-      const manager = new InternetEndpointManager(privateKeySerialised, kms, config, KEY_STORE_SET);
+      const manager = new InternetEndpointManager(
+        privateKeySerialised,
+        INTERNET_ADDRESS,
+        kms,
+        config,
+        KEY_STORE_SET,
+      );
 
       const { keyStores } = await manager.getActiveEndpoint();
 
@@ -135,7 +174,13 @@ describe('InternetEndpointManager', () => {
     });
 
     test('Config instance should be initialised and passed to endpoint', async () => {
-      const manager = new InternetEndpointManager(privateKeySerialised, kms, config, KEY_STORE_SET);
+      const manager = new InternetEndpointManager(
+        privateKeySerialised,
+        INTERNET_ADDRESS,
+        kms,
+        config,
+        KEY_STORE_SET,
+      );
 
       const endpoint = await manager.getActiveEndpoint();
 

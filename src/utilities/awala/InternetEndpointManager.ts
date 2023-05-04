@@ -28,14 +28,22 @@ export class InternetEndpointManager extends EndpointManager {
   public static async init(dbConnection: Connection): Promise<InternetEndpointManager> {
     const activeIdKeyRefBase64 = envVar.get('ACTIVE_ID_KEY_REF').required().asString();
     const activeIdKeyRef = Buffer.from(activeIdKeyRefBase64, 'base64');
+    const activeEndpointInternetAddress = envVar.get('INTERNET_ADDRESS').required().asString();
     const kms = await Kms.init();
     const keyStoreSet = initKeyStoreSet(dbConnection);
     const config = new Config(dbConnection);
-    return new InternetEndpointManager(activeIdKeyRef, kms, config, keyStoreSet);
+    return new InternetEndpointManager(
+      activeIdKeyRef,
+      activeEndpointInternetAddress,
+      kms,
+      config,
+      keyStoreSet,
+    );
   }
 
   public constructor(
     protected readonly activeEndpointIdKeyRef: Buffer,
+    protected readonly activeEndpointInternetAddress: string,
     protected readonly kms: Kms,
     protected readonly config: Config,
     keyStoreSet: KeyStoreSet,
@@ -46,6 +54,12 @@ export class InternetEndpointManager extends EndpointManager {
   public async getActiveEndpoint(): Promise<InternetEndpoint> {
     const privateKey = await this.kms.retrievePrivateKeyByRef(this.activeEndpointIdKeyRef);
     const endpointId = await getIdFromIdentityKey(privateKey);
-    return new InternetEndpoint(endpointId, privateKey, this.keyStores, this.config);
+    return new InternetEndpoint(
+      endpointId,
+      this.activeEndpointInternetAddress,
+      privateKey,
+      this.keyStores,
+      this.config,
+    );
   }
 }
