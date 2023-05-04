@@ -1,7 +1,7 @@
 import { FOO } from '../example.js';
 
 describe('example', () => {
-  test.todo('example', () => {
+  test('example', () => {
     expect(FOO).toBe('bar');
   });
 });
