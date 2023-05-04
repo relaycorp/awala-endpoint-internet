@@ -1,5 +1,6 @@
 import { jest } from '@jest/globals';
 import {
+  derSerializePrivateKey,
   getIdFromIdentityKey,
   MockCertificateStore,
   MockKeyStoreSet,
@@ -12,9 +13,9 @@ import type { Connection } from 'mongoose';
 import { configureMockEnvVars } from '../../testUtils/envVars.js';
 import { mockSpy } from '../../testUtils/jest.js';
 import { MockKms, mockKms } from '../../testUtils/kms/mockKms.js';
-import { derSerialisePrivateKey, generateKeyPair } from '../../testUtils/webcrypto.js';
 import { Config } from '../config.js';
 import { setUpTestDbConnection } from '../../testUtils/db.js';
+import { INTERNET_ENDPOINT_ID_KEY_PAIR } from '../../testUtils/awala/stubs.js';
 
 import { InternetEndpoint } from './InternetEndpoint.js';
 
@@ -26,9 +27,9 @@ jest.unstable_mockModule('@relaycorp/awala-keystore-cloud', () => ({
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const { InternetEndpointManager } = await import('./InternetEndpointManager.js');
 
-const { privateKey, publicKey } = await generateKeyPair();
+const { privateKey, publicKey } = INTERNET_ENDPOINT_ID_KEY_PAIR;
 
-const privateKeySerialised = await derSerialisePrivateKey(privateKey);
+const privateKeySerialised = await derSerializePrivateKey(privateKey);
 const REQUIRED_ENV_VARS = {
   ACTIVE_ID_KEY_REF: privateKeySerialised.toString('base64'),
   PRIVATE_KEY_STORE_ADAPTER: 'GCP',
@@ -111,7 +112,7 @@ describe('InternetEndpointManager', () => {
 
       const { identityPrivateKey } = await manager.getActiveEndpoint();
 
-      await expect(derSerialisePrivateKey(identityPrivateKey)).resolves.toStrictEqual(
+      await expect(derSerializePrivateKey(identityPrivateKey)).resolves.toStrictEqual(
         privateKeySerialised,
       );
     });
