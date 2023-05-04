@@ -2,8 +2,8 @@ import { argv } from 'node:process';
 
 import { runFastify } from '../utilities/fastify/server.js';
 import type { ServerMaker } from '../utilities/fastify/ServerMaker.js';
-import { makePohttpServer } from '../server/server';
-import { makePohttpClient } from '../client/server';
+import { makePohttpServer } from '../server/server.js';
+import { makePohttpClient } from '../client/server.js';
 
 const SERVER_MAKERS: { [key: string]: ServerMaker } = {
   server: makePohttpServer,
