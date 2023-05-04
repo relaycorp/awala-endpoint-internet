@@ -10,9 +10,9 @@ import { bufferToArrayBuffer } from '../buffer.js';
 import { Config, ConfigKey } from '../config.js';
 import { setUpTestDbConnection } from '../../testUtils/db.js';
 import {
-  INTERNET_ADDRESS,
-  INTERNET_ENDPOINT_ID,
-  INTERNET_ENDPOINT_ID_KEY_PAIR,
+  ENDPOINT_ADDRESS,
+  ENDPOINT_ID,
+  ENDPOINT_ID_KEY_PAIR,
 } from '../../testUtils/awala/stubs.js';
 
 import { InternetEndpoint } from './InternetEndpoint.js';
@@ -32,9 +32,9 @@ describe('InternetEndpoint', () => {
     config = new Config(getDbConnection());
 
     endpoint = new InternetEndpoint(
-      INTERNET_ENDPOINT_ID,
-      INTERNET_ADDRESS,
-      INTERNET_ENDPOINT_ID_KEY_PAIR.privateKey,
+      ENDPOINT_ID,
+      ENDPOINT_ADDRESS,
+      ENDPOINT_ID_KEY_PAIR.privateKey,
       keyStores,
       config,
     );
@@ -46,7 +46,7 @@ describe('InternetEndpoint', () => {
 
       const { sessionKeys } = keyStores.privateKeyStore;
       const [[keyIdHex, keyData]] = Object.entries(sessionKeys);
-      expect(keyData.nodeId).toBe(INTERNET_ENDPOINT_ID);
+      expect(keyData.nodeId).toBe(ENDPOINT_ID);
       expect(keyData.peerId).toBeUndefined();
       await expect(config.get(ConfigKey.INITIAL_SESSION_KEY_ID_BASE64)).resolves.toBe(
         hexToBase64(keyIdHex),
@@ -57,11 +57,7 @@ describe('InternetEndpoint', () => {
       const { privateKey, sessionKey } = await SessionKeyPair.generate();
       const keyIdBase64 = sessionKey.keyId.toString('base64');
       await config.set(ConfigKey.INITIAL_SESSION_KEY_ID_BASE64, keyIdBase64);
-      await keyStores.privateKeyStore.saveSessionKey(
-        privateKey,
-        sessionKey.keyId,
-        INTERNET_ENDPOINT_ID,
-      );
+      await keyStores.privateKeyStore.saveSessionKey(privateKey, sessionKey.keyId, ENDPOINT_ID);
 
       await endpoint.makeInitialSessionKeyIfMissing();
 
@@ -89,7 +85,7 @@ describe('InternetEndpoint', () => {
         const connectionParams = await NodeConnectionParams.deserialize(
           bufferToArrayBuffer(connectionParamsSerialised),
         );
-        expect(connectionParams.internetAddress).toBe(INTERNET_ADDRESS);
+        expect(connectionParams.internetAddress).toBe(ENDPOINT_ADDRESS);
       });
 
       test('Session public key should be included', async () => {
@@ -118,7 +114,7 @@ describe('InternetEndpoint', () => {
           bufferToArrayBuffer(connectionParamsSerialised),
         );
         await expect(derSerializePublicKey(connectionParams.identityKey)).resolves.toMatchObject(
-          await derSerializePublicKey(INTERNET_ENDPOINT_ID_KEY_PAIR.publicKey),
+          await derSerializePublicKey(ENDPOINT_ID_KEY_PAIR.publicKey),
         );
       });
     });

@@ -2,7 +2,7 @@ import { KmsRsaPssProvider } from '@relaycorp/webcrypto-kms';
 import { jest } from '@jest/globals';
 
 import { NODEJS_PROVIDER } from '../webcrypto.js';
-import { INTERNET_ENDPOINT_ID_KEY_PAIR, INTERNET_ENDPOINT_ID_KEY_REF } from '../awala/stubs.js';
+import { ENDPOINT_ID_KEY_PAIR, ENDPOINT_ID_KEY_REF } from '../awala/stubs.js';
 import { bufferToArrayBuffer } from '../../utilities/buffer.js';
 
 type SupportedFormat = Exclude<KeyFormat, 'jwk'>;
@@ -38,8 +38,8 @@ export class MockKmsRsaPssProvider extends KmsRsaPssProvider {
   }
 
   public async onExportKey(format: SupportedFormat, key: CryptoKey): Promise<ArrayBuffer> {
-    if (format === 'raw' && key === INTERNET_ENDPOINT_ID_KEY_PAIR.privateKey) {
-      return bufferToArrayBuffer(INTERNET_ENDPOINT_ID_KEY_REF);
+    if (format === 'raw' && key === ENDPOINT_ID_KEY_PAIR.privateKey) {
+      return bufferToArrayBuffer(ENDPOINT_ID_KEY_REF);
     }
     return NODEJS_PROVIDER.exportKey(format, key);
   }
@@ -51,8 +51,8 @@ export class MockKmsRsaPssProvider extends KmsRsaPssProvider {
     isExtractable: boolean,
     keyUsages: KeyUsage[],
   ): Promise<CryptoKey> {
-    if (format === 'raw' && Buffer.from(keyData).equals(INTERNET_ENDPOINT_ID_KEY_REF)) {
-      return INTERNET_ENDPOINT_ID_KEY_PAIR.privateKey;
+    if (format === 'raw' && Buffer.from(keyData).equals(ENDPOINT_ID_KEY_REF)) {
+      return ENDPOINT_ID_KEY_PAIR.privateKey;
     }
     return NODEJS_PROVIDER.importKey(format, keyData, algorithm, isExtractable, keyUsages);
   }

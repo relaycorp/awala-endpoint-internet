@@ -7,7 +7,7 @@ import { Config } from '../../utilities/config.js';
 import { mockKms } from '../kms/mockKms.js';
 import { Kms } from '../../utilities/kms/Kms.js';
 
-import { INTERNET_ADDRESS, INTERNET_ENDPOINT_ID_KEY_REF } from './stubs.js';
+import { ENDPOINT_ADDRESS, ENDPOINT_ID_KEY_REF } from './stubs.js';
 
 export function mockInternetEndpoint(getDbConnection: () => Connection): void {
   const initMock = jest.spyOn(InternetEndpointManager, 'init');
@@ -17,8 +17,8 @@ export function mockInternetEndpoint(getDbConnection: () => Connection): void {
   let stub: InternetEndpointManager;
   beforeEach(async () => {
     stub = new InternetEndpointManager(
-      INTERNET_ENDPOINT_ID_KEY_REF,
-      INTERNET_ADDRESS,
+      ENDPOINT_ID_KEY_REF,
+      ENDPOINT_ADDRESS,
       await Kms.init(),
       new Config(getDbConnection()),
       new MockKeyStoreSet(),

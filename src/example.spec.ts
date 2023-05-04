@@ -9,7 +9,7 @@ import { mockEmitter } from './testUtils/eventing/mockEmitter.js';
 import { getPromiseRejection } from './testUtils/jest.js';
 import { mockInternetEndpoint } from './testUtils/awala/mockInternetEndpoint.js';
 import { InternetEndpointManager } from './utilities/awala/InternetEndpointManager.js';
-import { INTERNET_ADDRESS } from './testUtils/awala/stubs.js';
+import { ENDPOINT_ADDRESS } from './testUtils/awala/stubs.js';
 
 describe('example', () => {
   const getConnection = setUpTestDbConnection();
@@ -64,7 +64,7 @@ describe('example', () => {
     test('Example endpoint manager usage in tests', async () => {
       const manager = await InternetEndpointManager.init(connection);
       const endpoint = await manager.getActiveEndpoint();
-      expect(endpoint.internetAddress).toBe(INTERNET_ADDRESS);
+      expect(endpoint.internetAddress).toBe(ENDPOINT_ADDRESS);
     });
   });
 });
