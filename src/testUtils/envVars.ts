@@ -8,6 +8,7 @@ export interface EnvVarSet {
 }
 
 export const REQUIRED_ENV_VARS = {
+  ENDPOINT_VERSION: '1.0.0',
   MONGODB_URI,
 };
 

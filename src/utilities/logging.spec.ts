@@ -1,10 +1,13 @@
 import { jest } from '@jest/globals';
+import env from 'env-var';
 import { symbols as pinoSymbols } from 'pino';
 
 import { configureMockEnvVars as configureMockEnvironmentVariables } from '../testUtils/envVars.js';
 import { getMockInstance } from '../testUtils/jest.js';
 
-const REQUIRED_ENV_VARS = {};
+const REQUIRED_ENV_VARS = {
+  ENDPOINT_VERSION: '1.0.1',
+};
 const mockEnvironmentVariables = configureMockEnvironmentVariables(REQUIRED_ENV_VARS);
 
 jest.unstable_mockModule('@relaycorp/pino-cloud', () => ({
@@ -40,6 +43,12 @@ describe('makeLogger', () => {
     expect(logger).toHaveProperty('level', loglevel.toLowerCase());
   });
 
+  test('ENDPOINT_VERSION env var should be required', () => {
+    mockEnvironmentVariables({ ...REQUIRED_ENV_VARS, ENDPOINT_VERSION: undefined });
+
+    expect(() => makeLogger()).toThrowWithMessage(env.EnvVarError, /ENDPOINT_VERSION/u);
+  });
+
   test('Cloud logging options should be used', () => {
     const messageKey = 'foo';
     getMockInstance(getPinoOptions).mockReturnValue({ messageKey });
@@ -65,6 +74,17 @@ describe('makeLogger', () => {
     expect(getPinoOptions).toHaveBeenCalledWith(
       undefined,
       expect.objectContaining({ name: 'awala-endpoint-internet' }),
+    );
+  });
+
+  test('ENDPOINT_VERSION should be passed to cloud logging config', () => {
+    makeLogger();
+
+    expect(getPinoOptions).toHaveBeenCalledWith(
+      undefined,
+      expect.objectContaining({
+        version: REQUIRED_ENV_VARS.ENDPOINT_VERSION,
+      }),
     );
   });
 
