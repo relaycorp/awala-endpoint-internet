@@ -5,7 +5,9 @@ import { randomUUID } from 'node:crypto';
 import { createConnection, type Connection, type ConnectOptions, STATES } from 'mongoose';
 import { deleteModelWithClass } from '@typegoose/typegoose';
 
-const MODEL_SCHEMAS = Object.values([]).filter((schema) => typeof schema === 'function');
+import { ConfigItem } from '../models/ConfigItem.model.js';
+
+const MODELS = Object.values([ConfigItem]).filter((schema) => typeof schema === 'function');
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,no-underscore-dangle
 const BASE_MONGO_URI = (global as any).__MONGO_URI__ as string;
@@ -33,7 +35,7 @@ export function setUpTestDbConnection(): () => Connection {
     if (connection.readyState === STATES.disconnected) {
       // The test closed the connection, so we shouldn't just reconnect, but also purge TypeGoose'
       // model cache because every item there is bound to the old connection.
-      MODEL_SCHEMAS.forEach(deleteModelWithClass);
+      MODELS.forEach(deleteModelWithClass);
       connection = await connect();
     }
 

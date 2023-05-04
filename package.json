@@ -18,7 +18,9 @@
   "dependencies": {
     "@fastify/routes": "^5.1.0",
     "@fastify/type-provider-json-schema-to-ts": "^2.2.2",
+    "@relaycorp/awala-keystore-cloud": "^2.1.0",
     "@relaycorp/pino-cloud": "^1.0.28",
+    "@relaycorp/relaynet-core": "^1.82.11",
     "@relaycorp/webcrypto-kms": "^1.5.7",
     "@typegoose/typegoose": "^11.1.0",
     "cloudevents": "^6.0.4",
@@ -30,6 +32,7 @@
   },
   "devDependencies": {
     "@jest/globals": "^29.5.0",
+    "@peculiar/webcrypto": "^1.4.3",
     "@relaycorp/eslint-config": "^1.1.92",
     "@relaycorp/shared-config": "^1.9.1",
     "@shelf/jest-mongodb": "^4.1.7",

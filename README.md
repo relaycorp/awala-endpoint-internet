@@ -40,6 +40,13 @@ The app MUST send service messages to Awala using the `outgoing-service-message`
 
 It MUST be a CloudEvents server responsible for processing `outgoing-service-message` events. It MUST only be accessible from a private network without auth.
 
+### Environment variables
+
+- `INTERNET_ADDRESS` (required; e.g., `ping.awala.services`).
+- `ACTIVE_ID_KEY_REF` (required).
+- `KMS_ADAPTER` (required).
+- `PRIVATE_KEY_STORE_ADAPTER` (required).
+
 ## Backing services
 
 - KMS.
