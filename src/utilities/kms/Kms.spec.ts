@@ -4,7 +4,10 @@ import type { KmsRsaPssProvider } from '@relaycorp/webcrypto-kms';
 
 import { getMockContext } from '../../testUtils/jest.js';
 import { MockKmsRsaPssProvider } from '../../testUtils/kms/MockKmsRsaPssProvider.js';
-import { INTERNET_ENDPOINT_ID_KEY_PAIR } from '../../testUtils/awala/stubs.js';
+import {
+  INTERNET_ENDPOINT_ID_KEY_PAIR,
+  INTERNET_ENDPOINT_ID_KEY_REF,
+} from '../../testUtils/awala/stubs.js';
 
 jest.unstable_mockModule('./provider.js', () => ({
   getKmsProvider: jest.fn(() => new MockKmsRsaPssProvider()),
@@ -20,10 +23,8 @@ describe('Kms', () => {
 
       expect(getKmsProvider).toHaveBeenCalledOnce();
       const provider = getMockContext(getKmsProvider).results[0].value as KmsRsaPssProvider;
-      const { privateKey } = INTERNET_ENDPOINT_ID_KEY_PAIR;
-      const refBuffer = await derSerializePrivateKey(privateKey);
       const keyImportSpy = jest.spyOn(provider, 'importKey');
-      await kms.retrievePrivateKeyByRef(refBuffer);
+      await kms.retrievePrivateKeyByRef(INTERNET_ENDPOINT_ID_KEY_REF);
       expect(keyImportSpy).toHaveBeenCalledOnce();
     });
   });
@@ -32,11 +33,11 @@ describe('Kms', () => {
     test('Specified key should be imported as raw', async () => {
       const provider = new MockKmsRsaPssProvider();
       const kms = new Kms(provider);
+
+      const retrievedKey = await kms.retrievePrivateKeyByRef(INTERNET_ENDPOINT_ID_KEY_REF);
+
       const { privateKey } = INTERNET_ENDPOINT_ID_KEY_PAIR;
       const originalKeySerialised = await derSerializePrivateKey(privateKey);
-
-      const retrievedKey = await kms.retrievePrivateKeyByRef(originalKeySerialised);
-
       const retrievedKeySerialised = await derSerializePrivateKey(retrievedKey);
       expect(retrievedKeySerialised).toStrictEqual(originalKeySerialised);
     });

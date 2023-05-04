@@ -18,6 +18,7 @@ import {
   INTERNET_ADDRESS,
   INTERNET_ENDPOINT_ID,
   INTERNET_ENDPOINT_ID_KEY_PAIR,
+  INTERNET_ENDPOINT_ID_KEY_REF,
 } from '../../testUtils/awala/stubs.js';
 
 import { InternetEndpoint } from './InternetEndpoint.js';
@@ -30,10 +31,9 @@ jest.unstable_mockModule('@relaycorp/awala-keystore-cloud', () => ({
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const { InternetEndpointManager } = await import('./InternetEndpointManager.js');
 
-const privateKeySerialised = await derSerializePrivateKey(INTERNET_ENDPOINT_ID_KEY_PAIR.privateKey);
 const REQUIRED_ENV_VARS = {
   INTERNET_ADDRESS,
-  ACTIVE_ID_KEY_REF: privateKeySerialised.toString('base64'),
+  ACTIVE_ID_KEY_REF: INTERNET_ENDPOINT_ID_KEY_REF.toString(),
   PRIVATE_KEY_STORE_ADAPTER: 'GCP',
 };
 
@@ -103,7 +103,7 @@ describe('InternetEndpointManager', () => {
 
     test('Endpoint should be an Internet one', async () => {
       const manager = new InternetEndpointManager(
-        privateKeySerialised,
+        INTERNET_ENDPOINT_ID_KEY_REF,
         INTERNET_ADDRESS,
         kms,
         config,
@@ -117,7 +117,7 @@ describe('InternetEndpointManager', () => {
 
     test('Internet address should be set', async () => {
       const manager = new InternetEndpointManager(
-        privateKeySerialised,
+        INTERNET_ENDPOINT_ID_KEY_REF,
         INTERNET_ADDRESS,
         kms,
         config,
@@ -131,7 +131,7 @@ describe('InternetEndpointManager', () => {
 
     test('Private key should be loaded by reference from KMS', async () => {
       const manager = new InternetEndpointManager(
-        privateKeySerialised,
+        INTERNET_ENDPOINT_ID_KEY_REF,
         INTERNET_ADDRESS,
         kms,
         config,
@@ -141,13 +141,13 @@ describe('InternetEndpointManager', () => {
       const { identityPrivateKey } = await manager.getActiveEndpoint();
 
       await expect(derSerializePrivateKey(identityPrivateKey)).resolves.toStrictEqual(
-        privateKeySerialised,
+        await derSerializePrivateKey(INTERNET_ENDPOINT_ID_KEY_PAIR.privateKey),
       );
     });
 
     test('Id should be derived from public key', async () => {
       const manager = new InternetEndpointManager(
-        privateKeySerialised,
+        INTERNET_ENDPOINT_ID_KEY_REF,
         INTERNET_ADDRESS,
         kms,
         config,
@@ -161,7 +161,7 @@ describe('InternetEndpointManager', () => {
 
     test('Key store set should be inherited from manager', async () => {
       const manager = new InternetEndpointManager(
-        privateKeySerialised,
+        INTERNET_ENDPOINT_ID_KEY_REF,
         INTERNET_ADDRESS,
         kms,
         config,
@@ -175,7 +175,7 @@ describe('InternetEndpointManager', () => {
 
     test('Config instance should be initialised and passed to endpoint', async () => {
       const manager = new InternetEndpointManager(
-        privateKeySerialised,
+        INTERNET_ENDPOINT_ID_KEY_REF,
         INTERNET_ADDRESS,
         kms,
         config,

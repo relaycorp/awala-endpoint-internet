@@ -26,14 +26,13 @@ function initKeyStoreSet(dbConnection: Connection): KeyStoreSet {
 
 export class InternetEndpointManager extends EndpointManager {
   public static async init(dbConnection: Connection): Promise<InternetEndpointManager> {
-    const activeIdKeyRefBase64 = envVar.get('ACTIVE_ID_KEY_REF').required().asString();
-    const activeIdKeyRef = Buffer.from(activeIdKeyRefBase64, 'base64');
+    const activeIdKeyRef = envVar.get('ACTIVE_ID_KEY_REF').required().asString();
     const activeEndpointInternetAddress = envVar.get('INTERNET_ADDRESS').required().asString();
     const kms = await Kms.init();
     const keyStoreSet = initKeyStoreSet(dbConnection);
     const config = new Config(dbConnection);
     return new InternetEndpointManager(
-      activeIdKeyRef,
+      Buffer.from(activeIdKeyRef),
       activeEndpointInternetAddress,
       kms,
       config,
