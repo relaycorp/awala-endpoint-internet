@@ -26,5 +26,3 @@ export async function exampleFunctionWithEmitter(options: ServiceOptions): Promi
 export async function examplePromiseRejection() {
   await Promise.reject(new Error('Example error'));
 }
-
-export const FOO = 'bar';
