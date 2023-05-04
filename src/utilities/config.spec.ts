@@ -54,7 +54,7 @@ describe('Config', () => {
       const config = new Config(getConnection());
       await config.set(ConfigKey.INITIAL_SESSION_KEY_ID_BASE64, PRIVATE_ADDRESS);
 
-      await expect(config.get(ConfigKey.INITIAL_SESSION_KEY_ID_BASE64)).resolves.toEqual(
+      await expect(config.get(ConfigKey.INITIAL_SESSION_KEY_ID_BASE64)).resolves.toStrictEqual(
         PRIVATE_ADDRESS,
       );
     });
