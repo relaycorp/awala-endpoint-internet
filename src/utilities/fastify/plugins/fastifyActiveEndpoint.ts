@@ -1,6 +1,5 @@
 import type { FastifyInstance } from 'fastify';
 import fastifyPlugin from 'fastify-plugin';
-
 import { InternetEndpointManager } from '../../awala/InternetEndpointManager.js';
 
 async function fastifyActiveEndpoint(fastify: FastifyInstance): Promise<void> {
