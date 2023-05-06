@@ -1,10 +1,17 @@
 import {
+  type Certificate,
   derDeserializeECDHPrivateKey,
   derSerializePublicKey,
+  generateRSAKeyPair,
+  InvalidMessageError,
+  issueEndpointCertificate,
   MockKeyStoreSet,
   NodeConnectionParams,
+  Parcel,
+  type Recipient,
   SessionKeyPair,
 } from '@relaycorp/relaynet-core';
+import { addSeconds, subSeconds } from 'date-fns';
 
 import { bufferToArrayBuffer } from '../buffer.js';
 import { Config, ConfigKey } from '../config.js';
@@ -117,6 +124,66 @@ describe('InternetEndpoint', () => {
           await derSerializePublicKey(ENDPOINT_ID_KEY_PAIR.publicKey),
         );
       });
+    });
+  });
+
+  describe('validateMessage', () => {
+    const payload = Buffer.from('payload');
+    const recipient: Recipient = {
+      id: ENDPOINT_ID,
+      internetAddress: ENDPOINT_ADDRESS,
+    };
+
+    let senderCertificate: Certificate;
+    beforeAll(async () => {
+      const senderKeyPair = await generateRSAKeyPair();
+      senderCertificate = await issueEndpointCertificate({
+        issuerPrivateKey: senderKeyPair.privateKey,
+        subjectPublicKey: senderKeyPair.publicKey,
+        validityEndDate: addSeconds(new Date(), 1),
+      });
+    });
+
+    test('Invalid parcel bound for correct Internet address should be refused', async () => {
+      const expiredParcel = new Parcel(recipient, senderCertificate, payload, {
+        creationDate: subSeconds(new Date(), 1),
+        ttl: 0,
+      });
+
+      await expect(endpoint.validateMessage(expiredParcel)).rejects.toThrow(InvalidMessageError);
+    });
+
+    test('Valid parcel bound for no Internet address should be refused', async () => {
+      const parcel = new Parcel(
+        { ...recipient, internetAddress: undefined },
+        senderCertificate,
+        payload,
+      );
+
+      await expect(endpoint.validateMessage(parcel)).rejects.toThrowWithMessage(
+        InvalidMessageError,
+        'Parcel recipient is missing Internet address',
+      );
+    });
+
+    test('Valid parcel bound for incorrect Internet address should be allowed', async () => {
+      const otherInternetAddress = `not-${ENDPOINT_ADDRESS}`;
+      const parcel = new Parcel(
+        { ...recipient, internetAddress: otherInternetAddress },
+        senderCertificate,
+        payload,
+      );
+
+      await expect(endpoint.validateMessage(parcel)).rejects.toThrowWithMessage(
+        InvalidMessageError,
+        `Parcel is bound for different Internet address (${otherInternetAddress})`,
+      );
+    });
+
+    test('Valid parcel bound for correct Internet address should be allowed', async () => {
+      const parcel = new Parcel(recipient, senderCertificate, payload);
+
+      await expect(endpoint.validateMessage(parcel)).toResolve();
     });
   });
 });

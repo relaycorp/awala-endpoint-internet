@@ -24,6 +24,7 @@
     "@relaycorp/webcrypto-kms": "^1.5.7",
     "@typegoose/typegoose": "^11.1.0",
     "cloudevents": "^6.0.4",
+    "date-fns": "^2.30.0",
     "env-var": "^7.3.0",
     "fastify": "^4.14.0",
     "fastify-plugin": "^4.5.0",
