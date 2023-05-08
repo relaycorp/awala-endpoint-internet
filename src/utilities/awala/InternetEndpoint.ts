@@ -1,7 +1,9 @@
 import {
   Endpoint,
+  InvalidMessageError,
   type KeyStoreSet,
   NodeConnectionParams,
+  type Parcel,
   type SessionKey,
   SessionKeyPair,
 } from '@relaycorp/relaynet-core';
@@ -62,5 +64,17 @@ export class InternetEndpoint extends Endpoint {
       initialSessionKey,
     );
     return Buffer.from(await params.serialize());
+  }
+
+  public override async validateMessage(message: Parcel): Promise<void> {
+    await super.validateMessage(message);
+
+    if (message.recipient.internetAddress !== this.internetAddress) {
+      const errorMessage =
+        message.recipient.internetAddress === undefined
+          ? 'Parcel recipient is missing Internet address'
+          : `Parcel is bound for different Internet address (${message.recipient.internetAddress})`;
+      throw new InvalidMessageError(errorMessage);
+    }
   }
 }
