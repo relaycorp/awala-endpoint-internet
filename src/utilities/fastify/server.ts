@@ -14,7 +14,6 @@ import { configureExitHandling } from '../exitHandling.js';
 
 import fastifyMongoose from './plugins/fastifyMongoose.js';
 import notFoundHandler from './plugins/notFoundHandler.js';
-
 import fastifyActiveEndpoint from './plugins/fastifyActiveEndpoint.js';
 
 const SERVER_PORT = 8080;

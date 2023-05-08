@@ -14,7 +14,7 @@ export interface TestServerFixture {
   readonly dbConnection: Connection;
   readonly logs: MockLogSet;
   readonly envVarMocker: EnvVarMocker;
-  readonly internetEndpointManager: InternetEndpointManager;
+  readonly endpointManager: InternetEndpointManager;
 }
 
 export function makeTestServer(
@@ -24,7 +24,7 @@ export function makeTestServer(
   const envVarMocker = configureMockEnvVars(envVars);
   const mockLogging = makeMockLogging();
   const getConnection = setUpTestDbConnection();
-  const getInternetEndpointManager = mockInternetEndpoint(getConnection);
+  const getEndpointManager = mockInternetEndpoint(getConnection);
 
   let server: FastifyInstance;
   beforeEach(async () => {
@@ -40,6 +40,6 @@ export function makeTestServer(
     dbConnection: getConnection(),
     logs: mockLogging.logs,
     envVarMocker,
-    internetEndpointManager: getInternetEndpointManager(),
+    endpointManager: getEndpointManager(),
   });
 }
