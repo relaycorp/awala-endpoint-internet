@@ -10,7 +10,8 @@ spec:
     spec:
       containers:
         - name: vault
-          image: vault:1.5.4
+          image: vault:1.13.2
+          imagePullPolicy: IfNotPresent
           command:
             - vault
             - server
@@ -33,7 +34,7 @@ spec:
       restartPolicy: OnFailure
       containers:
         - name: vault-config
-          image: vault:1.5.4
+          image: vault:1.13.2
           imagePullPolicy: IfNotPresent
           command:
             - vault
