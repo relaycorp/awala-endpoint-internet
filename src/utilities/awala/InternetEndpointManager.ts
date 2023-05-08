@@ -57,7 +57,7 @@ export class InternetEndpointManager extends EndpointManager {
   public async getActiveEndpoint(): Promise<InternetEndpoint> {
     const privateKey = await this.kms.retrievePrivateKeyByRef(this.activeEndpointIdKeyRef);
     const publicKey = await derDeserializeRSAPublicKey(this.activeEndpointIdPublicKeyDer);
-    const endpointId = await getIdFromIdentityKey(privateKey);
+    const endpointId = await getIdFromIdentityKey(publicKey);
     return new InternetEndpoint(
       endpointId,
       this.activeEndpointInternetAddress,
