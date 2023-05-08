@@ -18,7 +18,7 @@
   "dependencies": {
     "@fastify/routes": "^5.1.0",
     "@fastify/type-provider-json-schema-to-ts": "^2.2.2",
-    "@relaycorp/awala-keystore-cloud": "^2.1.0",
+    "@relaycorp/awala-keystore-cloud": "^2.1.1",
     "@relaycorp/pino-cloud": "^1.0.28",
     "@relaycorp/relaynet-core": "^1.83.2",
     "@relaycorp/webcrypto-kms": "^1.5.7",
