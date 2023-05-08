@@ -12,15 +12,6 @@ import fastifyActiveEndpoint from './fastifyActiveEndpoint';
 
 const mockGetActiveEndpoint = mockSpy(jest.fn<() => Promise<InternetEndpoint>>());
 const mockMakeInitialSessionKey = mockSpy(jest.fn<() => Promise<void>>());
-// jest.unstable_mockModule('../../awala/InternetEndpointManager.js', () => ({
-//   // eslint-disable-next-line @typescript-eslint/naming-convention
-//   InternetEndpointManager: {
-//     init: () => ({
-//       getActiveEndpoint: mockGetActiveEndpoint,
-//     }),
-//   },
-// }));
-
 
 const mockEndpointManagerInit = mockSpy(jest.spyOn(InternetEndpointManager, 'init'));
 
