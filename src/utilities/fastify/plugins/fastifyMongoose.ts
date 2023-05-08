@@ -10,9 +10,7 @@ function fastifyMongoose(fastify: FastifyInstance, _opts: RouteOptions, done: Pl
   fastify.addHook('onClose', async () => {
     await mongooseConnection.close();
   });
-
   fastify.decorate('mongoose', mongooseConnection);
-
   done();
 }
 

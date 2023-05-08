@@ -7,19 +7,22 @@ import type { InternetEndpoint } from '../../awala/InternetEndpoint.js';
 import { MONGODB_URI } from '../../../testUtils/db.js';
 
 import fastifyMongoose from './fastifyMongoose.js';
+import { InternetEndpointManager } from '../../awala/InternetEndpointManager';
+import fastifyActiveEndpoint from './fastifyActiveEndpoint';
 
-const mockGetActiveEndpoint = mockSpy(jest.fn<() => Promise<Partial<InternetEndpoint>>>());
+const mockGetActiveEndpoint = mockSpy(jest.fn<() => Promise<InternetEndpoint>>());
 const mockMakeInitialSessionKey = mockSpy(jest.fn<() => Promise<void>>());
-jest.unstable_mockModule('../../awala/InternetEndpointManager.js', () => ({
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  InternetEndpointManager: {
-    init: () => ({
-      getActiveEndpoint: mockGetActiveEndpoint,
-    }),
-  },
-}));
+// jest.unstable_mockModule('../../awala/InternetEndpointManager.js', () => ({
+//   // eslint-disable-next-line @typescript-eslint/naming-convention
+//   InternetEndpointManager: {
+//     init: () => ({
+//       getActiveEndpoint: mockGetActiveEndpoint,
+//     }),
+//   },
+// }));
 
-const fastifyActiveEndpoint = await import('./fastifyActiveEndpoint.js');
+
+const mockEndpointManagerInit = mockSpy(jest.spyOn(InternetEndpointManager, 'init'));
 
 describe('fastifyActiveEndpoint', () => {
   configureMockEnvVars({
@@ -28,17 +31,21 @@ describe('fastifyActiveEndpoint', () => {
 
   let activeEndpoint: Partial<InternetEndpoint>;
   beforeEach(() => {
+    mockEndpointManagerInit.mockResolvedValueOnce({
+      getActiveEndpoint: mockGetActiveEndpoint,
+    } as any)
     activeEndpoint = {
       makeInitialSessionKeyIfMissing: mockMakeInitialSessionKey,
     };
-    mockGetActiveEndpoint.mockResolvedValueOnce(activeEndpoint);
+    mockGetActiveEndpoint.mockResolvedValueOnce(activeEndpoint as any);
   });
 
   test('Fastify should be decorated with active endpoint', async () => {
     const app = fastify();
     await app.register(fastifyMongoose);
 
-    await app.register(fastifyActiveEndpoint.default);
+    await app.register(fastifyActiveEndpoint);
+    await app.ready();
 
     expect(app).toHaveProperty('activeEndpoint');
     expect(app.activeEndpoint).toStrictEqual(activeEndpoint);
@@ -48,7 +55,8 @@ describe('fastifyActiveEndpoint', () => {
     const app = fastify();
     await app.register(fastifyMongoose);
 
-    await app.register(fastifyActiveEndpoint.default);
+    await app.register(fastifyActiveEndpoint);
+    await app.ready();
 
     expect(mockMakeInitialSessionKey).toHaveBeenCalledOnce();
   });
@@ -56,10 +64,12 @@ describe('fastifyActiveEndpoint', () => {
   test('Missing db connection should throw error', async () => {
     const app = fastify();
 
+    await app.register(fastifyActiveEndpoint);
     const error = await getPromiseRejection(
-      async () => app.register(fastifyActiveEndpoint.default),
+      async () => app.ready(),
       Error,
     );
-    expect(error).toHaveProperty('message', 'MongoDB not configured!');
+
+    expect(error).toHaveProperty('message', 'The decorator is missing dependency \'mongoose\'.');
   });
 });
