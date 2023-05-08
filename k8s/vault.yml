@@ -1,0 +1,48 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: vault
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/min-scale: "1"
+    spec:
+      containers:
+        - name: vault
+          image: vault:1.5.4
+          command:
+            - vault
+            - server
+            - "-dev"
+          env:
+            - name: VAULT_DEV_ROOT_TOKEN_ID
+              value: "root"
+            - name: VAULT_DEV_LISTEN_ADDRESS
+              value: "0.0.0.0:8080"
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: vault-config
+spec:
+  template:
+    metadata:
+      name: "vault-config"
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: vault-config
+          image: vault:1.5.4
+          imagePullPolicy: IfNotPresent
+          command:
+            - vault
+            - secrets
+            - enable
+            - "-path=endpoint-keys"
+            - kv-v2
+          env:
+            - name: VAULT_ADDR
+              value: "http://vault.default"
+            - name: VAULT_TOKEN
+              value: "root"
