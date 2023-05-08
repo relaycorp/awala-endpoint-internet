@@ -20,7 +20,7 @@
     "@fastify/type-provider-json-schema-to-ts": "^2.2.2",
     "@relaycorp/awala-keystore-cloud": "^2.1.0",
     "@relaycorp/pino-cloud": "^1.0.28",
-    "@relaycorp/relaynet-core": "^1.83.3",
+    "@relaycorp/relaynet-core": "^1.83.4",
     "@relaycorp/webcrypto-kms": "^1.5.7",
     "@typegoose/typegoose": "^11.1.0",
     "cloudevents": "^6.0.4",

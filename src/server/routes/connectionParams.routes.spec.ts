@@ -3,22 +3,21 @@ import type { FastifyInstance } from 'fastify';
 import { makeTestPohttpServer } from '../../testUtils/pohttpServer.js';
 import type { InternetEndpointManager } from '../../utilities/awala/InternetEndpointManager.js';
 
-describe('healthcheck routes', () => {
+describe('Connection params route', () => {
   const getTestServerFixture = makeTestPohttpServer();
   let server: FastifyInstance;
-  let internetEndpointManager: InternetEndpointManager;
+  let endpointManager: InternetEndpointManager;
   beforeEach(() => {
-    ({ server, internetEndpointManager } = getTestServerFixture());
+    ({ server, endpointManager } = getTestServerFixture());
   });
 
-  test('A plain simple HEAD request should provide some diagnostic information', async () => {
-    const internetEndpoint = await internetEndpointManager.getActiveEndpoint();
-    const parameters = await internetEndpoint.getConnectionParams();
-
+  test('Should respond with connection parameters', async () => {
     const response = await server.inject({ method: 'GET', url: '/connection-params.der' });
 
     expect(response).toHaveProperty('statusCode', 200);
     expect(response).toHaveProperty('headers.content-type', 'application/vnd.etsi.tsl.der');
+    const internetEndpoint = await endpointManager.getActiveEndpoint();
+    const parameters = await internetEndpoint.getConnectionParams();
     expect(response.body).toBe(parameters.toString());
   });
 });
