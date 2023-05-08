@@ -14,11 +14,11 @@ export class InternetEndpoint extends Endpoint {
   public constructor(
     id: string,
     public readonly internetAddress: string,
-    identityPrivateKey: CryptoKey,
+    identityKeyPair: CryptoKeyPair,
     keyStores: KeyStoreSet,
     public readonly config: Config,
   ) {
-    super(id, identityPrivateKey, keyStores, {});
+    super(id, identityKeyPair, keyStores, {});
   }
 
   protected async retrieveInitialSessionKeyId(): Promise<Buffer | null> {
@@ -60,7 +60,7 @@ export class InternetEndpoint extends Endpoint {
     const initialSessionKey = await this.retrieveInitialSessionPublicKey();
     const params = new NodeConnectionParams(
       this.internetAddress,
-      await this.getIdentityPublicKey(),
+      this.identityKeyPair.publicKey,
       initialSessionKey,
     );
     return Buffer.from(await params.serialize());

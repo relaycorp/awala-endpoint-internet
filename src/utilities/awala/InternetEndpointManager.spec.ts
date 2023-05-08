@@ -1,6 +1,7 @@
 import { jest } from '@jest/globals';
 import {
   derSerializePrivateKey,
+  derSerializePublicKey,
   MockCertificateStore,
   MockKeyStoreSet,
   MockPublicKeyStore,
@@ -15,6 +16,7 @@ import { MockKms, mockKms } from '../../testUtils/kms/mockKms.js';
 import { Config } from '../config.js';
 import { setUpTestDbConnection } from '../../testUtils/db.js';
 import {
+  ENDPOINT_ID_PUBLIC_KEY_DER,
   ENDPOINT_ADDRESS,
   ENDPOINT_ID,
   ENDPOINT_ID_KEY_PAIR,
@@ -34,6 +36,7 @@ const { InternetEndpointManager } = await import('./InternetEndpointManager.js')
 const REQUIRED_ENV_VARS = {
   INTERNET_ADDRESS: ENDPOINT_ADDRESS,
   ACTIVE_ID_KEY_REF: ENDPOINT_ID_KEY_REF.toString(),
+  ACTIVE_ID_PUBLIC_KEY: ENDPOINT_ID_PUBLIC_KEY_DER.toString('base64'),
   PRIVATE_KEY_STORE_ADAPTER: 'GCP',
 };
 
@@ -62,25 +65,25 @@ describe('InternetEndpointManager', () => {
     });
 
     test('Certificate key store should temporarily be mocked', async () => {
-      const endpoint = await InternetEndpointManager.init(dbConnection);
+      const manager = await InternetEndpointManager.init(dbConnection);
 
-      expect(endpoint.keyStores.certificateStore).toBeInstanceOf(MockCertificateStore);
+      expect(manager.keyStores.certificateStore).toBeInstanceOf(MockCertificateStore);
     });
 
     test('Public key store should temporarily be mocked', async () => {
-      const endpoint = await InternetEndpointManager.init(dbConnection);
+      const manager = await InternetEndpointManager.init(dbConnection);
 
-      expect(endpoint.keyStores.publicKeyStore).toBeInstanceOf(MockPublicKeyStore);
+      expect(manager.keyStores.publicKeyStore).toBeInstanceOf(MockPublicKeyStore);
     });
 
     test('Private key store should be the cloud-based one', async () => {
-      const endpoint = await InternetEndpointManager.init(dbConnection);
+      const manager = await InternetEndpointManager.init(dbConnection);
 
       expect(mockCloudKeystoreInit).toHaveBeenCalledOnceWith(
         REQUIRED_ENV_VARS.PRIVATE_KEY_STORE_ADAPTER,
         dbConnection,
       );
-      expect(endpoint.keyStores.privateKeyStore).toBe(KEY_STORE_SET.privateKeyStore);
+      expect(manager.keyStores.privateKeyStore).toBe(KEY_STORE_SET.privateKeyStore);
     });
 
     test('KMS should be initialised', async () => {
@@ -90,6 +93,12 @@ describe('InternetEndpointManager', () => {
       await InternetEndpointManager.init(dbConnection);
 
       expect(kmsInitMock).toHaveBeenCalledOnce();
+    });
+
+    test('Public key should be loaded from env var', async () => {
+      const manager = await InternetEndpointManager.init(dbConnection);
+
+      expect(manager.activeEndpointIdPublicKeyDer).toMatchObject(ENDPOINT_ID_PUBLIC_KEY_DER);
     });
   });
 
@@ -104,6 +113,7 @@ describe('InternetEndpointManager', () => {
     test('Endpoint should be an Internet one', async () => {
       const manager = new InternetEndpointManager(
         ENDPOINT_ID_KEY_REF,
+        ENDPOINT_ID_PUBLIC_KEY_DER,
         ENDPOINT_ADDRESS,
         kms,
         config,
@@ -118,6 +128,7 @@ describe('InternetEndpointManager', () => {
     test('Internet address should be set', async () => {
       const manager = new InternetEndpointManager(
         ENDPOINT_ID_KEY_REF,
+        ENDPOINT_ID_PUBLIC_KEY_DER,
         ENDPOINT_ADDRESS,
         kms,
         config,
@@ -132,22 +143,45 @@ describe('InternetEndpointManager', () => {
     test('Private key should be loaded by reference from KMS', async () => {
       const manager = new InternetEndpointManager(
         ENDPOINT_ID_KEY_REF,
+        ENDPOINT_ID_PUBLIC_KEY_DER,
         ENDPOINT_ADDRESS,
         kms,
         config,
         KEY_STORE_SET,
       );
 
-      const { identityPrivateKey } = await manager.getActiveEndpoint();
+      const {
+        identityKeyPair: { privateKey },
+      } = await manager.getActiveEndpoint();
 
-      await expect(derSerializePrivateKey(identityPrivateKey)).resolves.toStrictEqual(
+      await expect(derSerializePrivateKey(privateKey)).resolves.toStrictEqual(
         await derSerializePrivateKey(ENDPOINT_ID_KEY_PAIR.privateKey),
+      );
+    });
+
+    test('Public key should be deserialised', async () => {
+      const manager = new InternetEndpointManager(
+        ENDPOINT_ID_KEY_REF,
+        ENDPOINT_ID_PUBLIC_KEY_DER,
+        ENDPOINT_ADDRESS,
+        kms,
+        config,
+        KEY_STORE_SET,
+      );
+
+      const {
+        identityKeyPair: { publicKey },
+      } = await manager.getActiveEndpoint();
+
+      await expect(derSerializePublicKey(publicKey)).resolves.toMatchObject(
+        ENDPOINT_ID_PUBLIC_KEY_DER,
       );
     });
 
     test('Id should be derived from public key', async () => {
       const manager = new InternetEndpointManager(
         ENDPOINT_ID_KEY_REF,
+        ENDPOINT_ID_PUBLIC_KEY_DER,
         ENDPOINT_ADDRESS,
         kms,
         config,
@@ -162,6 +196,7 @@ describe('InternetEndpointManager', () => {
     test('Key store set should be inherited from manager', async () => {
       const manager = new InternetEndpointManager(
         ENDPOINT_ID_KEY_REF,
+        ENDPOINT_ID_PUBLIC_KEY_DER,
         ENDPOINT_ADDRESS,
         kms,
         config,
@@ -176,6 +211,7 @@ describe('InternetEndpointManager', () => {
     test('Config instance should be initialised and passed to endpoint', async () => {
       const manager = new InternetEndpointManager(
         ENDPOINT_ID_KEY_REF,
+        ENDPOINT_ID_PUBLIC_KEY_DER,
         ENDPOINT_ADDRESS,
         kms,
         config,

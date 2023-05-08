@@ -41,7 +41,7 @@ describe('InternetEndpoint', () => {
     endpoint = new InternetEndpoint(
       ENDPOINT_ID,
       ENDPOINT_ADDRESS,
-      ENDPOINT_ID_KEY_PAIR.privateKey,
+      ENDPOINT_ID_KEY_PAIR,
       keyStores,
       config,
     );
