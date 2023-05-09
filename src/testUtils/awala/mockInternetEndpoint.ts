@@ -7,7 +7,7 @@ import { Config } from '../../utilities/config.js';
 import { mockKms } from '../kms/mockKms.js';
 import { Kms } from '../../utilities/kms/Kms.js';
 
-import { ENDPOINT_ADDRESS, ENDPOINT_ID_KEY_REF } from './stubs.js';
+import { ENDPOINT_ADDRESS, ENDPOINT_ID_KEY_REF, ENDPOINT_ID_PUBLIC_KEY_DER } from './stubs.js';
 
 export function mockInternetEndpoint(
   getDbConnection: () => Connection,
@@ -20,6 +20,7 @@ export function mockInternetEndpoint(
   beforeEach(async () => {
     stub = new InternetEndpointManager(
       ENDPOINT_ID_KEY_REF,
+      ENDPOINT_ID_PUBLIC_KEY_DER,
       ENDPOINT_ADDRESS,
       await Kms.init(),
       new Config(getDbConnection()),
