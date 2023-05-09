@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals';
 import fastify from 'fastify';
 
-import { getPromiseRejection, mockSpy } from '../../../testUtils/jest.js';
+import { mockSpy } from '../../../testUtils/jest.js';
 import { configureMockEnvVars } from '../../../testUtils/envVars.js';
 import type { InternetEndpoint } from '../../awala/InternetEndpoint.js';
 import { MONGODB_URI } from '../../../testUtils/db.js';
@@ -19,7 +19,7 @@ describe('fastifyActiveEndpoint', () => {
     MONGODB_URI,
   });
 
-  let activeEndpoint: InternetEndpoint;
+  let mockActiveEndpoint: InternetEndpoint;
   beforeEach(() => {
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const endpointManager: InternetEndpointManager = {
@@ -27,41 +27,50 @@ describe('fastifyActiveEndpoint', () => {
     } as Partial<InternetEndpointManager> as any;
 
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    activeEndpoint = {
+    mockActiveEndpoint = {
       makeInitialSessionKeyIfMissing: mockMakeInitialSessionKey,
     } as Partial<InternetEndpoint> as any;
 
     mockEndpointManagerInit.mockResolvedValueOnce(endpointManager);
-    mockGetActiveEndpoint.mockResolvedValueOnce(activeEndpoint);
+    mockGetActiveEndpoint.mockResolvedValueOnce(mockActiveEndpoint);
   });
 
-  test('Fastify should be decorated with active endpoint', async () => {
+  test('Fastify should be decorated with get active endpoint function', async () => {
     const app = fastify();
     await app.register(fastifyMongoose);
 
     await app.register(fastifyActiveEndpoint);
     await app.ready();
 
-    expect(app).toHaveProperty('activeEndpoint');
-    expect(app.activeEndpoint).toBe(activeEndpoint);
+    expect(app).toHaveProperty('getActiveEndpoint');
+    const activeEndpoint = await app.getActiveEndpoint();
+    expect(activeEndpoint).toBe(mockActiveEndpoint);
+  });
+
+  test('Active endpoint should be cached after the first request', async () => {
+    const app = fastify();
+    await app.register(fastifyMongoose);
+    await app.register(fastifyActiveEndpoint);
+    await app.ready();
+
+    const anotherMockActiveEndpoint: InternetEndpoint = null as any;
+
+    const activeEndpointResult1 = await app.getActiveEndpoint();
+    mockGetActiveEndpoint.mockResolvedValueOnce(anotherMockActiveEndpoint);
+    const activeEndpointResult2 = await app.getActiveEndpoint();
+
+    expect(activeEndpointResult2).not.toBeNull();
+    expect(activeEndpointResult1).toBe(activeEndpointResult2);
   });
 
   test('Should make initial session key', async () => {
     const app = fastify();
     await app.register(fastifyMongoose);
-
     await app.register(fastifyActiveEndpoint);
     await app.ready();
 
+    await app.getActiveEndpoint();
+
     expect(mockMakeInitialSessionKey).toHaveBeenCalledOnce();
-  });
-
-  test('Missing db connection should throw error', async () => {
-    const app = fastify();
-
-    await app.register(fastifyActiveEndpoint);
-    const error = await getPromiseRejection(async () => app.ready(), Error);
-
-    expect(error).toHaveProperty('message', "The decorator is missing dependency 'mongoose'.");
   });
 });

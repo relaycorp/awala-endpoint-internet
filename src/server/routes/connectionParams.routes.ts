@@ -14,7 +14,8 @@ export default function registerRoutes(
     url: '/connection-params.der',
 
     async handler(_request, reply): Promise<void> {
-      const connectionParams = await fastify.activeEndpoint.getConnectionParams();
+      const activeEndpoint = await fastify.getActiveEndpoint();
+      const connectionParams = await activeEndpoint.getConnectionParams();
 
       await reply.type(DER_CONTENT_TYPE).send(connectionParams);
     },
