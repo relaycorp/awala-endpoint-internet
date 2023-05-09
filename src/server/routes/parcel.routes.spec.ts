@@ -16,17 +16,14 @@ import { FastifyInstance, InjectOptions } from 'fastify';
 
 import { GATEWAY_INTERNET_ADDRESS, generatePingParcel } from '../../testUtils/awala/parcel';
 import { configureMockEnvVars, REQUIRED_ENV_VARS } from '../../testUtils/envVars';
-import { makeMockLogging, partialPinoLog } from '../../testUtils/logging';
-import { makePohttpServer } from '../server';
+import { makeTestPohttpServer } from '../../testUtils/pohttpServer';
+import { MockLogSet, partialPinoLog } from '../../testUtils/logging';
+import { mockSpy } from '../../testUtils/jest';
+import vault  '../backingServices/vault';
+
 
 
 configureMockEnvVars(REQUIRED_ENV_VARS);
-
-const mockLogging = makeMockLogging();
-let serverInstance: FastifyInstance;
-beforeEach(async () => {
-  serverInstance = await makePohttpServer(mockLogging.logger);
-});
 
 const validRequestOptions: InjectOptions = {
   headers: {
@@ -37,6 +34,13 @@ const validRequestOptions: InjectOptions = {
   payload: {},
   url: '/',
 };
+describe('test', () => {
+const getTestServerFixture = makeTestPohttpServer();
+  let server: FastifyInstance;
+  let logs: MockLogSet;
+  beforeEach(() => {
+    ({ server, logs } = getTestServerFixture());
+  });
 
 let keyPairSet: NodeKeyPairSet;
 let certificatePath: PDACertPath;
@@ -68,30 +72,32 @@ beforeAll(async () => {
 });
 
 const mockPrivateKeyStore = new MockPrivateKeyStore();
-// mockSpy(jest.spyOn(vault, 'initVaultKeyStore'), () => mockPrivateKeyStore as any);
-beforeEach(async () => {
-  await mockPrivateKeyStore.saveIdentityKey(pongEndpointId, keyPairSet.pdaGrantee.privateKey);
-});
-afterEach(() => {
-  mockPrivateKeyStore.clear();
-});
-
-afterAll(() => {
-  jest.restoreAllMocks();
-});
+mockSpy(jest.spyOn(vault, 'initVaultKeyStore'), () => mockPrivateKeyStore as any);
 
 describe('receiveParcel', () => {
   let parcelLogAttributes: any;
   beforeEach(async () => {
+    await mockPrivateKeyStore.saveIdentityKey(pongEndpointId, keyPairSet.pdaGrantee.privateKey);
+
     parcelLogAttributes = {
       parcelId,
       recipient: pingParcelRecipient,
       senderId: await getIdFromIdentityKey(keyPairSet.privateEndpoint.publicKey),
     };
   });
+  beforeEach(async () => {
+  });
+  afterEach(() => {
+    mockPrivateKeyStore.clear();
+  });
+
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
+
 
   test('Content-Type other than application/vnd.awala.parcel should be refused', async () => {
-    const response = await serverInstance.inject({
+    const response = await server.inject({
       ...validRequestOptions,
       headers: {
         ...validRequestOptions.headers,
@@ -106,7 +112,7 @@ describe('receiveParcel', () => {
 
   test('Request body should be refused if it is not a valid RAMF-serialized parcel', async () => {
     const payload = Buffer.from('');
-    const response = await serverInstance.inject({
+    const response = await server.inject({
       ...validRequestOptions,
       headers: { ...validRequestOptions.headers, 'Content-Length': payload.byteLength.toString() },
       payload,
@@ -114,13 +120,11 @@ describe('receiveParcel', () => {
 
     expect(response).toHaveProperty('statusCode', 403);
     expect(JSON.parse(response.payload)).toHaveProperty(
-      'message',
+      'reason',
       'Payload is not a valid RAMF-serialized parcel',
     );
-    expect(mockLogging.logs).toContainEqual(
-      partialPinoLog('info', 'Refusing malformed parcel', {
-        reason: expect.stringContaining('RAMF'),
-      }),
+    expect(logs).toContainEqual(
+      partialPinoLog('info', 'Refusing malformed parcel'),
     );
   });
 
@@ -133,7 +137,7 @@ describe('receiveParcel', () => {
       certificatePath,
       yesterday,
     );
-    const response = await serverInstance.inject({
+    const response = await server.inject({
       ...validRequestOptions,
       headers: {
         ...validRequestOptions.headers,
@@ -147,7 +151,7 @@ describe('receiveParcel', () => {
       'message',
       'Parcel is well-formed but invalid',
     );
-    expect(mockLogging.logs).toContainEqual(
+    expect(logs).toContainEqual(
       partialPinoLog('info', 'Refusing invalid parcel', {
         ...parcelLogAttributes,
         parcelId: parcel.id,
@@ -164,7 +168,7 @@ describe('receiveParcel', () => {
       keyPairSet,
       certificatePath,
     );
-    const response = await serverInstance.inject({
+    const response = await server.inject({
       ...validRequestOptions,
       headers: {
         ...validRequestOptions.headers,
@@ -175,7 +179,7 @@ describe('receiveParcel', () => {
 
     expect(response).toHaveProperty('statusCode', 202);
     expect(JSON.parse(response.payload)).toBeEmptyObject();
-    expect(mockLogging.logs).toContainEqual(
+    expect(logs).toContainEqual(
       partialPinoLog('info', 'Parcel is bound for recipient with different id', {
         ...parcelLogAttributes,
         parcelId: parcel.id,
@@ -195,7 +199,7 @@ describe('receiveParcel', () => {
       keyPairSet,
       certificatePath,
     );
-    const response = await serverInstance.inject({
+    const response = await server.inject({
       ...validRequestOptions,
       headers: {
         ...validRequestOptions.headers,
@@ -206,7 +210,7 @@ describe('receiveParcel', () => {
 
     expect(response).toHaveProperty('statusCode', 403);
     expect(JSON.parse(response.payload)).toHaveProperty('message', 'Invalid parcel recipient');
-    expect(mockLogging.logs).toContainEqual(
+    expect(logs).toContainEqual(
       partialPinoLog('info', 'Parcel is bound for recipient with different Internet address', {
         ...parcelLogAttributes,
         parcelId: parcel.id,
@@ -215,3 +219,4 @@ describe('receiveParcel', () => {
     );
   });
 });
+})

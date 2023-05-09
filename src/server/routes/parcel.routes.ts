@@ -9,6 +9,10 @@ export default function registerRoutes(
   _opts: RouteOptions,
   done: PluginDone,
 ): void {
+
+  fastify.removeAllContentTypeParsers();
+  fastify.addContentTypeParser('application/vnd.awala.parcel',  (_request, payload, done) => done(null, payload))
+
   fastify.route<{ readonly Body: Buffer }>({
     method: ['POST'],
     url: '/',
@@ -21,7 +25,7 @@ export default function registerRoutes(
       } catch (err) {
         // Don't log the full error because 99.99% of the time the reason will suffice.
         request.log.info({ reason: (err as Error).message }, 'Refusing malformed parcel');
-        return reply.code(403).send({ message: 'Payload is not a valid RAMF-serialized parcel' });
+        return reply.code(403).send({ reason: 'Payload is not a valid RAMF-serialized parcel' });
       }
 
       const parcelAwareLogger = request.log.child({
