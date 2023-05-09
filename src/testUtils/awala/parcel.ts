@@ -34,7 +34,7 @@ interface GeneratedParcel {
 }
 
 
-export async function generatePingParcel(
+export async function generateParcel(
   recipient: Recipient,
   recipientIdCertificate: Certificate,
   keyPairSet: NodeKeyPairSet,
@@ -45,7 +45,7 @@ export async function generatePingParcel(
     keyPairSet.privateEndpoint.publicKey,
     keyPairSet.privateEndpoint.privateKey,
   );
-  const parcelPayloadSerialized = await generatePingParcelPayload(
+  const parcelPayloadSerialized = await generateParcelPayload(
     certificatePath,
     recipientIdCertificate,
     recipient.internetAddress ?? GATEWAY_INTERNET_ADDRESS,
@@ -94,16 +94,12 @@ export function generatePingServiceMessage(
   return serviceMessage.serialize();
 }
 
-async function generatePingParcelPayload(
-  certificatePath: PDACertPath,
+async function generateParcelPayload(
   recipientIdCertificate: Certificate,
-  recipientInternetAddress: string,
 ): Promise<Buffer> {
-  const serviceMessageSerialized = generatePingServiceMessage(
-    certificatePath,
-    recipientInternetAddress,
-  );
+
   const serviceMessageEncrypted = await SessionlessEnvelopedData.encrypt(
+    // change this to hardcoded array buffer
     serviceMessageSerialized,
     recipientIdCertificate,
   );

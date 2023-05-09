@@ -72,8 +72,6 @@ beforeAll(async () => {
 });
 
 const mockPrivateKeyStore = new MockPrivateKeyStore();
-mockSpy(jest.spyOn(vault, 'initVaultKeyStore'), () => mockPrivateKeyStore as any);
-
 describe('receiveParcel', () => {
   let parcelLogAttributes: any;
   beforeEach(async () => {
@@ -129,6 +127,7 @@ describe('receiveParcel', () => {
   });
 
   test('Parcel should be refused if it is well-formed but invalid', async () => {
+
     const yesterday = subDays(new Date(), 1);
     const { parcelSerialized, parcel } = await generatePingParcel(
       pingParcelRecipient,
