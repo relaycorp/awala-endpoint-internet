@@ -9,8 +9,8 @@ import {
 } from '@relaycorp/relaynet-core';
 import { NodeKeyPairSet, PDACertPath } from '@relaycorp/relaynet-testing';
 import uuid4 from 'uuid4';
-
-export const GATEWAY_INTERNET_ADDRESS = 'westeros.relaycorp.cloud';
+import { bufferToArrayBuffer } from '../../utilities/buffer';
+import { ENDPOINT_ADDRESS } from './stubs';
 
 export async function generateStubNodeCertificate(
   subjectPublicKey: CryptoKey,
@@ -33,12 +33,53 @@ interface GeneratedParcel {
   readonly parcel: Parcel;
 }
 
-
-export async function generateParcel(
+export async function generatePingParcel(
   recipient: Recipient,
   recipientIdCertificate: Certificate,
   keyPairSet: NodeKeyPairSet,
   certificatePath: PDACertPath,
+  creationDate: Date | null = null,
+): Promise<GeneratedParcel> {
+
+  const parcelSenderCertificate = await generateStubNodeCertificate(
+    keyPairSet.privateEndpoint.publicKey,
+    keyPairSet.privateEndpoint.privateKey,
+  );
+  const parcelPayloadSerialized = await generatePingParcelPayload(
+    certificatePath,
+    recipientIdCertificate,
+    recipient.internetAddress ?? ENDPOINT_ADDRESS ,
+  );
+  const parcel = new Parcel(
+    recipient,
+    parcelSenderCertificate,
+    parcelPayloadSerialized,
+    creationDate ? { creationDate } : {},
+  );
+  const serialization = Buffer.from(await parcel.serialize(keyPairSet.privateEndpoint.privateKey));
+  return { parcelSerialized: serialization, parcel };
+}
+
+
+async function generatePingParcelPayload(
+  certificatePath: PDACertPath,
+  recipientIdCertificate: Certificate,
+  recipientInternetAddress: string,
+): Promise<Buffer> {
+  const serviceMessageSerialized = generatePingServiceMessage(
+    certificatePath,
+    recipientInternetAddress,
+  );
+  const serviceMessageEncrypted = await SessionlessEnvelopedData.encrypt(
+    serviceMessageSerialized,
+    recipientIdCertificate,
+  );
+  return Buffer.from(serviceMessageEncrypted.serialize());
+}
+
+export async function generateParcel(
+  recipient: Recipient,
+  keyPairSet: NodeKeyPairSet,
   creationDate: Date | null = null,
 ): Promise<GeneratedParcel> {
   const parcelSenderCertificate = await generateStubNodeCertificate(
@@ -46,9 +87,7 @@ export async function generateParcel(
     keyPairSet.privateEndpoint.privateKey,
   );
   const parcelPayloadSerialized = await generateParcelPayload(
-    certificatePath,
-    recipientIdCertificate,
-    recipient.internetAddress ?? GATEWAY_INTERNET_ADDRESS,
+    parcelSenderCertificate
   );
   const parcel = new Parcel(
     recipient,
@@ -94,13 +133,13 @@ export function generatePingServiceMessage(
   return serviceMessage.serialize();
 }
 
-async function generateParcelPayload(
+export async function generateParcelPayload(
   recipientIdCertificate: Certificate,
 ): Promise<Buffer> {
 
   const serviceMessageEncrypted = await SessionlessEnvelopedData.encrypt(
     // change this to hardcoded array buffer
-    serviceMessageSerialized,
+    bufferToArrayBuffer(Buffer.from('Test')),
     recipientIdCertificate,
   );
   return Buffer.from(serviceMessageEncrypted.serialize());

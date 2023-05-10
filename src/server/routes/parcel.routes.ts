@@ -35,7 +35,8 @@ export default function registerRoutes(
       });
 
       try {
-        await fastify.activeEndpoint.validateMessage(parcel);
+        const activeEndpoint = await fastify.getActiveEndpoint();
+        activeEndpoint.validateMessage(parcel);
       } catch (err) {
         parcelAwareLogger.info({ err }, 'Refusing invalid parcel');
         return reply.code(403).send({ message: 'Parcel is well-formed but invalid' });
