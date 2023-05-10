@@ -46,6 +46,7 @@ describe('parcel route', () => {
       pingParcelRecipient,
       certificatePath.privateEndpoint,
       keyPairSet,
+      new Date()
     );
 
     const response = await server.inject({
@@ -109,4 +110,32 @@ describe('parcel route', () => {
       'Parcel is well-formed but invalid',
     );
   });
+
+  test('decrypting', async () => {
+    const pingParcelRecipient = {
+      id: activeEndpoint.id,
+      internetAddress: activeEndpoint.internetAddress,
+    };
+
+    const { publicKey} = await activeEndpoint.retrieveInitialSessionPublicKey()
+    console.log(activeEndpoint.identityKeyPair.publicKey)
+
+    const keyPairSet = await generateIdentityKeyPairSet();
+    const certificatePath = await generatePDACertificationPath(keyPairSet);
+    const { parcelSerialized } = await generateParcel(
+      pingParcelRecipient,
+      certificatePath.privateEndpoint,
+      keyPairSet,
+      new Date(),
+      publicKey
+    );
+
+    const response = await server.inject({
+      ...validRequestOptions,
+      payload: parcelSerialized,
+    });
+
+    expect(response).toHaveProperty('statusCode', HTTP_STATUS_CODES.ACCEPTED);
+  });
+
 });

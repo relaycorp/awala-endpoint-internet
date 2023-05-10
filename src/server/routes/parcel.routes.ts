@@ -45,9 +45,9 @@ export default function registerRoutes(
         recipient: parcel.recipient,
         senderId: await parcel.senderCertificate.calculateSubjectId(),
       });
+      const activeEndpoint = await fastify.getActiveEndpoint();
 
       try {
-        const activeEndpoint = await fastify.getActiveEndpoint();
         await activeEndpoint.validateMessage(parcel);
       } catch (err) {
         parcelAwareLogger.info({ err }, 'Refusing invalid parcel');
@@ -55,6 +55,16 @@ export default function registerRoutes(
           .code(HTTP_STATUS_CODES.FORBIDDEN)
           .send({ message: 'Parcel is well-formed but invalid' });
       }
+
+      let decryptionResult;
+      try {
+        decryptionResult = await parcel.unwrapPayload(activeEndpoint.keyStores.privateKeyStore)
+      } catch (error) {
+        // The sender didn't create a valid service message, so let's ignore it.
+        parcelAwareLogger.info({ err: error }, 'Invalid service message');
+        return;
+      }
+      console.log(decryptionResult);
 
       // DECRYPT AND THEN EMIT EVENT (BUT THAT'S PART OF A DIFFERENT ISSUE)
       parcelAwareLogger.info('Parcel is valid and has been queued');

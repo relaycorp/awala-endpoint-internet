@@ -2,7 +2,7 @@ import {
   type Certificate,
   issueGatewayCertificate,
   Parcel,
-  type Recipient,
+  type Recipient, SessionEnvelopedData,
   SessionlessEnvelopedData,
 } from '@relaycorp/relaynet-core';
 import type { NodeKeyPairSet } from '@relaycorp/relaynet-testing';
@@ -29,7 +29,20 @@ async function generateStubNodeCertificate(
   });
 }
 
-async function generateParcelPayload(recipientIdCertificate: Certificate): Promise<Buffer> {
+async function generateSessionlessParcelPayload(recipientIdCertificate: Certificate): Promise<Buffer> {
+  const serviceMessageEncrypted = await SessionlessEnvelopedData.encrypt(
+    bufferToArrayBuffer(Buffer.from('Test')),
+    recipientIdCertificate,
+  );
+  return Buffer.from(serviceMessageEncrypted.serialize());
+}
+
+async function generateParcelPayload(recipientIdCertificate: Certificate, recipientSessionKey): Promise<Buffer> {
+  const { envelopedData } = await SessionEnvelopedData.encrypt(
+    serviceMessageSerialized,
+    recipientSessionKey
+  );
+
   const serviceMessageEncrypted = await SessionlessEnvelopedData.encrypt(
     bufferToArrayBuffer(Buffer.from('Test')),
     recipientIdCertificate,
@@ -41,18 +54,19 @@ export async function generateParcel(
   recipient: Recipient,
   recipientIdCertificate: Certificate,
   keyPairSet: NodeKeyPairSet,
-  creationDate: Date | null = null,
+  creationDate: Date,
+  sessionKey?: CryptoKey
 ): Promise<GeneratedParcel> {
   const parcelSenderCertificate = await generateStubNodeCertificate(
     keyPairSet.privateEndpoint.publicKey,
     keyPairSet.privateEndpoint.privateKey,
   );
-  const parcelPayloadSerialized = await generateParcelPayload(recipientIdCertificate);
+  const parcelPayloadSerialized = await generateSessionlessParcelPayload(recipientIdCertificate);
   const parcel = new Parcel(
     recipient,
     parcelSenderCertificate,
     parcelPayloadSerialized,
-    creationDate ? { creationDate } : {},
+    { creationDate },
   );
 
   const serialization = Buffer.from(await parcel.serialize(keyPairSet.privateEndpoint.privateKey));
