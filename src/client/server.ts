@@ -41,7 +41,6 @@ function makePohttpClientPlugin(
     server.log.info(event.id);
     await reply.status(HTTP_STATUS_CODES.NO_CONTENT).send();
   });
-
   done();
 }
 

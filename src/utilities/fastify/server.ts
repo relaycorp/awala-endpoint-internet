@@ -14,6 +14,7 @@ import { configureExitHandling } from '../exitHandling.js';
 
 import fastifyMongoose from './plugins/fastifyMongoose.js';
 import notFoundHandler from './plugins/notFoundHandler.js';
+import fastifyActiveEndpoint from './plugins/fastifyActiveEndpoint.js';
 
 const SERVER_PORT = 8080;
 const SERVER_HOST = '0.0.0.0';
@@ -48,8 +49,9 @@ export async function makeFastify(
 
     trustProxy: true,
   });
-
   await server.register(fastifyMongoose);
+
+  await server.register(fastifyActiveEndpoint);
 
   await server.register(fastifyRoutes);
   await server.register(notFoundHandler);

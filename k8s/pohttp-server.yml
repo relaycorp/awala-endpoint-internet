@@ -19,9 +19,6 @@ spec:
               path: /
             initialDelaySeconds: 1
           env:
-            - name: ENDPOINT_VERSION
-              value: "1.0.0dev1"
-
             - name: MONGODB_USERNAME
               valueFrom:
                 configMapKeyRef:
@@ -35,9 +32,12 @@ spec:
             - name: MONGODB_URI
               value: mongodb://$(MONGODB_USERNAME):$(MONGODB_PASSWORD)@mongodb.default
 
-            # Mock AWS KMS (used by WebCrypto KMS)
-            - name: KMS_ADAPTER
-              value: AWS
+            - name: KS_VAULT_TOKEN
+              valueFrom:
+                configMapKeyRef:
+                  name: credentials
+                  key: vault_token
+
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
                 configMapKeyRef:
@@ -53,8 +53,9 @@ spec:
                 configMapKeyRef:
                   name: mock-aws-kms
                   key: endpoint
-            - name: AWS_KMS_REGION
-              value: eu-west-2
+          envFrom:
+            - configMapRef:
+                name: pohttp
 ---
 apiVersion: sources.knative.dev/v1
 kind: SinkBinding
