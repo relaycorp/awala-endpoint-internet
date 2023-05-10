@@ -11,7 +11,7 @@ export async function makePohttpServerPlugin(server: FastifyInstance): Promise<v
   const rootRoutes: FastifyPluginCallback<RouteOptions>[] = [
     healthcheckRoutes,
     connectionParamsRoutes,
-    parcelRoutes
+    parcelRoutes,
   ];
   await Promise.all(rootRoutes.map((route) => server.register(route)));
 }
