@@ -36,14 +36,14 @@ describe('parcel route', () => {
   });
 
   test('Valid parcel should be accepted', async () => {
-    const pingParcelRecipient = {
+    const parcelRecipient = {
       id: activeEndpoint.id,
       internetAddress: activeEndpoint.internetAddress,
     };
     const keyPairSet = await generateIdentityKeyPairSet();
     const certificatePath = await generatePDACertificationPath(keyPairSet);
     const { parcelSerialized } = await generateParcel(
-      pingParcelRecipient,
+      parcelRecipient,
       certificatePath.privateEndpoint,
       keyPairSet,
     );
@@ -85,14 +85,14 @@ describe('parcel route', () => {
   });
 
   test('Parcel should be refused if it is well-formed but invalid', async () => {
-    const pingParcelRecipient = {
+    const parcelRecipient = {
       id: activeEndpoint.id,
       internetAddress: activeEndpoint.internetAddress,
     };
     const keyPairSet = await generateIdentityKeyPairSet();
     const certificatePath = await generatePDACertificationPath(keyPairSet);
     const { parcelSerialized } = await generateParcel(
-      pingParcelRecipient,
+      parcelRecipient,
       certificatePath.privateEndpoint,
       keyPairSet,
       subDays(new Date(), 1),
