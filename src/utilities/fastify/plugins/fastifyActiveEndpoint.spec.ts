@@ -2,9 +2,9 @@ import { AssertionError } from 'node:assert';
 
 import fastify from 'fastify';
 
-import { configureMockEnvVars, REQUIRED_ENV_VARS } from '../../../testUtils/envVars.js';
+import { configureMockEnvVars } from '../../../testUtils/envVars.js';
 import { mockInternetEndpoint } from '../../../testUtils/awala/mockInternetEndpoint.js';
-import { setUpTestDbConnection } from '../../../testUtils/db.js';
+import { MONGODB_URI, setUpTestDbConnection } from '../../../testUtils/db.js';
 import type { InternetEndpointManager } from '../../awala/InternetEndpointManager.js';
 import { getPromiseRejection } from '../../../testUtils/jest.js';
 
@@ -12,7 +12,7 @@ import fastifyActiveEndpoint from './fastifyActiveEndpoint.js';
 import fastifyMongoose from './fastifyMongoose.js';
 
 describe('fastifyActiveEndpoint', () => {
-  configureMockEnvVars(REQUIRED_ENV_VARS);
+  configureMockEnvVars({ MONGODB_URI });
 
   const getConnection = setUpTestDbConnection();
   const getInternetEndpointManager = mockInternetEndpoint(getConnection);
