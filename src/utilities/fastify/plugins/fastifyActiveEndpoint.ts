@@ -15,6 +15,6 @@ async function fastifyActiveEndpoint(fastify: FastifyInstance) {
 
 const fastifyActiveEndpointPlugin = fastifyPlugin(fastifyActiveEndpoint, {
   name: 'active-endpoint',
-  dependencies: ['fastify-mongoose']
+  dependencies: ['fastify-mongoose'],
 });
 export default fastifyActiveEndpointPlugin;
