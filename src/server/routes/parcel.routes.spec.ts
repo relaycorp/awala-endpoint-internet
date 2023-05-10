@@ -8,6 +8,9 @@ import { InternetEndpoint } from '../../utilities/awala/InternetEndpoint';
 import {
   generateIdentityKeyPairSet, generatePDACertificationPath,
 } from '@relaycorp/relaynet-testing';
+import { Parcel } from '@relaycorp/relaynet-core';
+import { bufferToArrayBuffer } from '../../utilities/buffer';
+import { subDays } from 'date-fns';
 
 
 
@@ -30,7 +33,6 @@ const getTestServerFixture = makeTestPohttpServer();
   beforeEach(async() => {
     ({ server, logs } = getTestServerFixture());
     activeEndpoint = await server.getActiveEndpoint();
-    console.log(logs);
   });
 
   test('Content-Type other than application/vnd.awala.parcel should be refused', async () => {
@@ -73,12 +75,17 @@ const getTestServerFixture = makeTestPohttpServer();
     const keyPairSet = await generateIdentityKeyPairSet();
     const certificatePath = await generatePDACertificationPath(keyPairSet);
 
+
     const { parcelSerialized } = await generatePingParcel(
       pingParcelRecipient,
       certificatePath.privateEndpoint,
       keyPairSet,
-      certificatePath
+      certificatePath,
+      subDays(new Date, 10)
+
     );
+
+    console.log( await Parcel.deserialize(bufferToArrayBuffer(parcelSerialized)))
 
     const response = await server.inject({
       ...validRequestOptions,

@@ -56,6 +56,7 @@ export async function generatePingParcel(
     parcelPayloadSerialized,
     creationDate ? { creationDate } : {},
   );
+
   const serialization = Buffer.from(await parcel.serialize(keyPairSet.privateEndpoint.privateKey));
   return { parcelSerialized: serialization, parcel };
 }

@@ -11,14 +11,18 @@ export default function registerRoutes(
 ): void {
 
   fastify.removeAllContentTypeParsers();
-  fastify.addContentTypeParser('application/vnd.awala.parcel',  (_request, payload, done) => done(null, payload))
+  fastify.addContentTypeParser(
+    'application/vnd.awala.parcel',
+    { parseAs: 'buffer' },
+    (_request, payload, done) => {
+      done(null, payload)
+    })
 
   fastify.route<{ readonly Body: Buffer }>({
     method: ['POST'],
     url: '/',
 
     async handler(request, reply): Promise<void> {
-
       let parcel;
       try {
         parcel = await Parcel.deserialize(bufferToArrayBuffer(request.body));
