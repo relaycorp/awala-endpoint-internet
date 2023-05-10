@@ -18,6 +18,6 @@ describe('Connection params route', () => {
     expect(response).toHaveProperty('headers.content-type', 'application/vnd.etsi.tsl.der');
     const internetEndpoint = await endpointManager.getActiveEndpoint();
     const parameters = await internetEndpoint.getConnectionParams();
-    expect(response.body).toBe(parameters.toString());
+    expect(response.rawPayload).toMatchObject(parameters);
   });
 });
