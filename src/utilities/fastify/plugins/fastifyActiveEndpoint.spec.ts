@@ -47,7 +47,7 @@ describe('fastifyActiveEndpoint', () => {
     expect(activeEndpoint).toBe(mockActiveEndpoint);
   });
 
-  test('Active endpoint should be cached after the first request', async () => {
+  test('Active endpoint should be created once and cached', async () => {
     const app = fastify();
     await app.register(fastifyMongoose);
     await app.register(fastifyActiveEndpoint);
@@ -59,6 +59,7 @@ describe('fastifyActiveEndpoint', () => {
     mockGetActiveEndpoint.mockResolvedValueOnce(anotherMockActiveEndpoint);
     const activeEndpointResult2 = await app.getActiveEndpoint();
 
+    expect(mockGetActiveEndpoint).toHaveBeenCalledOnce();
     expect(activeEndpointResult2).not.toBeNull();
     expect(activeEndpointResult1).toBe(activeEndpointResult2);
   });
