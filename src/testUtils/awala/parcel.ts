@@ -1,37 +1,39 @@
+import { randomUUID } from 'node:crypto';
+
 import {
-  type Certificate, CertificationPath,
+  type Certificate,
+  CertificationPath,
   issueGatewayCertificate,
   Parcel,
-  type Recipient, ServiceMessage, SessionEnvelopedData, SessionKey,
+  type Recipient,
+  ServiceMessage,
+  SessionEnvelopedData,
+  type SessionKey,
   SessionlessEnvelopedData,
 } from '@relaycorp/relaynet-core';
 import type { NodeKeyPairSet, PDACertPath } from '@relaycorp/relaynet-testing';
+import { addDays } from 'date-fns';
 
 import { bufferToArrayBuffer } from '../../utilities/buffer.js';
-import { randomUUID } from 'node:crypto';
-import { ENDPOINT_ADDRESS } from './stubs';
+
+import { ENDPOINT_ADDRESS } from './stubs.js';
 
 interface GeneratedParcel {
   readonly parcelSerialized: Buffer;
   readonly parcel: Parcel;
 }
 
-export function serializeMessage(
-  pdaPath: CertificationPath,
-  endpointInternetAddress: string,
-): Buffer {
-
+function serializeMessage(pdaPath: CertificationPath, endpointInternetAddress: string): Buffer {
   const pingSerialized = {
     id: randomUUID(),
+    // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
     pda_path: Buffer.from(pdaPath.serialize()).toString('base64'),
+    // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
     endpoint_internet_address: endpointInternetAddress,
   };
   return Buffer.from(JSON.stringify(pingSerialized));
 }
-export function generateServiceMessage(
-  certificatePath: PDACertPath,
-  messageType?: string
-): ArrayBuffer {
+function generateServiceMessage(certificatePath: PDACertPath, messageType?: string): ArrayBuffer {
   const message = serializeMessage(
     new CertificationPath(certificatePath.pdaGrantee, [
       certificatePath.privateEndpoint,
@@ -39,7 +41,7 @@ export function generateServiceMessage(
     ]),
     ENDPOINT_ADDRESS,
   );
-  const serviceMessage = new ServiceMessage(messageType ?? 'application/vnd.awala.test' , message);
+  const serviceMessage = new ServiceMessage(messageType ?? 'application/vnd.awala.test', message);
   return serviceMessage.serialize();
 }
 
@@ -48,8 +50,7 @@ async function generateStubNodeCertificate(
   issuerPrivateKey: CryptoKey,
   options: Partial<{ readonly issuerCertificate: Certificate }> = {},
 ): Promise<Certificate> {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrow = addDays(new Date(), 1);
 
   return issueGatewayCertificate({
     issuerCertificate: options.issuerCertificate,
@@ -59,7 +60,9 @@ async function generateStubNodeCertificate(
   });
 }
 
-async function generateSessionlessParcelPayload(recipientIdCertificate: Certificate): Promise<Buffer> {
+async function generateSessionlessParcelPayload(
+  recipientIdCertificate: Certificate,
+): Promise<Buffer> {
   const serviceMessageEncrypted = await SessionlessEnvelopedData.encrypt(
     bufferToArrayBuffer(Buffer.from('Test')),
     recipientIdCertificate,
@@ -67,10 +70,14 @@ async function generateSessionlessParcelPayload(recipientIdCertificate: Certific
   return Buffer.from(serviceMessageEncrypted.serialize());
 }
 
-async function generateParcelPayload(recipientSessionKey: SessionKey, certificatePath: PDACertPath, messageType?: string): Promise<Buffer> {
+async function generateParcelPayload(
+  recipientSessionKey: SessionKey,
+  certificatePath: PDACertPath,
+  messageType?: string,
+): Promise<Buffer> {
   const { envelopedData } = await SessionEnvelopedData.encrypt(
     generateServiceMessage(certificatePath, messageType),
-    recipientSessionKey
+    recipientSessionKey,
   );
 
   return Buffer.from(envelopedData.serialize());
@@ -82,27 +89,19 @@ export async function generateParcel(
   keyPairSet: NodeKeyPairSet,
   creationDate: Date,
   sessionKey?: SessionKey,
-  messageType?: string
+  messageType?: string,
 ): Promise<GeneratedParcel> {
   const parcelSenderCertificate = await generateStubNodeCertificate(
     keyPairSet.privateEndpoint.publicKey,
     keyPairSet.privateEndpoint.privateKey,
   );
+  const parcelPayloadSerialized = await (sessionKey
+    ? generateParcelPayload(sessionKey, certificatePath, messageType)
+    : generateSessionlessParcelPayload(certificatePath.privateEndpoint));
 
-
-  let parcelPayloadSerialized: Buffer;
-  if(sessionKey){
-    parcelPayloadSerialized = await generateParcelPayload(sessionKey, certificatePath, messageType);
-  }else{
-    parcelPayloadSerialized = await generateSessionlessParcelPayload(certificatePath.privateEndpoint);
-  }
-
-  const parcel = new Parcel(
-    recipient,
-    parcelSenderCertificate,
-    parcelPayloadSerialized,
-    { creationDate },
-  );
+  const parcel = new Parcel(recipient, parcelSenderCertificate, parcelPayloadSerialized, {
+    creationDate,
+  });
 
   const serialization = Buffer.from(await parcel.serialize(keyPairSet.privateEndpoint.privateKey));
   return { parcelSerialized: serialization, parcel };

@@ -19,12 +19,10 @@ export default function registerRoutes(
     },
   );
 
-  interface Request {
+  fastify.route<{
     // eslint-disable-next-line @typescript-eslint/naming-convention
     readonly Body: Buffer;
-  }
-
-  fastify.route<Request>({
+  }>({
     method: ['POST'],
     url: '/',
 
@@ -36,8 +34,8 @@ export default function registerRoutes(
         // Don't log the full error because 99.99% of the time the reason will suffice.
         request.log.info({ reason: (err as Error).message }, 'Refusing malformed parcel');
         return reply
-          .code(HTTP_STATUS_CODES.FORBIDDEN)
-          .send({ reason: 'Payload is not a valid RAMF-serialized parcel' });
+          .code(HTTP_STATUS_CODES.BAD_REQUEST)
+          .send({ message: 'Payload is not a valid RAMF-serialized parcel' });
       }
 
       const parcelAwareLogger = request.log.child({
@@ -46,7 +44,6 @@ export default function registerRoutes(
         senderId: await parcel.senderCertificate.calculateSubjectId(),
       });
       const activeEndpoint = await fastify.getActiveEndpoint();
-
       try {
         await activeEndpoint.validateMessage(parcel);
       } catch (err) {
@@ -58,14 +55,20 @@ export default function registerRoutes(
 
       let decryptionResult;
       try {
-        decryptionResult = await parcel.unwrapPayload(activeEndpoint.keyStores.privateKeyStore)
+        decryptionResult = await parcel.unwrapPayload(activeEndpoint.keyStores.privateKeyStore);
       } catch (error) {
-        // The sender didn't create a valid service message, so let's ignore it.
-        console.log(error)
         parcelAwareLogger.info({ err: error }, 'Invalid service message');
-        return;
+        return reply
+          .code(HTTP_STATUS_CODES.BAD_REQUEST)
+          .send({ message: 'Invalid service message' });
       }
-      console.log(decryptionResult);
+
+      // This log is needed not to throw decryptionResult is unused error.
+      // Will be removed in the next PR
+      parcelAwareLogger.info(
+        { test: decryptionResult.senderSessionKey.keyId },
+        'Invalid service message',
+      );
 
       // DECRYPT AND THEN EMIT EVENT (BUT THAT'S PART OF A DIFFERENT ISSUE)
       parcelAwareLogger.info('Parcel is valid and has been queued');

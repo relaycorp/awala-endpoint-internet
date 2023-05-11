@@ -1,22 +1,15 @@
 import type { FastifyInstance, InjectOptions } from 'fastify';
-import {
-  generateIdentityKeyPairSet,
-  generatePDACertificationPath,
-} from '@relaycorp/relaynet-testing';
+import { generatePDACertificationPath } from '@relaycorp/relaynet-testing';
 import { subDays } from 'date-fns';
+import { derDeserializeECDHPublicKey, derSerializePublicKey } from '@relaycorp/relaynet-core';
 
 import { configureMockEnvVars, REQUIRED_ENV_VARS } from '../../testUtils/envVars.js';
 import { makeTestPohttpServer } from '../../testUtils/pohttpServer.js';
 import { type MockLogSet, partialPinoLog } from '../../testUtils/logging.js';
 import type { InternetEndpoint } from '../../utilities/awala/InternetEndpoint.js';
 import { HTTP_STATUS_CODES } from '../../utilities/http.js';
+import { KEY_PAIR_SET } from '../../testUtils/awala/stubs.js';
 import { generateParcel } from '../../testUtils/awala/parcel.js';
-import {
-  derDeserializeECDHPublicKey,
-  derSerializePublicKey,
-
-} from '@relaycorp/relaynet-core';
-// import { createPublicKey } from 'node:crypto';
 
 configureMockEnvVars(REQUIRED_ENV_VARS);
 
@@ -42,17 +35,25 @@ describe('parcel route', () => {
   });
 
   test('Valid parcel should be accepted', async () => {
-    const parcelRecipient = {
+    const pingParcelRecipient = {
       id: activeEndpoint.id,
       internetAddress: activeEndpoint.internetAddress,
     };
-    const keyPairSet = await generateIdentityKeyPairSet();
-    const certificatePath = await generatePDACertificationPath(keyPairSet);
+
+    const sessionKey = await activeEndpoint.retrieveInitialSessionPublicKey();
+    const serializedPublicKey = await derSerializePublicKey(sessionKey.publicKey);
+    const publicKey = await derDeserializeECDHPublicKey(serializedPublicKey);
+
+    const certificatePath = await generatePDACertificationPath(KEY_PAIR_SET);
     const { parcelSerialized } = await generateParcel(
-      parcelRecipient,
+      pingParcelRecipient,
       certificatePath,
-      keyPairSet,
-      new Date()
+      KEY_PAIR_SET,
+      new Date(),
+      {
+        publicKey,
+        keyId: sessionKey.keyId,
+      },
     );
 
     const response = await server.inject({
@@ -83,9 +84,9 @@ describe('parcel route', () => {
       payload,
     });
 
-    expect(response).toHaveProperty('statusCode', HTTP_STATUS_CODES.FORBIDDEN);
+    expect(response).toHaveProperty('statusCode', HTTP_STATUS_CODES.BAD_REQUEST);
     expect(JSON.parse(response.payload)).toHaveProperty(
-      'reason',
+      'message',
       'Payload is not a valid RAMF-serialized parcel',
     );
     expect(logs).toContainEqual(partialPinoLog('info', 'Refusing malformed parcel'));
@@ -96,12 +97,11 @@ describe('parcel route', () => {
       id: activeEndpoint.id,
       internetAddress: activeEndpoint.internetAddress,
     };
-    const keyPairSet = await generateIdentityKeyPairSet();
-    const certificatePath = await generatePDACertificationPath(keyPairSet);
+    const certificatePath = await generatePDACertificationPath(KEY_PAIR_SET);
     const { parcelSerialized } = await generateParcel(
       parcelRecipient,
-      certificatePath.privateEndpoint,
-      keyPairSet,
+      certificatePath,
+      KEY_PAIR_SET,
       subDays(new Date(), 1),
     );
 
@@ -115,48 +115,20 @@ describe('parcel route', () => {
       'message',
       'Parcel is well-formed but invalid',
     );
+    expect(logs).toContainEqual(partialPinoLog('info', 'Refusing invalid parcel'));
   });
 
-  test('decrypting', async () => {
+  test('Invalid service message should be refused', async () => {
     const pingParcelRecipient = {
       id: activeEndpoint.id,
       internetAddress: activeEndpoint.internetAddress,
     };
-
-
-    //.subtle.exportKey("spki", await crypto.subtle.exportKey("jwk", privateKey))
-
-    // const a : RsaHashedImportParams = {
-    //
-    // }
-    // const sessionKey = await activeEndpoint.retrieveInitialSessionPublicKey()
-    // const serializedPrivateKey = await derSerializePrivateKey(sessionKey.publicKey.algorithm.namedCurve);
-    // const publicKey = await derDeserializeECDHPublicKey(serializedPrivateKey, 'P-256');
-
-    const sessionKey = await activeEndpoint.retrieveInitialSessionPublicKey()
-    const serializedPublicKey = await derSerializePublicKey(sessionKey.publicKey);
-    const publicKey = await derDeserializeECDHPublicKey(serializedPublicKey);
-    // console.log(serializedPrivateKey);
-
-
-    // const publicKeyObj = createPublicKey({
-    //   key: serializedPrivateKey,
-    //   format: 'der',
-    //   type:'spki'
-    // });
-
-
-    const keyPairSet = await generateIdentityKeyPairSet();
-    const certificatePath = await generatePDACertificationPath(keyPairSet);
+    const certificatePath = await generatePDACertificationPath(KEY_PAIR_SET);
     const { parcelSerialized } = await generateParcel(
       pingParcelRecipient,
       certificatePath,
-      keyPairSet,
+      KEY_PAIR_SET,
       new Date(),
-      {
-        publicKey: publicKey,
-        keyId: sessionKey.keyId
-      }
     );
 
     const response = await server.inject({
@@ -164,7 +136,7 @@ describe('parcel route', () => {
       payload: parcelSerialized,
     });
 
-    expect(response).toHaveProperty('statusCode', HTTP_STATUS_CODES.ACCEPTED);
+    expect(response).toHaveProperty('statusCode', HTTP_STATUS_CODES.BAD_REQUEST);
+    expect(logs).toContainEqual(partialPinoLog('info', 'Invalid service message'));
   });
-
 });
