@@ -24,14 +24,14 @@ interface GeneratedParcel {
 }
 
 function serializeMessage(pdaPath: CertificationPath, endpointInternetAddress: string): Buffer {
-  const pingSerialized = {
+  const message = {
     id: randomUUID(),
     // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
     pda_path: Buffer.from(pdaPath.serialize()).toString('base64'),
     // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
     endpoint_internet_address: endpointInternetAddress,
   };
-  return Buffer.from(JSON.stringify(pingSerialized));
+  return Buffer.from(JSON.stringify(message));
 }
 function generateServiceMessage(certificatePath: PDACertPath, messageType?: string): ArrayBuffer {
   const message = serializeMessage(
