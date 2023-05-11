@@ -2,7 +2,7 @@ import {
   type Certificate,
   issueGatewayCertificate,
   Parcel,
-  type Recipient, SessionEnvelopedData,
+  type Recipient, SessionEnvelopedData, SessionKey,
   SessionlessEnvelopedData,
 } from '@relaycorp/relaynet-core';
 import type { NodeKeyPairSet } from '@relaycorp/relaynet-testing';
@@ -37,17 +37,13 @@ async function generateSessionlessParcelPayload(recipientIdCertificate: Certific
   return Buffer.from(serviceMessageEncrypted.serialize());
 }
 
-async function generateParcelPayload(recipientIdCertificate: Certificate, recipientSessionKey): Promise<Buffer> {
+async function generateParcelPayload(recipientSessionKey: SessionKey): Promise<Buffer> {
   const { envelopedData } = await SessionEnvelopedData.encrypt(
-    serviceMessageSerialized,
+    bufferToArrayBuffer(Buffer.from('Test')),
     recipientSessionKey
   );
 
-  const serviceMessageEncrypted = await SessionlessEnvelopedData.encrypt(
-    bufferToArrayBuffer(Buffer.from('Test')),
-    recipientIdCertificate,
-  );
-  return Buffer.from(serviceMessageEncrypted.serialize());
+  return Buffer.from(envelopedData.serialize());
 }
 
 export async function generateParcel(
@@ -55,13 +51,21 @@ export async function generateParcel(
   recipientIdCertificate: Certificate,
   keyPairSet: NodeKeyPairSet,
   creationDate: Date,
-  sessionKey?: CryptoKey
+  sessionKey?: SessionKey
 ): Promise<GeneratedParcel> {
   const parcelSenderCertificate = await generateStubNodeCertificate(
     keyPairSet.privateEndpoint.publicKey,
     keyPairSet.privateEndpoint.privateKey,
   );
-  const parcelPayloadSerialized = await generateSessionlessParcelPayload(recipientIdCertificate);
+
+
+  let parcelPayloadSerialized: Buffer;
+  if(sessionKey){
+    parcelPayloadSerialized = await generateParcelPayload(sessionKey);
+  }else{
+    parcelPayloadSerialized = await generateSessionlessParcelPayload(recipientIdCertificate);
+  }
+
   const parcel = new Parcel(
     recipient,
     parcelSenderCertificate,

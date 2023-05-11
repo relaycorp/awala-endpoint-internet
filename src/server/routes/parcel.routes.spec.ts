@@ -11,6 +11,11 @@ import { type MockLogSet, partialPinoLog } from '../../testUtils/logging.js';
 import type { InternetEndpoint } from '../../utilities/awala/InternetEndpoint.js';
 import { HTTP_STATUS_CODES } from '../../utilities/http.js';
 import { generateParcel } from '../../testUtils/awala/parcel.js';
+import {
+  derSerializePrivateKey,
+
+} from '@relaycorp/relaynet-core';
+import { derDeserialisePublicKey } from '@relaycorp/webcrypto-kms/build/main/lib/utils/crypto';
 
 configureMockEnvVars(REQUIRED_ENV_VARS);
 
@@ -117,8 +122,16 @@ describe('parcel route', () => {
       internetAddress: activeEndpoint.internetAddress,
     };
 
-    const { publicKey} = await activeEndpoint.retrieveInitialSessionPublicKey()
-    console.log(activeEndpoint.identityKeyPair.publicKey)
+    const sessionKey = await activeEndpoint.retrieveInitialSessionPublicKey()
+
+    //.subtle.exportKey("spki", await crypto.subtle.exportKey("jwk", privateKey))
+
+    console.log(sessionKey.publicKey.algorithm)
+    const serializedPublicKey = await derSerializePrivateKey(sessionKey.publicKey);
+    console.log(serializedPublicKey);
+    const publicKey = await derDeserialisePublicKey(serializedPublicKey, sessionKey.publicKey.algorithm)
+
+    //const publicKey = await getPubli(sessionKey.publicKey);
 
     const keyPairSet = await generateIdentityKeyPairSet();
     const certificatePath = await generatePDACertificationPath(keyPairSet);
@@ -127,7 +140,10 @@ describe('parcel route', () => {
       certificatePath.privateEndpoint,
       keyPairSet,
       new Date(),
-      publicKey
+      {
+        publicKey,
+        keyId: sessionKey.keyId
+      }
     );
 
     const response = await server.inject({
