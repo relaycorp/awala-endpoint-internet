@@ -6,6 +6,7 @@ import {
   SessionlessEnvelopedData,
 } from '@relaycorp/relaynet-core';
 import type { NodeKeyPairSet } from '@relaycorp/relaynet-testing';
+import { addDays } from 'date-fns';
 
 import { bufferToArrayBuffer } from '../../utilities/buffer.js';
 
@@ -18,8 +19,7 @@ async function generateStubNodeCertificate(
   issuerPrivateKey: CryptoKey,
   options: Partial<{ readonly issuerCertificate: Certificate }> = {},
 ): Promise<Certificate> {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrow = addDays(new Date(), 1);
 
   return issueGatewayCertificate({
     issuerCertificate: options.issuerCertificate,

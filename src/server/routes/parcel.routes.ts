@@ -19,12 +19,10 @@ export default function registerRoutes(
     },
   );
 
-  interface Request {
+  fastify.route<{
     // eslint-disable-next-line @typescript-eslint/naming-convention
     readonly Body: Buffer;
-  }
-
-  fastify.route<Request>({
+  }>({
     method: ['POST'],
     url: '/',
 
@@ -36,8 +34,8 @@ export default function registerRoutes(
         // Don't log the full error because 99.99% of the time the reason will suffice.
         request.log.info({ reason: (err as Error).message }, 'Refusing malformed parcel');
         return reply
-          .code(HTTP_STATUS_CODES.FORBIDDEN)
-          .send({ reason: 'Payload is not a valid RAMF-serialized parcel' });
+          .code(HTTP_STATUS_CODES.BAD_REQUEST)
+          .send({ message: 'Payload is not a valid RAMF-serialized parcel' });
       }
 
       const parcelAwareLogger = request.log.child({
@@ -46,8 +44,8 @@ export default function registerRoutes(
         senderId: await parcel.senderCertificate.calculateSubjectId(),
       });
 
+      const activeEndpoint = await fastify.getActiveEndpoint();
       try {
-        const activeEndpoint = await fastify.getActiveEndpoint();
         await activeEndpoint.validateMessage(parcel);
       } catch (err) {
         parcelAwareLogger.info({ err }, 'Refusing invalid parcel');

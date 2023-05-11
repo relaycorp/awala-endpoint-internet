@@ -1,8 +1,5 @@
 import type { FastifyInstance, InjectOptions } from 'fastify';
-import {
-  generateIdentityKeyPairSet,
-  generatePDACertificationPath,
-} from '@relaycorp/relaynet-testing';
+import { generatePDACertificationPath } from '@relaycorp/relaynet-testing';
 import { subDays } from 'date-fns';
 
 import { configureMockEnvVars, REQUIRED_ENV_VARS } from '../../testUtils/envVars.js';
@@ -11,6 +8,7 @@ import { type MockLogSet, partialPinoLog } from '../../testUtils/logging.js';
 import type { InternetEndpoint } from '../../utilities/awala/InternetEndpoint.js';
 import { HTTP_STATUS_CODES } from '../../utilities/http.js';
 import { generateParcel } from '../../testUtils/awala/parcel.js';
+import { KEY_PAIR_SET } from '../../testUtils/awala/stubs.js';
 
 configureMockEnvVars(REQUIRED_ENV_VARS);
 
@@ -40,9 +38,9 @@ describe('parcel route', () => {
       id: activeEndpoint.id,
       internetAddress: activeEndpoint.internetAddress,
     };
-    const keyPairSet = await generateIdentityKeyPairSet();
+    const keyPairSet = KEY_PAIR_SET;
     const certificatePath = await generatePDACertificationPath(keyPairSet);
-    const { parcelSerialized } = await generateParcel(
+    const { parcelSerialized, parcel } = await generateParcel(
       parcelRecipient,
       certificatePath.privateEndpoint,
       keyPairSet,
@@ -54,6 +52,13 @@ describe('parcel route', () => {
     });
 
     expect(response).toHaveProperty('statusCode', HTTP_STATUS_CODES.ACCEPTED);
+    expect(logs).toContainEqual(
+      partialPinoLog('info', 'Parcel is valid and has been queued', {
+        parcelId: parcel.id,
+        recipient: parcel.recipient,
+        senderId: await parcel.senderCertificate.calculateSubjectId(),
+      }),
+    );
   });
 
   test('Content-Type other than application/vnd.awala.parcel should be refused', async () => {
@@ -76,9 +81,9 @@ describe('parcel route', () => {
       payload,
     });
 
-    expect(response).toHaveProperty('statusCode', HTTP_STATUS_CODES.FORBIDDEN);
+    expect(response).toHaveProperty('statusCode', HTTP_STATUS_CODES.BAD_REQUEST);
     expect(JSON.parse(response.payload)).toHaveProperty(
-      'reason',
+      'message',
       'Payload is not a valid RAMF-serialized parcel',
     );
     expect(logs).toContainEqual(partialPinoLog('info', 'Refusing malformed parcel'));
@@ -89,7 +94,7 @@ describe('parcel route', () => {
       id: activeEndpoint.id,
       internetAddress: activeEndpoint.internetAddress,
     };
-    const keyPairSet = await generateIdentityKeyPairSet();
+    const keyPairSet = KEY_PAIR_SET;
     const certificatePath = await generatePDACertificationPath(keyPairSet);
     const { parcelSerialized } = await generateParcel(
       parcelRecipient,
@@ -108,5 +113,6 @@ describe('parcel route', () => {
       'message',
       'Parcel is well-formed but invalid',
     );
+    expect(logs).toContainEqual(partialPinoLog('info', 'Refusing invalid parcel'));
   });
 });
