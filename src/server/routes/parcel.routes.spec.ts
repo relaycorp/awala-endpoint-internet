@@ -12,10 +12,11 @@ import type { InternetEndpoint } from '../../utilities/awala/InternetEndpoint.js
 import { HTTP_STATUS_CODES } from '../../utilities/http.js';
 import { generateParcel } from '../../testUtils/awala/parcel.js';
 import {
-  derSerializePrivateKey,
+  derDeserializeECDHPublicKey,
+  derSerializePublicKey,
 
 } from '@relaycorp/relaynet-core';
-import { derDeserialisePublicKey } from '@relaycorp/webcrypto-kms/build/main/lib/utils/crypto';
+// import { createPublicKey } from 'node:crypto';
 
 configureMockEnvVars(REQUIRED_ENV_VARS);
 
@@ -49,7 +50,7 @@ describe('parcel route', () => {
     const certificatePath = await generatePDACertificationPath(keyPairSet);
     const { parcelSerialized } = await generateParcel(
       parcelRecipient,
-      certificatePath.privateEndpoint,
+      certificatePath,
       keyPairSet,
       new Date()
     );
@@ -122,26 +123,38 @@ describe('parcel route', () => {
       internetAddress: activeEndpoint.internetAddress,
     };
 
-    const sessionKey = await activeEndpoint.retrieveInitialSessionPublicKey()
 
     //.subtle.exportKey("spki", await crypto.subtle.exportKey("jwk", privateKey))
 
-    console.log(sessionKey.publicKey.algorithm)
-    const serializedPublicKey = await derSerializePrivateKey(sessionKey.publicKey);
-    console.log(serializedPublicKey);
-    const publicKey = await derDeserialisePublicKey(serializedPublicKey, sessionKey.publicKey.algorithm)
+    // const a : RsaHashedImportParams = {
+    //
+    // }
+    // const sessionKey = await activeEndpoint.retrieveInitialSessionPublicKey()
+    // const serializedPrivateKey = await derSerializePrivateKey(sessionKey.publicKey.algorithm.namedCurve);
+    // const publicKey = await derDeserializeECDHPublicKey(serializedPrivateKey, 'P-256');
 
-    //const publicKey = await getPubli(sessionKey.publicKey);
+    const sessionKey = await activeEndpoint.retrieveInitialSessionPublicKey()
+    const serializedPublicKey = await derSerializePublicKey(sessionKey.publicKey);
+    const publicKey = await derDeserializeECDHPublicKey(serializedPublicKey);
+    // console.log(serializedPrivateKey);
+
+
+    // const publicKeyObj = createPublicKey({
+    //   key: serializedPrivateKey,
+    //   format: 'der',
+    //   type:'spki'
+    // });
+
 
     const keyPairSet = await generateIdentityKeyPairSet();
     const certificatePath = await generatePDACertificationPath(keyPairSet);
     const { parcelSerialized } = await generateParcel(
       pingParcelRecipient,
-      certificatePath.privateEndpoint,
+      certificatePath,
       keyPairSet,
       new Date(),
       {
-        publicKey,
+        publicKey: publicKey,
         keyId: sessionKey.keyId
       }
     );

@@ -61,6 +61,7 @@ export default function registerRoutes(
         decryptionResult = await parcel.unwrapPayload(activeEndpoint.keyStores.privateKeyStore)
       } catch (error) {
         // The sender didn't create a valid service message, so let's ignore it.
+        console.log(error)
         parcelAwareLogger.info({ err: error }, 'Invalid service message');
         return;
       }

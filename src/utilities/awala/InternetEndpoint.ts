@@ -9,6 +9,8 @@ import {
 } from '@relaycorp/relaynet-core';
 
 import { type Config, ConfigKey } from '../config.js';
+import { subtle } from 'node:crypto';
+
 
 export class InternetEndpoint extends Endpoint {
   public constructor(
@@ -41,6 +43,38 @@ export class InternetEndpoint extends Endpoint {
       ConfigKey.INITIAL_SESSION_KEY_ID_BASE64,
       sessionKey.keyId.toString('base64'),
     );
+  }
+
+  public async getInitialSessionKey(): Promise<SessionKey> {
+    const keyId = await this.retrieveInitialSessionKeyId();
+    if (keyId === null) {
+      throw new Error('Initial session key id is missing from config');
+    }
+
+    const sessionKey = await this.config.get(
+      ConfigKey.INITIAL_SESSION_KEY_ID_BASE64,
+    );
+    if(!sessionKey){
+      throw new Error('Initial session key id is missing from config');
+    }
+
+
+    const publicKey = await subtle.importKey('spki', Buffer.from(sessionKey),
+      {
+        "name": "ECDH",
+        "namedCurve": "P-256"
+      }, true,[
+        'encrypt',
+        'decrypt',
+        'sign',
+        'verify',
+        'deriveKey',
+        'deriveBits',
+        'wrapKey',
+        'unwrapKey'
+      ])
+
+    return { keyId, publicKey };
   }
 
   public async retrieveInitialSessionPublicKey(): Promise<SessionKey> {
