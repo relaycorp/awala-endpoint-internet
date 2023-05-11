@@ -1,11 +1,10 @@
 import type { FastifyInstance } from 'fastify';
 import fastifyPlugin from 'fastify-plugin';
 
-import { InternetEndpointManager } from '../../awala/InternetEndpointManager.js';
+import { InternetEndpoint } from '../../awala/InternetEndpoint.js';
 
 async function fastifyActiveEndpoint(fastify: FastifyInstance) {
-  const endpointManager = await InternetEndpointManager.init(fastify.mongoose);
-  const activeEndpoint = await endpointManager.getActiveEndpoint();
+  const activeEndpoint = await InternetEndpoint.getActive(fastify.mongoose);
 
   fastify.decorate('getActiveEndpoint', async () => {
     await activeEndpoint.makeInitialSessionKeyIfMissing();
