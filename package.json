@@ -21,7 +21,7 @@
     "@relaycorp/awala-keystore-cloud": "^2.1.0",
     "@relaycorp/pino-cloud": "^1.0.28",
     "@relaycorp/relaynet-testing": "^2.2.28",
-    "@relaycorp/relaynet-core": "^1.83.6",
+    "@relaycorp/relaynet-core": "^1.84.1",
     "@relaycorp/webcrypto-kms": "^1.5.7",
     "@typegoose/typegoose": "^11.1.0",
     "cloudevents": "^6.0.4",

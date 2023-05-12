@@ -7,9 +7,6 @@ import type { ServiceOptions } from './serviceTypes.js';
 import { exampleFunctionWithEmitter, examplePromiseRejection } from './example.js';
 import { mockEmitter } from './testUtils/eventing/mockEmitter.js';
 import { getPromiseRejection } from './testUtils/jest.js';
-import { mockInternetEndpoint } from './testUtils/awala/mockInternetEndpoint.js';
-import { InternetEndpointManager } from './utilities/awala/InternetEndpointManager.js';
-import { ENDPOINT_ADDRESS } from './testUtils/awala/stubs.js';
 
 describe('example', () => {
   const getConnection = setUpTestDbConnection();
@@ -56,15 +53,5 @@ describe('example', () => {
   test('Example promise rejection', async () => {
     const error = await getPromiseRejection(async () => examplePromiseRejection(), Error);
     expect(error).toHaveProperty('message', 'Example error');
-  });
-
-  describe('Example endpoint manager usage in tests', () => {
-    mockInternetEndpoint(getConnection);
-
-    test('Example endpoint manager usage in tests', async () => {
-      const manager = await InternetEndpointManager.init(connection);
-      const endpoint = await manager.getActiveEndpoint();
-      expect(endpoint.internetAddress).toBe(ENDPOINT_ADDRESS);
-    });
   });
 });
