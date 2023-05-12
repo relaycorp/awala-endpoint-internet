@@ -39,7 +39,6 @@ describe('parcel route', () => {
       id: activeEndpoint.id,
       internetAddress: activeEndpoint.internetAddress,
     };
-
     const sessionKey = await activeEndpoint.retrieveInitialSessionPublicKey();
     const serializedPublicKey = await derSerializePublicKey(sessionKey.publicKey);
     const publicKey = await derDeserializeECDHPublicKey(serializedPublicKey);
