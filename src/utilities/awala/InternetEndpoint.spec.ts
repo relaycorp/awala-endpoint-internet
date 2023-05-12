@@ -1,17 +1,24 @@
+import { jest } from '@jest/globals';
 import {
   type Certificate,
   derDeserializeECDHPrivateKey,
+  derSerializePrivateKey,
   derSerializePublicKey,
   generateRSAKeyPair,
   InvalidMessageError,
   issueEndpointCertificate,
+  MockCertificateStore,
   MockKeyStoreSet,
+  MockPublicKeyStore,
   NodeConnectionParams,
   Parcel,
+  type PrivateKeyStore,
   type Recipient,
   SessionKeyPair,
 } from '@relaycorp/relaynet-core';
 import { addSeconds, subSeconds } from 'date-fns';
+import envVar from 'env-var';
+import type { Connection } from 'mongoose';
 
 import { bufferToArrayBuffer } from '../buffer.js';
 import { Config, ConfigKey } from '../config.js';
@@ -20,22 +27,130 @@ import {
   ENDPOINT_ADDRESS,
   ENDPOINT_ID,
   ENDPOINT_ID_KEY_PAIR,
+  ENDPOINT_ID_KEY_REF,
+  ENDPOINT_ID_PUBLIC_KEY_DER,
 } from '../../testUtils/awala/stubs.js';
+import { mockSpy } from '../../testUtils/jest.js';
+import { mockKms } from '../../testUtils/kms/mockKms.js';
+import { configureMockEnvVars } from '../../testUtils/envVars.js';
 
-import { InternetEndpoint } from './InternetEndpoint.js';
+import type { InternetEndpoint as InternetEndpointType } from './InternetEndpoint.js';
+
+const mockCloudKeystoreInit = mockSpy(jest.fn<() => PrivateKeyStore>());
+jest.unstable_mockModule('@relaycorp/awala-keystore-cloud', () => ({
+  initPrivateKeystoreFromEnv: mockCloudKeystoreInit,
+}));
+
+// eslint-disable-next-line @typescript-eslint/naming-convention
+const { InternetEndpoint } = await import('./InternetEndpoint.js');
+
+const REQUIRED_ENV_VARS = {
+  INTERNET_ADDRESS: ENDPOINT_ADDRESS,
+  ACTIVE_ID_KEY_REF: ENDPOINT_ID_KEY_REF.toString(),
+  ACTIVE_ID_PUBLIC_KEY: ENDPOINT_ID_PUBLIC_KEY_DER.toString('base64'),
+  PRIVATE_KEY_STORE_ADAPTER: 'GCP',
+};
 
 function hexToBase64(keyIdHex: string) {
   return Buffer.from(keyIdHex, 'hex').toString('base64');
 }
 
-describe('InternetEndpoint', () => {
-  const getDbConnection = setUpTestDbConnection();
-  const keyStores = new MockKeyStoreSet();
-  let config: Config;
-  let endpoint: InternetEndpoint;
-  beforeEach(() => {
-    keyStores.clear();
+const getMockKms = mockKms();
+const getDbConnection = setUpTestDbConnection();
 
+const keyStores = new MockKeyStoreSet();
+beforeEach(() => {
+  keyStores.clear();
+});
+
+describe('getActive', () => {
+  const mockEnvVars = configureMockEnvVars(REQUIRED_ENV_VARS);
+
+  let dbConnection: Connection;
+  beforeEach(() => {
+    dbConnection = getDbConnection();
+
+    mockCloudKeystoreInit.mockReturnValue(keyStores.privateKeyStore);
+  });
+
+  test.each(Object.keys(REQUIRED_ENV_VARS))('%s should be defined', async (envVarName) => {
+    mockEnvVars({ ...REQUIRED_ENV_VARS, [envVarName]: undefined });
+
+    await expect(InternetEndpoint.getActive(dbConnection)).rejects.toThrow(envVar.EnvVarError);
+  });
+
+  test('KMS should be initialised', async () => {
+    const kmsInitMock = getMockKms();
+    expect(kmsInitMock).not.toHaveBeenCalled();
+
+    await InternetEndpoint.getActive(dbConnection);
+
+    expect(kmsInitMock).toHaveBeenCalledOnce();
+  });
+
+  test('Internet address should be set', async () => {
+    const { internetAddress } = await InternetEndpoint.getActive(dbConnection);
+
+    expect(internetAddress).toBe(ENDPOINT_ADDRESS);
+  });
+
+  test('Private key should be loaded by reference from KMS', async () => {
+    const {
+      identityKeyPair: { privateKey },
+    } = await InternetEndpoint.getActive(dbConnection);
+
+    await expect(derSerializePrivateKey(privateKey)).resolves.toStrictEqual(
+      await derSerializePrivateKey(ENDPOINT_ID_KEY_PAIR.privateKey),
+    );
+  });
+
+  test('Public key should be loaded from env var', async () => {
+    const {
+      identityKeyPair: { publicKey },
+    } = await InternetEndpoint.getActive(dbConnection);
+
+    await expect(derSerializePublicKey(publicKey)).resolves.toMatchObject(
+      ENDPOINT_ID_PUBLIC_KEY_DER,
+    );
+  });
+
+  test('Id should be derived from public key', async () => {
+    const { id } = await InternetEndpoint.getActive(dbConnection);
+
+    expect(id).toBe(ENDPOINT_ID);
+  });
+
+  describe('Key stores', () => {
+    test('Certificate key store should temporarily be mocked', async () => {
+      const {
+        keyStores: { certificateStore },
+      } = await InternetEndpoint.getActive(dbConnection);
+
+      expect(certificateStore).toBeInstanceOf(MockCertificateStore);
+    });
+
+    test('Public key store should temporarily be mocked', async () => {
+      const manager = await InternetEndpoint.getActive(dbConnection);
+
+      expect(manager.keyStores.publicKeyStore).toBeInstanceOf(MockPublicKeyStore);
+    });
+
+    test('Private key store should be the cloud-based one', async () => {
+      const manager = await InternetEndpoint.getActive(dbConnection);
+
+      expect(mockCloudKeystoreInit).toHaveBeenCalledOnceWith(
+        REQUIRED_ENV_VARS.PRIVATE_KEY_STORE_ADAPTER,
+        dbConnection,
+      );
+      expect(manager.keyStores.privateKeyStore).toBe(keyStores.privateKeyStore);
+    });
+  });
+});
+
+describe('InternetEndpoint instance', () => {
+  let config: Config;
+  let endpoint: InternetEndpointType;
+  beforeEach(() => {
     config = new Config(getDbConnection());
 
     endpoint = new InternetEndpoint(
