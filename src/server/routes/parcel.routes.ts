@@ -59,9 +59,7 @@ export default function registerRoutes(
         decryptionResult = await parcel.unwrapPayload(activeEndpoint.keyStores.privateKeyStore);
       } catch (err) {
         parcelAwareLogger.info({ err }, 'Invalid service message');
-        return reply
-          .code(HTTP_STATUS_CODES.ACCEPTED)
-          .send();
+        return reply.code(HTTP_STATUS_CODES.ACCEPTED).send();
       }
 
       // This log is needed not to throw decryptionResult is unused error.
