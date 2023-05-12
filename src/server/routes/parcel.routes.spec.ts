@@ -18,7 +18,6 @@ describe('parcel route', () => {
   let server: FastifyInstance;
   let logs: MockLogSet;
   let activeEndpoint: InternetEndpoint;
-
   const validRequestOptions: InjectOptions = {
     headers: {
       // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -29,6 +28,7 @@ describe('parcel route', () => {
     payload: {},
     url: '/',
   };
+
   beforeEach(async () => {
     ({ server, logs } = getTestServerFixture());
     activeEndpoint = await server.getActiveEndpoint();
@@ -39,11 +39,12 @@ describe('parcel route', () => {
       id: activeEndpoint.id,
       internetAddress: activeEndpoint.internetAddress,
     };
+
     const sessionKey = await activeEndpoint.retrieveInitialSessionPublicKey();
     const serializedPublicKey = await derSerializePublicKey(sessionKey.publicKey);
     const publicKey = await derDeserializeECDHPublicKey(serializedPublicKey);
     const certificatePath = await generatePDACertificationPath(KEY_PAIR_SET);
-    const { parcelSerialized } = await generateParcel(
+    const { parcelSerialized, parcel } = await generateParcel(
       parcelRecipient,
       certificatePath,
       KEY_PAIR_SET,
@@ -60,6 +61,13 @@ describe('parcel route', () => {
     });
 
     expect(response).toHaveProperty('statusCode', HTTP_STATUS_CODES.ACCEPTED);
+    expect(logs).toContainEqual(
+      partialPinoLog('info', 'Parcel is valid and has been queued', {
+        parcelId: parcel.id,
+        recipient: parcel.recipient,
+        senderId: await parcel.senderCertificate.calculateSubjectId(),
+      }),
+    );
   });
 
   test('Content-Type other than application/vnd.awala.parcel should be refused', async () => {
@@ -116,7 +124,7 @@ describe('parcel route', () => {
     expect(logs).toContainEqual(partialPinoLog('info', 'Refusing invalid parcel'));
   });
 
-  test('Invalid service message should be refused', async () => {
+  test('Invalid service message should be accepted', async () => {
     const parcelRecipient = {
       id: activeEndpoint.id,
       internetAddress: activeEndpoint.internetAddress,
@@ -134,7 +142,7 @@ describe('parcel route', () => {
       payload: parcelSerialized,
     });
 
-    expect(response).toHaveProperty('statusCode', HTTP_STATUS_CODES.BAD_REQUEST);
+    expect(response).toHaveProperty('statusCode', HTTP_STATUS_CODES.ACCEPTED);
     expect(logs).toContainEqual(partialPinoLog('info', 'Invalid service message'));
   });
 });

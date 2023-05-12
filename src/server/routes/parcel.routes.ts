@@ -43,6 +43,7 @@ export default function registerRoutes(
         recipient: parcel.recipient,
         senderId: await parcel.senderCertificate.calculateSubjectId(),
       });
+
       const activeEndpoint = await fastify.getActiveEndpoint();
       try {
         await activeEndpoint.validateMessage(parcel);
@@ -56,11 +57,11 @@ export default function registerRoutes(
       let decryptionResult;
       try {
         decryptionResult = await parcel.unwrapPayload(activeEndpoint.keyStores.privateKeyStore);
-      } catch (error) {
-        parcelAwareLogger.info({ err: error }, 'Invalid service message');
+      } catch (err) {
+        parcelAwareLogger.info({ err }, 'Invalid service message');
         return reply
-          .code(HTTP_STATUS_CODES.BAD_REQUEST)
-          .send({ message: 'Invalid service message' });
+          .code(HTTP_STATUS_CODES.ACCEPTED)
+          .send();
       }
 
       // This log is needed not to throw decryptionResult is unused error.
