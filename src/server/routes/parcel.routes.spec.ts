@@ -155,6 +155,6 @@ describe('parcel route', () => {
     });
 
     expect(response).toHaveProperty('statusCode', HTTP_STATUS_CODES.ACCEPTED);
-    expect(logs).toContainEqual(partialPinoLog('info', 'Invalid service message'));
+    expect(logs).toContainEqual(partialPinoLog('info', 'Ignoring invalid service message'));
   });
 });

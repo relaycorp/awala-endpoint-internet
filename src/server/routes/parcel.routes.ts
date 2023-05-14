@@ -58,7 +58,7 @@ export default function registerRoutes(
       try {
         decryptionResult = await parcel.unwrapPayload(activeEndpoint.keyStores.privateKeyStore);
       } catch (err) {
-        parcelAwareLogger.info({ err }, 'Invalid service message');
+        parcelAwareLogger.info({ err }, 'Ignoring invalid service message');
         return reply.code(HTTP_STATUS_CODES.ACCEPTED).send();
       }
 
@@ -66,7 +66,7 @@ export default function registerRoutes(
       // Will be removed in the next PR
       parcelAwareLogger.info(
         { test: decryptionResult.senderSessionKey.keyId },
-        'Invalid service message',
+        'test',
       );
 
       // DECRYPT AND THEN EMIT EVENT (BUT THAT'S PART OF A DIFFERENT ISSUE)
