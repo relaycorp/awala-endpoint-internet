@@ -14,3 +14,7 @@ export const ENDPOINT_ID_PUBLIC_KEY_DER = await derSerializePublicKey(
 );
 
 export const ENDPOINT_ID = await getIdFromIdentityKey(ENDPOINT_ID_KEY_PAIR.publicKey);
+
+export const PRIVATE_ENDPOINT_KEY_PAIR = await generateIdentityKeyPairSet();
+
+export const PRIVATE_ENDPOINT_ADDRESS = 'private.example.com';

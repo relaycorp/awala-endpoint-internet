@@ -1,4 +1,5 @@
 import {
+  type Channel,
   derDeserializeRSAPublicKey,
   Endpoint,
   getIdFromIdentityKey,
@@ -8,15 +9,19 @@ import {
   MockPublicKeyStore,
   NodeConnectionParams,
   type Parcel,
+  type ServiceMessage,
   type SessionKey,
   SessionKeyPair,
 } from '@relaycorp/relaynet-core';
 import envVar from 'env-var';
 import type { Connection } from 'mongoose';
 import { initPrivateKeystoreFromEnv } from '@relaycorp/awala-keystore-cloud';
+import { getModelForClass } from '@typegoose/typegoose';
+import type { PrivateEndpointConnParams } from '@relaycorp/relaynet-core/build/main/lib/nodes/PrivateEndpointConnParams.js';
 
 import { Config, ConfigKey } from '../config.js';
 import { Kms } from '../kms/Kms.js';
+import { PrivateEndpointModelSchema } from '../../models/PrivateEndpoint.model.js';
 
 import { InternetPrivateEndpointChannel } from './InternetPrivateEndpointChannel.js';
 
@@ -68,6 +73,33 @@ export class InternetEndpoint extends Endpoint {
     protected readonly config: Config,
   ) {
     super(id, identityKeyPair, keyStores, {});
+  }
+
+  public override async savePrivateEndpointChannel(
+    connectionParams: PrivateEndpointConnParams,
+    dbConnection?: Connection,
+  ): Promise<Channel<ServiceMessage, string>> {
+    const superResponse = await super.savePrivateEndpointChannel(connectionParams);
+    const peerId = superResponse.peer.id;
+    const { internetGatewayAddress } = connectionParams;
+
+    const privateEndpointModel = getModelForClass(PrivateEndpointModelSchema, {
+      existingConnection: dbConnection,
+    });
+
+    await privateEndpointModel.updateOne(
+      {
+        peerId,
+      },
+      {
+        internetGatewayAddress,
+      },
+      {
+        upsert: true,
+      },
+    );
+
+    return superResponse;
   }
 
   protected async retrieveInitialSessionKeyId(): Promise<Buffer | null> {

@@ -1,9 +1,11 @@
 import { jest } from '@jest/globals';
 import {
   type Certificate,
+  CertificationPath,
   derDeserializeECDHPrivateKey,
   derSerializePrivateKey,
   derSerializePublicKey,
+  Endpoint,
   generateRSAKeyPair,
   InvalidMessageError,
   issueEndpointCertificate,
@@ -19,6 +21,9 @@ import {
 import { addSeconds, subSeconds } from 'date-fns';
 import envVar from 'env-var';
 import type { Connection } from 'mongoose';
+import { generatePDACertificationPath } from '@relaycorp/relaynet-testing';
+import { PrivateEndpointConnParams } from '@relaycorp/relaynet-core/build/main/lib/nodes/PrivateEndpointConnParams.js';
+import { getModelForClass, type ReturnModelType } from '@typegoose/typegoose';
 
 import { bufferToArrayBuffer } from '../buffer.js';
 import { Config, ConfigKey } from '../config.js';
@@ -29,10 +34,14 @@ import {
   ENDPOINT_ID_KEY_PAIR,
   ENDPOINT_ID_KEY_REF,
   ENDPOINT_ID_PUBLIC_KEY_DER,
+  KEY_PAIR_SET,
+  PRIVATE_ENDPOINT_ADDRESS,
+  PRIVATE_ENDPOINT_KEY_PAIR,
 } from '../../testUtils/awala/stubs.js';
 import { mockSpy } from '../../testUtils/jest.js';
 import { mockKms } from '../../testUtils/kms/mockKms.js';
 import { configureMockEnvVars } from '../../testUtils/envVars.js';
+import { PrivateEndpointModelSchema } from '../../models/PrivateEndpoint.model.js';
 
 import type { InternetEndpoint as InternetEndpointType } from './InternetEndpoint.js';
 
@@ -150,8 +159,10 @@ describe('getActive', () => {
 describe('InternetEndpoint instance', () => {
   let config: Config;
   let endpoint: InternetEndpointType;
+  let dbConnection: Connection;
   beforeEach(() => {
-    config = new Config(getDbConnection());
+    dbConnection = getDbConnection();
+    config = new Config(dbConnection);
 
     endpoint = new InternetEndpoint(
       ENDPOINT_ID,
@@ -187,6 +198,45 @@ describe('InternetEndpoint instance', () => {
         sessionKey.keyId.toString('hex'),
       );
       await expect(config.get(ConfigKey.INITIAL_SESSION_KEY_ID_BASE64)).resolves.toBe(keyIdBase64);
+    });
+  });
+
+  describe('savePrivateEndpointChannel', () => {
+    let privateEndpoint: PrivateEndpointConnParams;
+    let privateEndpointModel: ReturnModelType<typeof PrivateEndpointModelSchema>;
+
+    beforeEach(async () => {
+      const certificatePath = await generatePDACertificationPath(KEY_PAIR_SET);
+      const pdaPath = new CertificationPath(certificatePath.pdaGrantee, [
+        certificatePath.privateEndpoint,
+        certificatePath.privateGateway,
+      ]);
+      privateEndpoint = new PrivateEndpointConnParams(
+        PRIVATE_ENDPOINT_KEY_PAIR.privateGateway.publicKey,
+        PRIVATE_ENDPOINT_ADDRESS,
+        pdaPath,
+      );
+      privateEndpointModel = getModelForClass(PrivateEndpointModelSchema, {
+        existingConnection: dbConnection,
+      });
+    });
+
+    test('Valid private endpoint channel should be saved', async () => {
+      const result = await endpoint.savePrivateEndpointChannel(privateEndpoint, dbConnection);
+
+      const privateEndpointResult = await privateEndpointModel.exists({
+        peerId: result.peer.id,
+        internetGatewayAddress: privateEndpoint.internetGatewayAddress,
+      });
+      expect(privateEndpointResult).not.toBeNull();
+    });
+
+    test('Super method should be called', async () => {
+      const superSpy = jest.spyOn(Endpoint.prototype, 'savePrivateEndpointChannel');
+
+      await endpoint.savePrivateEndpointChannel(privateEndpoint, dbConnection);
+
+      expect(superSpy).toHaveBeenCalledWith(privateEndpoint);
     });
   });
 

@@ -7,6 +7,7 @@ import type { ServiceOptions } from './serviceTypes.js';
 import { exampleFunctionWithEmitter, examplePromiseRejection } from './example.js';
 import { mockEmitter } from './testUtils/eventing/mockEmitter.js';
 import { getPromiseRejection } from './testUtils/jest.js';
+import { mockInternetEndpoint } from './testUtils/awala/mockInternetEndpoint';
 
 describe('example', () => {
   const getConnection = setUpTestDbConnection();
@@ -14,12 +15,16 @@ describe('example', () => {
   const mockLogging = makeMockLogging();
   let connection: Connection;
   let serviceOptions: ServiceOptions;
+  const endpointManager = mockInternetEndpoint(() => connection);
   const getEvents = mockEmitter();
+
   beforeEach(() => {
     connection = getConnection();
     serviceOptions = {
       dbConnection: connection,
       logger: mockLogging.logger,
+      activeEndpoint: endpointManager()
+
     };
   });
 
