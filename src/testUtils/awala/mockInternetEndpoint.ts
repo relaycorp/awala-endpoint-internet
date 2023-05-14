@@ -2,29 +2,25 @@ import { jest } from '@jest/globals';
 import { MockKeyStoreSet } from '@relaycorp/relaynet-core';
 import type { Connection } from 'mongoose';
 
-import { InternetEndpointManager } from '../../utilities/awala/InternetEndpointManager.js';
 import { Config } from '../../utilities/config.js';
 import { mockKms } from '../kms/mockKms.js';
-import { Kms } from '../../utilities/kms/Kms.js';
+import { InternetEndpoint } from '../../utilities/awala/InternetEndpoint.js';
 
-import { ENDPOINT_ADDRESS, ENDPOINT_ID_KEY_REF, ENDPOINT_ID_PUBLIC_KEY_DER } from './stubs.js';
+import { ENDPOINT_ADDRESS, ENDPOINT_ID, ENDPOINT_ID_KEY_PAIR } from './stubs.js';
 
-export function mockInternetEndpoint(
-  getDbConnection: () => Connection,
-): () => InternetEndpointManager {
-  const initMock = jest.spyOn(InternetEndpointManager, 'init');
+export function mockInternetEndpoint(getDbConnection: () => Connection): () => InternetEndpoint {
+  const initMock = jest.spyOn(InternetEndpoint, 'getActive');
 
   mockKms();
 
-  let stub: InternetEndpointManager;
-  beforeEach(async () => {
-    stub = new InternetEndpointManager(
-      ENDPOINT_ID_KEY_REF,
-      ENDPOINT_ID_PUBLIC_KEY_DER,
+  let stub: InternetEndpoint;
+  beforeEach(() => {
+    stub = new InternetEndpoint(
+      ENDPOINT_ID,
       ENDPOINT_ADDRESS,
-      await Kms.init(),
-      new Config(getDbConnection()),
+      ENDPOINT_ID_KEY_PAIR,
       new MockKeyStoreSet(),
+      new Config(getDbConnection()),
     );
     initMock.mockResolvedValue(stub);
   });

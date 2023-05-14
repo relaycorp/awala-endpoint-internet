@@ -4,7 +4,7 @@ import { Kms } from '../../utilities/kms/Kms.js';
 
 import { MockKmsRsaPssProvider } from './MockKmsRsaPssProvider.js';
 
-export class MockKms extends Kms {
+class MockKms extends Kms {
   public constructor() {
     super(new MockKmsRsaPssProvider());
   }
