@@ -203,7 +203,7 @@ describe('parcel route', () => {
       );
     });
 
-    test('Malformed PDA should be accepted but not stored', async () => {
+    test('Invalid PDA should be accepted but not stored', async () => {
       const certificatePath = await generatePDACertificationPath(PRIVATE_ENDPOINT_KEY_PAIR);
       const pdaPath = new CertificationPath(certificatePath.pdaGrantee, [
         certificatePath.privateEndpoint,
@@ -238,7 +238,7 @@ describe('parcel route', () => {
       expect(spyOnSavePrivateEndpointChannel).toHaveBeenCalledOnce();
       expect(response).toHaveProperty('statusCode', HTTP_STATUS_CODES.ACCEPTED);
       expect(logs).toContainEqual(
-        partialPinoLog('info', 'Private endpoint connection params malformed!'),
+        partialPinoLog('info', 'Refusing to store invalid endpoint connection params!'),
       );
     });
   });

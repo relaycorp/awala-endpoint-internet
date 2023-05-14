@@ -59,7 +59,7 @@ export default function registerRoutes(
       );
       serviceOptions.logger.info('Private endpoint connection params stored');
     } catch (err) {
-      serviceOptions.logger.info({ err }, 'Private endpoint connection params malformed!');
+      serviceOptions.logger.info({ err }, 'Refusing to store invalid endpoint connection params!');
     }
   }
 
