@@ -18,9 +18,9 @@ import type { InternetEndpoint } from '../../utilities/awala/InternetEndpoint.js
 import { HTTP_STATUS_CODES } from '../../utilities/http.js';
 import {
   KEY_PAIR_SET,
-  MESSAGE_CONTENT,
   PRIVATE_ENDPOINT_ADDRESS,
   PRIVATE_ENDPOINT_KEY_PAIR,
+  SERVICE_MESSAGE_CONTENT,
 } from '../../testUtils/awala/stubs.js';
 import { generateParcel } from '../../testUtils/awala/parcel.js';
 
@@ -68,7 +68,7 @@ describe('parcel route', () => {
         keyId: sessionKey.keyId,
       },
       'application/test',
-      MESSAGE_CONTENT,
+      SERVICE_MESSAGE_CONTENT,
     );
 
     const response = await server.inject({
@@ -124,7 +124,7 @@ describe('parcel route', () => {
         keyId: sessionKey.keyId,
       },
       'application/test',
-      MESSAGE_CONTENT,
+      SERVICE_MESSAGE_CONTENT,
     );
 
     const response = await server.inject({
@@ -150,7 +150,7 @@ describe('parcel route', () => {
         keyId: Buffer.from('invalid key id'),
       },
       'application/test',
-      MESSAGE_CONTENT,
+      SERVICE_MESSAGE_CONTENT,
     );
 
     const response = await server.inject({

@@ -19,4 +19,4 @@ export const PRIVATE_ENDPOINT_KEY_PAIR = await generateIdentityKeyPairSet();
 
 export const PRIVATE_ENDPOINT_ADDRESS = 'private.example.com';
 
-export const MESSAGE_CONTENT = Buffer.from('Test');
+export const SERVICE_MESSAGE_CONTENT = Buffer.from('Test');
