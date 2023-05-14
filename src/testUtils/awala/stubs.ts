@@ -15,4 +15,4 @@ export const ENDPOINT_ID_PUBLIC_KEY_DER = await derSerializePublicKey(
 
 export const ENDPOINT_ID = await getIdFromIdentityKey(ENDPOINT_ID_KEY_PAIR.publicKey);
 
-export const MESSAGE_CONTENT = Buffer.from("Test");
+export const SERVICE_MESSAGE_CONTENT = Buffer.from("Test");
