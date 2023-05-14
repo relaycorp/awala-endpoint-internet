@@ -45,7 +45,7 @@ export default function registerRoutes(
     try {
       return await parcel.unwrapPayload(serviceOptions.activeEndpoint.keyStores.privateKeyStore);
     } catch (err) {
-      serviceOptions.logger.info({ err }, 'Invalid service message');
+      serviceOptions.logger.info({ err }, 'Ignoring invalid service message');
       return null;
     }
   }

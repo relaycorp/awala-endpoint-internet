@@ -6,12 +6,9 @@ import {
   ServiceMessage,
   SessionEnvelopedData,
   type SessionKey,
-  SessionlessEnvelopedData,
 } from '@relaycorp/relaynet-core';
-import type { NodeKeyPairSet, PDACertPath } from '@relaycorp/relaynet-testing';
+import type { NodeKeyPairSet } from '@relaycorp/relaynet-testing';
 import { addDays } from 'date-fns';
-
-import { bufferToArrayBuffer } from '../../utilities/buffer.js';
 
 interface GeneratedParcel {
   readonly parcelSerialized: Buffer;
@@ -33,16 +30,6 @@ async function generateStubNodeCertificate(
   });
 }
 
-async function generateSessionlessParcelPayload(
-  recipientIdCertificate: Certificate,
-): Promise<Buffer> {
-  const serviceMessageEncrypted = await SessionlessEnvelopedData.encrypt(
-    bufferToArrayBuffer(Buffer.from('Test')),
-    recipientIdCertificate,
-  );
-  return Buffer.from(serviceMessageEncrypted.serialize());
-}
-
 async function generateParcelPayload(
   recipientSessionKey: SessionKey,
   messageContent: Buffer,
@@ -62,20 +49,21 @@ async function generateParcelPayload(
 
 export async function generateParcel(
   recipient: Recipient,
-  certificatePath: PDACertPath,
   keyPairSet: NodeKeyPairSet,
   creationDate: Date,
-  sessionKey?: SessionKey,
-  messageType?: string,
-  messageContent?: Buffer,
+  sessionKey: SessionKey,
+  messageType: string,
+  messageContent: Buffer,
 ): Promise<GeneratedParcel> {
   const parcelSenderCertificate = await generateStubNodeCertificate(
     keyPairSet.privateEndpoint.publicKey,
     keyPairSet.privateEndpoint.privateKey,
   );
-  const parcelPayloadSerialized = await (sessionKey
-    ? generateParcelPayload(sessionKey, messageContent ?? Buffer.from('test'), messageType)
-    : generateSessionlessParcelPayload(certificatePath.privateEndpoint));
+  const parcelPayloadSerialized = await generateParcelPayload(
+    sessionKey,
+    messageContent,
+    messageType,
+  );
 
   const parcel = new Parcel(recipient, parcelSenderCertificate, parcelPayloadSerialized, {
     creationDate,

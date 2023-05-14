@@ -18,3 +18,5 @@ export const ENDPOINT_ID = await getIdFromIdentityKey(ENDPOINT_ID_KEY_PAIR.publi
 export const PRIVATE_ENDPOINT_KEY_PAIR = await generateIdentityKeyPairSet();
 
 export const PRIVATE_ENDPOINT_ADDRESS = 'private.example.com';
+
+export const MESSAGE_CONTENT = Buffer.from('Test');
