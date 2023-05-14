@@ -64,10 +64,7 @@ export default function registerRoutes(
 
       // This log is needed not to throw decryptionResult is unused error.
       // Will be removed in the next PR
-      parcelAwareLogger.info(
-        { test: decryptionResult.senderSessionKey.keyId },
-        'test',
-      );
+      parcelAwareLogger.info({ test: decryptionResult.senderSessionKey.keyId }, 'test');
 
       // DECRYPT AND THEN EMIT EVENT (BUT THAT'S PART OF A DIFFERENT ISSUE)
       parcelAwareLogger.info('Parcel is valid and has been queued');

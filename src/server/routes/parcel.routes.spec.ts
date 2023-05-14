@@ -3,7 +3,8 @@ import { subDays } from 'date-fns';
 import {
   derDeserializeECDHPublicKey,
   derSerializePublicKey,
-  Recipient, SessionKey,
+  type Recipient,
+  type SessionKey,
 } from '@relaycorp/relaynet-core';
 
 import { configureMockEnvVars, REQUIRED_ENV_VARS } from '../../testUtils/envVars.js';
@@ -46,7 +47,6 @@ describe('parcel route', () => {
     sessionKey = await activeEndpoint.retrieveInitialSessionPublicKey();
     const serializedPublicKey = await derSerializePublicKey(sessionKey.publicKey);
     publicKey = await derDeserializeECDHPublicKey(serializedPublicKey);
-
   });
 
   test('Valid parcel should be accepted', async () => {
@@ -59,7 +59,7 @@ describe('parcel route', () => {
         keyId: sessionKey.keyId,
       },
       'application/test',
-      SERVICE_MESSAGE_CONTENT
+      SERVICE_MESSAGE_CONTENT,
     );
 
     const response = await server.inject({
@@ -106,7 +106,6 @@ describe('parcel route', () => {
   });
 
   test('Parcel should be refused if it is well-formed but invalid', async () => {
-
     const { parcelSerialized } = await generateParcel(
       parcelRecipient,
       KEY_PAIR_SET,
@@ -116,7 +115,7 @@ describe('parcel route', () => {
         keyId: sessionKey.keyId,
       },
       'application/test',
-      SERVICE_MESSAGE_CONTENT
+      SERVICE_MESSAGE_CONTENT,
     );
 
     const response = await server.inject({
@@ -133,20 +132,16 @@ describe('parcel route', () => {
   });
 
   test('Invalid service message should be ignored', async () => {
-    const parcelRecipient = {
-      id: activeEndpoint.id,
-      internetAddress: activeEndpoint.internetAddress,
-    };
     const { parcelSerialized } = await generateParcel(
       parcelRecipient,
       KEY_PAIR_SET,
       new Date(),
       {
         publicKey,
-        keyId: Buffer.from("invalid key id"),
+        keyId: Buffer.from('invalid key id'),
       },
       'application/test',
-      SERVICE_MESSAGE_CONTENT
+      SERVICE_MESSAGE_CONTENT,
     );
 
     const response = await server.inject({

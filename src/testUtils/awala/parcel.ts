@@ -59,7 +59,11 @@ export async function generateParcel(
     keyPairSet.privateEndpoint.publicKey,
     keyPairSet.privateEndpoint.privateKey,
   );
-  const parcelPayloadSerialized = await generateParcelPayload(sessionKey, messageContent, messageType)
+  const parcelPayloadSerialized = await generateParcelPayload(
+    sessionKey,
+    messageContent,
+    messageType,
+  );
 
   const parcel = new Parcel(recipient, parcelSenderCertificate, parcelPayloadSerialized, {
     creationDate,
