@@ -23,7 +23,6 @@ describe('parcel route', () => {
   let logs: MockLogSet;
   let activeEndpoint: InternetEndpoint;
   let parcelRecipient: Recipient;
-  let publicKey: CryptoKey;
   let sessionKey: SessionKey;
   const validRequestOptions: InjectOptions = {
     headers: {
@@ -44,9 +43,9 @@ describe('parcel route', () => {
       id: activeEndpoint.id,
       internetAddress: activeEndpoint.internetAddress,
     };
-    sessionKey = await activeEndpoint.retrieveInitialSessionPublicKey();
-    const serializedPublicKey = await derSerializePublicKey(sessionKey.publicKey);
-    publicKey = await derDeserializeECDHPublicKey(serializedPublicKey);
+    const { keyId, publicKey: privateKey } = await activeEndpoint.retrieveInitialSessionPublicKey();
+    const serializedPublicKey = await derSerializePublicKey(privateKey);
+    sessionKey = { keyId, publicKey: await derDeserializeECDHPublicKey(serializedPublicKey) };
   });
 
   test('Valid parcel should be accepted', async () => {
@@ -54,10 +53,7 @@ describe('parcel route', () => {
       parcelRecipient,
       KEY_PAIR_SET,
       new Date(),
-      {
-        publicKey,
-        keyId: sessionKey.keyId,
-      },
+      sessionKey,
       'application/test',
       SERVICE_MESSAGE_CONTENT,
     );
@@ -110,10 +106,7 @@ describe('parcel route', () => {
       parcelRecipient,
       KEY_PAIR_SET,
       subDays(new Date(), 1),
-      {
-        publicKey,
-        keyId: sessionKey.keyId,
-      },
+      sessionKey,
       'application/test',
       SERVICE_MESSAGE_CONTENT,
     );
@@ -136,10 +129,7 @@ describe('parcel route', () => {
       parcelRecipient,
       KEY_PAIR_SET,
       new Date(),
-      {
-        publicKey,
-        keyId: Buffer.from('invalid key id'),
-      },
+      { ...sessionKey, keyId: Buffer.from('invalid key id') },
       'application/test',
       SERVICE_MESSAGE_CONTENT,
     );
