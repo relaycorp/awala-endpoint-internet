@@ -92,7 +92,7 @@ export class InternetEndpoint extends Endpoint {
     );
   }
 
-  protected async retrieveInitialSessionPublicKey(): Promise<SessionKey> {
+  public async retrieveInitialSessionPublicKey(): Promise<SessionKey> {
     const keyId = await this.retrieveInitialSessionKeyId();
     if (keyId === null) {
       throw new Error('Initial session key id is missing from config');

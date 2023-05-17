@@ -54,6 +54,18 @@ export default function registerRoutes(
           .send({ message: 'Parcel is well-formed but invalid' });
       }
 
+      let decryptionResult;
+      try {
+        decryptionResult = await parcel.unwrapPayload(activeEndpoint.keyStores.privateKeyStore);
+      } catch (err) {
+        parcelAwareLogger.info({ err }, 'Ignoring invalid service message');
+        return reply.code(HTTP_STATUS_CODES.ACCEPTED).send();
+      }
+
+      // This log is needed not to throw decryptionResult is unused error.
+      // Will be removed in the next PR
+      parcelAwareLogger.info({ test: decryptionResult.senderSessionKey.keyId }, 'test');
+
       // DECRYPT AND THEN EMIT EVENT (BUT THAT'S PART OF A DIFFERENT ISSUE)
       parcelAwareLogger.info('Parcel is valid and has been queued');
       return reply.code(HTTP_STATUS_CODES.ACCEPTED).send();

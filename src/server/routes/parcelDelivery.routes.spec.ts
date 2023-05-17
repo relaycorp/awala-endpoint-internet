@@ -1,14 +1,19 @@
 import type { FastifyInstance, InjectOptions } from 'fastify';
-import { generatePDACertificationPath } from '@relaycorp/relaynet-testing';
 import { subDays } from 'date-fns';
+import {
+  derDeserializeECDHPublicKey,
+  derSerializePublicKey,
+  type Recipient,
+  type SessionKey,
+} from '@relaycorp/relaynet-core';
 
 import { configureMockEnvVars, REQUIRED_ENV_VARS } from '../../testUtils/envVars.js';
 import { makeTestPohttpServer } from '../../testUtils/pohttpServer.js';
 import { type MockLogSet, partialPinoLog } from '../../testUtils/logging.js';
 import type { InternetEndpoint } from '../../utilities/awala/InternetEndpoint.js';
 import { HTTP_STATUS_CODES } from '../../utilities/http.js';
+import { KEY_PAIR_SET, SERVICE_MESSAGE_CONTENT } from '../../testUtils/awala/stubs.js';
 import { generateParcel } from '../../testUtils/awala/parcel.js';
-import { KEY_PAIR_SET } from '../../testUtils/awala/stubs.js';
 
 configureMockEnvVars(REQUIRED_ENV_VARS);
 
@@ -17,7 +22,8 @@ describe('parcel route', () => {
   let server: FastifyInstance;
   let logs: MockLogSet;
   let activeEndpoint: InternetEndpoint;
-
+  let parcelRecipient: Recipient;
+  let sessionKey: SessionKey;
   const validRequestOptions: InjectOptions = {
     headers: {
       // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -28,22 +34,28 @@ describe('parcel route', () => {
     payload: {},
     url: '/',
   };
+
   beforeEach(async () => {
     ({ server, logs } = getTestServerFixture());
     activeEndpoint = await server.getActiveEndpoint();
-  });
 
-  test('Valid parcel should be accepted', async () => {
-    const parcelRecipient = {
+    parcelRecipient = {
       id: activeEndpoint.id,
       internetAddress: activeEndpoint.internetAddress,
     };
-    const keyPairSet = KEY_PAIR_SET;
-    const certificatePath = await generatePDACertificationPath(keyPairSet);
+    const { keyId, publicKey: privateKey } = await activeEndpoint.retrieveInitialSessionPublicKey();
+    const serializedPublicKey = await derSerializePublicKey(privateKey);
+    sessionKey = { keyId, publicKey: await derDeserializeECDHPublicKey(serializedPublicKey) };
+  });
+
+  test('Valid parcel should be accepted', async () => {
     const { parcelSerialized, parcel } = await generateParcel(
       parcelRecipient,
-      certificatePath.privateEndpoint,
-      keyPairSet,
+      KEY_PAIR_SET,
+      new Date(),
+      sessionKey,
+      'application/test',
+      SERVICE_MESSAGE_CONTENT,
     );
 
     const response = await server.inject({
@@ -90,17 +102,13 @@ describe('parcel route', () => {
   });
 
   test('Parcel should be refused if it is well-formed but invalid', async () => {
-    const parcelRecipient = {
-      id: activeEndpoint.id,
-      internetAddress: activeEndpoint.internetAddress,
-    };
-    const keyPairSet = KEY_PAIR_SET;
-    const certificatePath = await generatePDACertificationPath(keyPairSet);
     const { parcelSerialized } = await generateParcel(
       parcelRecipient,
-      certificatePath.privateEndpoint,
-      keyPairSet,
+      KEY_PAIR_SET,
       subDays(new Date(), 1),
+      sessionKey,
+      'application/test',
+      SERVICE_MESSAGE_CONTENT,
     );
 
     const response = await server.inject({
@@ -114,5 +122,24 @@ describe('parcel route', () => {
       'Parcel is well-formed but invalid',
     );
     expect(logs).toContainEqual(partialPinoLog('info', 'Refusing invalid parcel'));
+  });
+
+  test('Invalid service message should be ignored', async () => {
+    const { parcelSerialized } = await generateParcel(
+      parcelRecipient,
+      KEY_PAIR_SET,
+      new Date(),
+      { ...sessionKey, keyId: Buffer.from('invalid key id') },
+      'application/test',
+      SERVICE_MESSAGE_CONTENT,
+    );
+
+    const response = await server.inject({
+      ...validRequestOptions,
+      payload: parcelSerialized,
+    });
+
+    expect(response).toHaveProperty('statusCode', HTTP_STATUS_CODES.ACCEPTED);
+    expect(logs).toContainEqual(partialPinoLog('info', 'Ignoring invalid service message'));
   });
 });
