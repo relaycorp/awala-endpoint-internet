@@ -14,7 +14,7 @@ spec:
       initContainers:
         - name: startup-delay
           image: busybox
-          command: ["sleep", "7s"]
+          command: ["sleep", "12s"]
 
       containers:
         - name: bootstrap
