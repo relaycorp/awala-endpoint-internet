@@ -16,7 +16,7 @@ import {
   type Recipient,
   SessionKeyPair,
 } from '@relaycorp/relaynet-core';
-import { addSeconds, subSeconds } from 'date-fns';
+import { addMinutes, subSeconds } from 'date-fns';
 import envVar from 'env-var';
 import type { Connection } from 'mongoose';
 
@@ -255,7 +255,7 @@ describe('InternetEndpoint instance', () => {
       senderCertificate = await issueEndpointCertificate({
         issuerPrivateKey: senderKeyPair.privateKey,
         subjectPublicKey: senderKeyPair.publicKey,
-        validityEndDate: addSeconds(new Date(), 1),
+        validityEndDate: addMinutes(new Date(), 1),
       });
     });
 
