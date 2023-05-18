@@ -2,7 +2,7 @@ FROM node:18.14.0 as build
 USER node
 WORKDIR /tmp/awala-endpoint
 COPY --chown=node:node package*.json ./
-RUN npm install
+RUN npm install --loglevel verbose
 COPY --chown=node:node . ./
 RUN npm run build && npm prune --omit=dev && rm -r src
 
