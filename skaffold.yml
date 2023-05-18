@@ -11,6 +11,4 @@ manifests:
   rawYaml:
     - k8s/*.yml
 deploy:
-  statusCheckDeadlineSeconds: 180
-  tolerateFailuresUntilDeadline: true
   kubectl: {}
