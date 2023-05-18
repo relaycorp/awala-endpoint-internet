@@ -3,7 +3,7 @@ kind: Job
 metadata:
   name: vault-config
 spec:
-  ttlSecondsAfterFinished: 10
+  ttlSecondsAfterFinished: 15
   template:
     metadata:
       name: "vault-config"
@@ -15,7 +15,7 @@ spec:
       initContainers:
         - name: startup-delay
           image: busybox
-          command: ["sleep", "10s"]
+          command: ["sleep", "5s"]
 
       containers:
         - name: vault-config
