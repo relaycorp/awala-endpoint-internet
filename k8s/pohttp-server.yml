@@ -13,7 +13,7 @@ spec:
       containers:
         - name: server
           image: dev.local/awala-endpoint
-          args: [server]
+          args: [pohttp-server]
           readinessProbe:
             httpGet:
               path: /

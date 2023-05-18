@@ -2,6 +2,12 @@
   "name": "awala-endpoint",
   "version": "1.0.0",
   "type": "module",
+  "files": ["build"],
+  "bin": {
+    "pohttp-server": "./build/bin/server.js",
+    "pohttp-client": "./build/bin/client.js",
+    "pohttp-bootstrap": "./build/bin/bootstrap.js"
+  },
   "scripts": {
     "prebuild": "run-s clean",
     "build": "tsc -p tsconfig.json",
