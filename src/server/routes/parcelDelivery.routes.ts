@@ -1,9 +1,25 @@
 import type { FastifyInstance, RouteOptions } from 'fastify';
-import { Parcel } from '@relaycorp/relaynet-core';
+import { Parcel, type ServiceMessage } from '@relaycorp/relaynet-core';
 
 import type { PluginDone } from '../../utilities/fastify/PluginDone.js';
 import { bufferToArrayBuffer } from '../../utilities/buffer.js';
 import { HTTP_STATUS_CODES } from '../../utilities/http.js';
+import { makeIncomingServiceMessageEvent } from '../../events/incomingServiceMessage.event.js';
+import { Emitter } from '../../utilities/eventing/Emitter.js';
+
+async function publishIncomingServiceMessage(parcel: Parcel, serviceMessage: ServiceMessage) {
+  const event = makeIncomingServiceMessageEvent({
+    creationDate: parcel.creationDate,
+    expiryDate: parcel.expiryDate,
+    parcelId: parcel.id,
+    senderId: await parcel.senderCertificate.calculateSubjectId(),
+    recipientId: parcel.recipient.id,
+    contentType: serviceMessage.type,
+    content: serviceMessage.content,
+  });
+  const emitter = Emitter.init();
+  await emitter.emit(event);
+}
 
 export default function registerRoutes(
   fastify: FastifyInstance,
@@ -54,19 +70,18 @@ export default function registerRoutes(
           .send({ message: 'Parcel is well-formed but invalid' });
       }
 
-      let decryptionResult;
+      let serviceMessage: ServiceMessage;
       try {
-        decryptionResult = await parcel.unwrapPayload(activeEndpoint.keyStores.privateKeyStore);
+        ({ payload: serviceMessage } = await parcel.unwrapPayload(
+          activeEndpoint.keyStores.privateKeyStore,
+        ));
       } catch (err) {
         parcelAwareLogger.info({ err }, 'Ignoring invalid service message');
         return reply.code(HTTP_STATUS_CODES.ACCEPTED).send();
       }
 
-      // This log is needed not to throw decryptionResult is unused error.
-      // Will be removed in the next PR
-      parcelAwareLogger.info({ test: decryptionResult.senderSessionKey.keyId }, 'test');
+      await publishIncomingServiceMessage(parcel, serviceMessage);
 
-      // DECRYPT AND THEN EMIT EVENT (BUT THAT'S PART OF A DIFFERENT ISSUE)
       parcelAwareLogger.info('Parcel is valid and has been queued');
       return reply.code(HTTP_STATUS_CODES.ACCEPTED).send();
     },
