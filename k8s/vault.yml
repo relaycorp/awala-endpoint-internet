@@ -34,6 +34,8 @@ spec:
   template:
     metadata:
       name: "vault-config"
+      labels:
+        app.kubernetes.io/name: awala-endpoint
     spec:
       restartPolicy: OnFailure
 
