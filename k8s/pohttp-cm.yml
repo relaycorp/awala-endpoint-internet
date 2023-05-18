@@ -15,6 +15,5 @@ data:
   AWS_KMS_REGION: eu-west-2
 
   PRIVATE_KEY_STORE_ADAPTER: "1"
-  KS_VAULT_URL: example.com
-  KS_VAULT_KV_PREFIX: prefix
-
+  KS_VAULT_URL: http://vault.default
+  KS_VAULT_KV_PREFIX: endpoint-keys

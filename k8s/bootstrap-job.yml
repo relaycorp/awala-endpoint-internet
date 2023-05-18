@@ -1,0 +1,58 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pohttp-bootstrap
+spec:
+  ttlSecondsAfterFinished: 10
+  template:
+    spec:
+      restartPolicy: OnFailure
+
+      initContainers:
+        - name: startup-delay
+          image: busybox
+          command: ["sleep", "7s"]
+
+      containers:
+        - name: bootstrap
+          image: dev.local/awala-endpoint
+          imagePullPolicy: IfNotPresent
+          args: [pohttp-bootstrap]
+          env:
+            - name: MONGODB_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: credentials
+                  key: mongodb_username
+            - name: MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: credentials
+                  key: mongodb_password
+            - name: MONGODB_URI
+              value: mongodb://$(MONGODB_USERNAME):$(MONGODB_PASSWORD)@mongodb
+
+            - name: KS_VAULT_TOKEN
+              valueFrom:
+                configMapKeyRef:
+                  name: credentials
+                  key: vault_token
+
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: mock-aws-kms
+                  key: access_key_id
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: credentials
+                  key: aws_kms_secret_access_key
+            - name: AWS_KMS_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: mock-aws-kms
+                  key: endpoint
+          envFrom:
+            - configMapRef:
+                name: pohttp

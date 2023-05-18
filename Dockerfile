@@ -11,6 +11,7 @@ LABEL org.opencontainers.image.source="https://github.com/relaycorp/awala-endpoi
 USER node
 WORKDIR /opt/awala-endpoint
 COPY --from=build /tmp/awala-endpoint ./
-ENV NODE_OPTIONS="--unhandled-rejections=strict --experimental-vm-modules --enable-source-maps"
+ENV NPM_CONFIG_UPDATE_NOTIFIER=false \
+    NODE_OPTIONS="--unhandled-rejections=strict --experimental-vm-modules --enable-source-maps"
 ENTRYPOINT ["npm", "exec"]
 EXPOSE 8080
