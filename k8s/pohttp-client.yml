@@ -32,7 +32,7 @@ spec:
 
             - name: KS_VAULT_TOKEN
               valueFrom:
-                configMapKeyRef:
+                secretKeyRef:
                   name: credentials
                   key: vault_token
 
