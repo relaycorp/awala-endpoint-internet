@@ -35,8 +35,8 @@ import {
   ENDPOINT_ID_KEY_REF,
   ENDPOINT_ID_PUBLIC_KEY_DER,
   KEY_PAIR_SET,
-  PRIVATE_ENDPOINT_ADDRESS,
-  PRIVATE_ENDPOINT_KEY_PAIR,
+  PEER_ADDRESS,
+  PEER_KEY_PAIR,
 } from '../../testUtils/awala/stubs.js';
 import { mockSpy } from '../../testUtils/jest.js';
 import { mockKms } from '../../testUtils/kms/mockKms.js';
@@ -202,7 +202,7 @@ describe('InternetEndpoint instance', () => {
   });
 
   describe('savePeerEndpointChannel', () => {
-    let peerEndpointConnectionParams: PrivateEndpointConnParams;
+    let peerConnectionParams: PrivateEndpointConnParams;
     let peerEndpointModel: ReturnModelType<typeof PeerEndpoint>;
 
     beforeEach(async () => {
@@ -211,9 +211,9 @@ describe('InternetEndpoint instance', () => {
         certificatePath.privateEndpoint,
         certificatePath.privateGateway,
       ]);
-      peerEndpointConnectionParams = new PrivateEndpointConnParams(
-        PRIVATE_ENDPOINT_KEY_PAIR.privateGateway.publicKey,
-        PRIVATE_ENDPOINT_ADDRESS,
+      peerConnectionParams = new PrivateEndpointConnParams(
+        PEER_KEY_PAIR.privateGateway.publicKey,
+        PEER_ADDRESS,
         pdaPath,
       );
       peerEndpointModel = getModelForClass(PeerEndpoint, {
@@ -222,14 +222,11 @@ describe('InternetEndpoint instance', () => {
     });
 
     test('Valid private endpoint channel should be saved', async () => {
-      const result = await endpoint.savePeerEndpointChannel(
-        peerEndpointConnectionParams,
-        dbConnection,
-      );
+      const result = await endpoint.savePeerEndpointChannel(peerConnectionParams, dbConnection);
 
       const peerEndpointCheckResult = await peerEndpointModel.exists({
         peerId: result.peer.id,
-        internetGatewayAddress: peerEndpointConnectionParams.internetGatewayAddress,
+        internetGatewayAddress: peerConnectionParams.internetGatewayAddress,
       });
       expect(peerEndpointCheckResult).not.toBeNull();
     });
@@ -237,9 +234,9 @@ describe('InternetEndpoint instance', () => {
     test('Super method should be called', async () => {
       const superSpy = jest.spyOn(Endpoint.prototype, 'savePrivateEndpointChannel');
 
-      await endpoint.savePeerEndpointChannel(peerEndpointConnectionParams, dbConnection);
+      await endpoint.savePeerEndpointChannel(peerConnectionParams, dbConnection);
 
-      expect(superSpy).toHaveBeenCalledWith(peerEndpointConnectionParams);
+      expect(superSpy).toHaveBeenCalledWith(peerConnectionParams);
     });
   });
 

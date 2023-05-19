@@ -37,7 +37,7 @@ export default function registerRoutes(
     },
   );
 
-  async function getDeserializedParcel(
+  async function deserializeParcel(
     payload: Buffer,
     logger: FastifyBaseLogger,
   ): Promise<Parcel | null> {
@@ -84,13 +84,16 @@ export default function registerRoutes(
     logger: FastifyBaseLogger,
     dbConnection: Connection,
   ): Promise<void> {
+    let privateEndpointConnParams: PrivateEndpointConnParams;
     try {
-      const privateEndpointConnParams = await PrivateEndpointConnParams.deserialize(pdaBuffer);
-      await activeEndpoint.savePeerEndpointChannel(privateEndpointConnParams, dbConnection);
-      logger.info('Private endpoint connection params stored');
+      privateEndpointConnParams = await PrivateEndpointConnParams.deserialize(pdaBuffer);
     } catch (err) {
-      logger.info({ err }, 'Refusing to store invalid endpoint connection params!');
+      logger.info({ err }, 'Refusing to store invalid peer connection params!');
+      return;
     }
+
+    await activeEndpoint.savePeerEndpointChannel(privateEndpointConnParams, dbConnection);
+    logger.info('Peer connection params stored');
   }
 
   fastify.route<{
@@ -101,7 +104,7 @@ export default function registerRoutes(
     url: '/',
 
     async handler(request, reply): Promise<void> {
-      const parcel = await getDeserializedParcel(request.body, fastify.log);
+      const parcel = await deserializeParcel(request.body, fastify.log);
       if (!parcel) {
         return reply
           .code(HTTP_STATUS_CODES.BAD_REQUEST)

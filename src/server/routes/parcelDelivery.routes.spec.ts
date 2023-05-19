@@ -15,12 +15,11 @@ import { generatePDACertificationPath } from '@relaycorp/relaynet-testing';
 import { configureMockEnvVars, REQUIRED_ENV_VARS } from '../../testUtils/envVars.js';
 import { makeTestPohttpServer } from '../../testUtils/pohttpServer.js';
 import { type MockLogSet, partialPinoLog } from '../../testUtils/logging.js';
-import type { InternetEndpoint } from '../../utilities/awala/InternetEndpoint.js';
 import { HTTP_STATUS_CODES } from '../../utilities/http.js';
 import {
   KEY_PAIR_SET,
-  PRIVATE_ENDPOINT_ADDRESS,
-  PRIVATE_ENDPOINT_KEY_PAIR,
+  PEER_ADDRESS,
+  PEER_KEY_PAIR,
   SERVICE_MESSAGE_CONTENT,
   SERVICE_MESSAGE_CONTENT_TYPE,
 } from '../../testUtils/awala/stubs.js';
@@ -45,19 +44,18 @@ describe('Parcel delivery route', () => {
 
   let server: FastifyInstance;
   let logs: MockLogSet;
-  let activeEndpoint: InternetEndpoint;
   let parcelRecipient: Recipient;
   let sessionKey: SessionKey;
 
   beforeEach(async () => {
     ({ server, logs } = getTestServerFixture());
-    ({ activeEndpoint } = server);
 
     parcelRecipient = {
-      id: activeEndpoint.id,
-      internetAddress: activeEndpoint.internetAddress,
+      id: server.activeEndpoint.id,
+      internetAddress: server.activeEndpoint.internetAddress,
     };
-    const { keyId, publicKey: privateKey } = await activeEndpoint.retrieveInitialSessionPublicKey();
+    const { keyId, publicKey: privateKey } =
+      await server.activeEndpoint.retrieveInitialSessionPublicKey();
     const serializedPublicKey = await derSerializePublicKey(privateKey);
     sessionKey = { keyId, publicKey: await derDeserializeECDHPublicKey(serializedPublicKey) };
   });
@@ -184,7 +182,7 @@ describe('Parcel delivery route', () => {
     });
   });
 
-  describe('store PDA', () => {
+  describe('Incoming PDA', () => {
     const pdaContentType = 'application/vnd+relaycorp.awala.pda-path';
 
     test('Valid PDA should be stored', async () => {
@@ -193,64 +191,62 @@ describe('Parcel delivery route', () => {
         certificatePath.privateEndpoint,
         certificatePath.privateGateway,
       ]);
-      const peerEndpointConnectionParams = new PrivateEndpointConnParams(
-        PRIVATE_ENDPOINT_KEY_PAIR.privateGateway.publicKey,
-        PRIVATE_ENDPOINT_ADDRESS,
+      const peerConnectionParams = new PrivateEndpointConnParams(
+        PEER_KEY_PAIR.privateGateway.publicKey,
+        PEER_ADDRESS,
         pdaPath,
       );
-
       const { parcelSerialized } = await generateParcel(
         parcelRecipient,
         KEY_PAIR_SET,
         new Date(),
         sessionKey,
         pdaContentType,
-        Buffer.from(await peerEndpointConnectionParams.serialize()),
+        Buffer.from(await peerConnectionParams.serialize()),
       );
-      const spyOnSavePeerEndpointChannel = jest.spyOn(activeEndpoint, 'savePeerEndpointChannel');
+      const spyOnSavePeerEndpointChannel = jest.spyOn(
+        server.activeEndpoint,
+        'savePeerEndpointChannel',
+      );
 
       const response = await server.inject({
         ...validRequestOptions,
         payload: parcelSerialized,
       });
 
-      expect(spyOnSavePeerEndpointChannel).toHaveBeenCalledOnce();
-      expect(response).toHaveProperty('statusCode', HTTP_STATUS_CODES.ACCEPTED);
-      expect(logs).toContainEqual(
-        partialPinoLog('info', 'Private endpoint connection params stored'),
+      expect(spyOnSavePeerEndpointChannel).toHaveBeenCalledOnceWith(
+        expect.objectContaining({
+          internetGatewayAddress: peerConnectionParams.internetGatewayAddress,
+        }),
+        server.mongoose,
       );
+      expect(response).toHaveProperty('statusCode', HTTP_STATUS_CODES.ACCEPTED);
+      expect(logs).toContainEqual(partialPinoLog('info', 'Peer connection params stored'));
     });
 
-    test('Invalid PDA should be accepted but not stored', async () => {
-      const certificatePath = await generatePDACertificationPath(PRIVATE_ENDPOINT_KEY_PAIR);
-      const pdaPath = new CertificationPath(certificatePath.pdaGrantee, [
-        certificatePath.privateEndpoint,
-        certificatePath.privateGateway,
-      ]);
-      const peerEndpointConnectionParams = new PrivateEndpointConnParams(
-        PRIVATE_ENDPOINT_KEY_PAIR.privateGateway.publicKey,
-        PRIVATE_ENDPOINT_ADDRESS,
-        pdaPath,
-      );
+    test('Invalid connection params should be accepted but not stored', async () => {
       const { parcelSerialized } = await generateParcel(
         parcelRecipient,
         KEY_PAIR_SET,
         new Date(),
         sessionKey,
         pdaContentType,
-        Buffer.from(await peerEndpointConnectionParams.serialize()),
+        Buffer.from('Invalid PDA'),
       );
-      const spyOnSavePrivateEndpointChannel = jest.spyOn(activeEndpoint, 'savePeerEndpointChannel');
+      const spyOnSavePeerEndpointChannel = jest.spyOn(
+        server.activeEndpoint,
+        'savePeerEndpointChannel',
+      );
 
       const response = await server.inject({
         ...validRequestOptions,
         payload: parcelSerialized,
       });
 
-      expect(spyOnSavePrivateEndpointChannel).toHaveBeenCalledOnce();
+      expect(spyOnSavePeerEndpointChannel).not.toHaveBeenCalledOnce();
       expect(response).toHaveProperty('statusCode', HTTP_STATUS_CODES.ACCEPTED);
       expect(logs).toContainEqual(
-        partialPinoLog('info', 'Refusing to store invalid endpoint connection params!'),
+        partialPinoLog('info', 'Refusing to store invalid peer connection params!'),
       );
     });
   });
