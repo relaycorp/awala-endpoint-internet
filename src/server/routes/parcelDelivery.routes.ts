@@ -23,6 +23,65 @@ async function publishIncomingServiceMessage(parcel: Parcel, serviceMessage: Ser
   await emitter.emit(event);
 }
 
+async function deserializeParcel(
+  payload: Buffer,
+  logger: FastifyBaseLogger,
+): Promise<Parcel | null> {
+  try {
+    return await Parcel.deserialize(bufferToArrayBuffer(payload));
+  } catch (err) {
+    // Don't log the full error because 99.99% of the time the reason will suffice.
+    logger.info({ reason: (err as Error).message }, 'Refusing malformed parcel');
+    return null;
+  }
+}
+
+async function isMessageValid(
+  parcel: Parcel,
+  activeEndpoint: InternetEndpoint,
+  logger: FastifyBaseLogger,
+): Promise<boolean> {
+  try {
+    await activeEndpoint.validateMessage(parcel);
+    return true;
+  } catch (err) {
+    logger.info({ err }, 'Refusing invalid parcel');
+    return false;
+  }
+}
+
+async function getDecryptedParcel(
+  parcel: Parcel,
+  activeEndpoint: InternetEndpoint,
+  logger: FastifyBaseLogger,
+): Promise<ServiceMessage | null> {
+  try {
+    const { payload } = await parcel.unwrapPayload(activeEndpoint.keyStores.privateKeyStore);
+    return payload;
+  } catch (err) {
+    logger.info({ err }, 'Ignoring invalid service message');
+    return null;
+  }
+}
+
+async function storePda(
+  pdaBuffer: Buffer,
+  activeEndpoint: InternetEndpoint,
+  logger: FastifyBaseLogger,
+  dbConnection: Connection,
+): Promise<void> {
+  let privateEndpointConnParams: PrivateEndpointConnParams;
+  try {
+    privateEndpointConnParams = await PrivateEndpointConnParams.deserialize(pdaBuffer);
+  } catch (err) {
+    logger.info({ err }, 'Refusing to store invalid peer connection params!');
+    return;
+  }
+
+  await activeEndpoint.savePeerEndpointChannel(privateEndpointConnParams, dbConnection);
+  logger.info('Peer connection params stored');
+}
+
 export default function registerRoutes(
   fastify: FastifyInstance,
   _opts: RouteOptions,
@@ -37,64 +96,7 @@ export default function registerRoutes(
     },
   );
 
-  async function deserializeParcel(
-    payload: Buffer,
-    logger: FastifyBaseLogger,
-  ): Promise<Parcel | null> {
-    try {
-      return await Parcel.deserialize(bufferToArrayBuffer(payload));
-    } catch (err) {
-      // Don't log the full error because 99.99% of the time the reason will suffice.
-      logger.info({ reason: (err as Error).message }, 'Refusing malformed parcel');
-      return null;
-    }
-  }
 
-  async function isMessageValid(
-    parcel: Parcel,
-    activeEndpoint: InternetEndpoint,
-    logger: FastifyBaseLogger,
-  ): Promise<boolean> {
-    try {
-      await activeEndpoint.validateMessage(parcel);
-      return true;
-    } catch (err) {
-      logger.info({ err }, 'Refusing invalid parcel');
-      return false;
-    }
-  }
-
-  async function getDecryptedParcel(
-    parcel: Parcel,
-    activeEndpoint: InternetEndpoint,
-    logger: FastifyBaseLogger,
-  ): Promise<ServiceMessage | null> {
-    try {
-      const { payload } = await parcel.unwrapPayload(activeEndpoint.keyStores.privateKeyStore);
-      return payload;
-    } catch (err) {
-      logger.info({ err }, 'Ignoring invalid service message');
-      return null;
-    }
-  }
-
-  async function storePda(
-    pdaBuffer: Buffer,
-    activeEndpoint: InternetEndpoint,
-    logger: FastifyBaseLogger,
-    dbConnection: Connection,
-  ): Promise<void> {
-    let privateEndpointConnParams: PrivateEndpointConnParams;
-    try {
-      privateEndpointConnParams = await PrivateEndpointConnParams.deserialize(pdaBuffer);
-    } catch (err) {
-      logger.info({ err }, 'Refusing to store invalid peer connection params!');
-      return;
-    }
-
-    await activeEndpoint.savePeerEndpointChannel(privateEndpointConnParams, dbConnection);
-    logger.info('Peer connection params stored');
-  }
 
   fastify.route<{
     // eslint-disable-next-line @typescript-eslint/naming-convention
