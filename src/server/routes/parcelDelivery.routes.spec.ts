@@ -204,10 +204,7 @@ describe('Parcel delivery route', () => {
         pdaContentType,
         Buffer.from(await peerConnectionParams.serialize()),
       );
-      const spyOnSaveChannel = jest.spyOn(
-        server.activeEndpoint,
-        'saveChannel',
-      );
+      const spyOnSaveChannel = jest.spyOn(server.activeEndpoint, 'saveChannel');
 
       const response = await server.inject({
         ...validRequestOptions,
@@ -241,10 +238,7 @@ describe('Parcel delivery route', () => {
         pdaContentType,
         Buffer.from(await peerConnectionParams.serialize()),
       );
-      const spyOnSaveChannel = jest.spyOn(
-        server.activeEndpoint,
-        'saveChannel',
-      );
+      const spyOnSaveChannel = jest.spyOn(server.activeEndpoint, 'saveChannel');
 
       const response = await server.inject({
         ...validRequestOptions,
@@ -258,7 +252,9 @@ describe('Parcel delivery route', () => {
         server.mongoose,
       );
       expect(response).toHaveProperty('statusCode', HTTP_STATUS_CODES.ACCEPTED);
-      expect(logs).toContainEqual(partialPinoLog('info', 'Refusing to store invalid peer connection params!'));
+      expect(logs).toContainEqual(
+        partialPinoLog('info', 'Refusing to store invalid peer connection params!'),
+      );
     });
 
     test('Malformed connection params should be accepted but not stored', async () => {
@@ -270,10 +266,7 @@ describe('Parcel delivery route', () => {
         pdaContentType,
         Buffer.from('Malformed PDA'),
       );
-      const spyOnSaveChannel = jest.spyOn(
-        server.activeEndpoint,
-        'saveChannel',
-      );
+      const spyOnSaveChannel = jest.spyOn(server.activeEndpoint, 'saveChannel');
 
       const response = await server.inject({
         ...validRequestOptions,

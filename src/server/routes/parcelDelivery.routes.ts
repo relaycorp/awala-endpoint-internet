@@ -83,12 +83,7 @@ async function createOrUpdateChannel(
     logger.info('Peer connection params stored');
   } catch (err) {
     logger.info({ err }, 'Refusing to store invalid peer connection params!');
-    return;
   }
-
-
-
-
 }
 
 export default function registerRoutes(
