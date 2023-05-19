@@ -22,13 +22,12 @@ describe('fastifyActiveEndpoint', () => {
     internetEndpoint = getInternetEndpoint();
   });
 
-  test('Fastify should be decorated with get active endpoint function', async () => {
+  test('Fastify should be decorated with active endpoint', async () => {
     const app = fastify();
     await app.register(fastifyMongoose);
     await app.register(fastifyActiveEndpoint);
 
-    const activeEndpointFromApp = await app.getActiveEndpoint();
-    expect(activeEndpointFromApp).toMatchObject(internetEndpoint);
+    expect(app.activeEndpoint).toMatchObject(internetEndpoint);
   });
 
   test('Missing mongoose plugin should throw error', async () => {

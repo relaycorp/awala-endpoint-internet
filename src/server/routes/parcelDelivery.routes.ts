@@ -44,7 +44,7 @@ export default function registerRoutes(
         senderId: await parcel.senderCertificate.calculateSubjectId(),
       });
 
-      const activeEndpoint = await fastify.getActiveEndpoint();
+      const { activeEndpoint } = fastify;
       try {
         await activeEndpoint.validateMessage(parcel);
       } catch (err) {

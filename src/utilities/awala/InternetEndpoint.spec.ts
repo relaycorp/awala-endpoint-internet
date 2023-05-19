@@ -16,7 +16,7 @@ import {
   type Recipient,
   SessionKeyPair,
 } from '@relaycorp/relaynet-core';
-import { addSeconds, subSeconds } from 'date-fns';
+import { addMinutes, subSeconds } from 'date-fns';
 import envVar from 'env-var';
 import type { Connection } from 'mongoose';
 
@@ -164,7 +164,7 @@ describe('InternetEndpoint instance', () => {
 
   describe('makeInitialSessionKeyIfMissing', () => {
     test('Key should be generated if config item is unset', async () => {
-      await endpoint.makeInitialSessionKeyIfMissing();
+      await expect(endpoint.makeInitialSessionKeyIfMissing()).resolves.toBeTrue();
 
       const { sessionKeys } = keyStores.privateKeyStore;
       const [[keyIdHex, keyData]] = Object.entries(sessionKeys);
@@ -181,7 +181,7 @@ describe('InternetEndpoint instance', () => {
       await config.set(ConfigKey.INITIAL_SESSION_KEY_ID_BASE64, keyIdBase64);
       await keyStores.privateKeyStore.saveSessionKey(privateKey, sessionKey.keyId, ENDPOINT_ID);
 
-      await endpoint.makeInitialSessionKeyIfMissing();
+      await expect(endpoint.makeInitialSessionKeyIfMissing()).resolves.toBeFalse();
 
       expect(keyStores.privateKeyStore.sessionKeys).toHaveProperty(
         sessionKey.keyId.toString('hex'),
@@ -255,7 +255,7 @@ describe('InternetEndpoint instance', () => {
       senderCertificate = await issueEndpointCertificate({
         issuerPrivateKey: senderKeyPair.privateKey,
         subjectPublicKey: senderKeyPair.publicKey,
-        validityEndDate: addSeconds(new Date(), 1),
+        validityEndDate: addMinutes(new Date(), 1),
       });
     });
 

@@ -1,23 +1,26 @@
-apiVersion: serving.knative.dev/v1
-kind: Service
+apiVersion: batch/v1
+kind: Job
 metadata:
-  name: awala-endpoint-pohttp-client
+  name: pohttp-bootstrap
 spec:
+  ttlSecondsAfterFinished: 15
   template:
     metadata:
-      annotations:
-        autoscaling.knative.dev/min-scale: "1"
       labels:
         app.kubernetes.io/name: awala-endpoint
     spec:
+      restartPolicy: OnFailure
+
+      initContainers:
+        - name: startup-delay
+          image: busybox
+          command: ["sleep", "10s"]
+
       containers:
-        - name: client
+        - name: bootstrap
           image: dev.local/awala-endpoint
-          args: [pohttp-client]
-          readinessProbe:
-            httpGet:
-              path: /
-            initialDelaySeconds: 1
+          imagePullPolicy: IfNotPresent
+          args: [pohttp-bootstrap]
           env:
             - name: MONGODB_USERNAME
               valueFrom:
@@ -56,30 +59,3 @@ spec:
           envFrom:
             - configMapRef:
                 name: pohttp
----
-apiVersion: sources.knative.dev/v1
-kind: SinkBinding
-metadata:
-  name: awala-endpoint-pohttp-client-sink-binding
-spec:
-  subject:
-    apiVersion: serving.knative.dev/v1
-    kind: Service
-    name: awala-endpoint-pohttp-client
-  sink:
-    ref:
-      apiVersion: eventing.knative.dev/v1
-      kind: Broker
-      name: awala-endpoint-broker
----
-apiVersion: eventing.knative.dev/v1
-kind: Trigger
-metadata:
-  name: awala-endpoint-pohttp-client-trigger
-spec:
-  broker: awala-endpoint-broker
-  subscriber:
-    ref:
-      apiVersion: serving.knative.dev/v1
-      kind: Service
-      name: awala-endpoint-pohttp-client
