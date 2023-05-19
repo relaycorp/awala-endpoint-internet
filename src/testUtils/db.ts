@@ -6,7 +6,7 @@ import { createConnection, type Connection, type ConnectOptions, STATES } from '
 import { deleteModelWithClass } from '@typegoose/typegoose';
 
 import { ConfigItem } from '../models/ConfigItem.model.js';
-import { PeerEndpoint } from '../models/PeerEndpoint.model';
+import { PeerEndpoint } from '../models/PeerEndpoint.model.js';
 
 const MODELS = Object.values([ConfigItem, PeerEndpoint]).filter(
   (schema) => typeof schema === 'function',

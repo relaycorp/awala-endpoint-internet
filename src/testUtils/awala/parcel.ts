@@ -33,12 +33,9 @@ async function generateStubNodeCertificate(
 async function generateParcelPayload(
   recipientSessionKey: SessionKey,
   messageContent: Buffer,
-  messageType?: string,
+  messageType: string,
 ): Promise<Buffer> {
-  const serviceMessage = new ServiceMessage(
-    messageType ?? 'application/vnd.awala.test',
-    messageContent,
-  );
+  const serviceMessage = new ServiceMessage(messageType, messageContent);
   const { envelopedData } = await SessionEnvelopedData.encrypt(
     serviceMessage.serialize(),
     recipientSessionKey,

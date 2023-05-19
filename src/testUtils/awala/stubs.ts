@@ -19,4 +19,8 @@ export const PRIVATE_ENDPOINT_KEY_PAIR = await generateIdentityKeyPairSet();
 
 export const PRIVATE_ENDPOINT_ADDRESS = 'private.example.com';
 
+export const PEER_ID = await getIdFromIdentityKey(KEY_PAIR_SET.privateEndpoint.publicKey);
+
+export const SERVICE_MESSAGE_CONTENT_TYPE = 'application/test';
+
 export const SERVICE_MESSAGE_CONTENT = Buffer.from('Test');

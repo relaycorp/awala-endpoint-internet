@@ -2,6 +2,12 @@
   "name": "awala-endpoint",
   "version": "1.0.0",
   "type": "module",
+  "files": ["build"],
+  "bin": {
+    "pohttp-server": "./build/bin/server.js",
+    "pohttp-client": "./build/bin/client.js",
+    "pohttp-bootstrap": "./build/bin/bootstrap.js"
+  },
   "scripts": {
     "prebuild": "run-s clean",
     "build": "tsc -p tsconfig.json",
@@ -18,7 +24,7 @@
   "dependencies": {
     "@fastify/routes": "^5.1.0",
     "@fastify/type-provider-json-schema-to-ts": "^2.2.2",
-    "@relaycorp/awala-keystore-cloud": "^2.1.0",
+    "@relaycorp/awala-keystore-cloud": "^2.1.3",
     "@relaycorp/pino-cloud": "^1.0.28",
     "@relaycorp/relaynet-testing": "^2.2.28",
     "@relaycorp/relaynet-core": "^1.84.2",
@@ -29,13 +35,13 @@
     "env-var": "^7.3.0",
     "fastify": "^4.14.0",
     "fastify-plugin": "^4.5.0",
-    "mongoose": "^7.0.5",
+    "mongoose": "^7.1.2",
     "pino": "^8.11.0"
   },
   "devDependencies": {
     "@jest/globals": "^29.5.0",
     "@peculiar/webcrypto": "^1.4.3",
-    "@relaycorp/eslint-config": "^1.1.92",
+    "@relaycorp/eslint-config": "^1.1.103",
     "@relaycorp/shared-config": "^1.9.1",
     "@shelf/jest-mongodb": "^4.1.7",
     "@types/jest": "^29.5.1",

@@ -17,12 +17,12 @@ import {
   type PrivateKeyStore,
   type Recipient,
   SessionKeyPair,
+  PrivateEndpointConnParams,
 } from '@relaycorp/relaynet-core';
-import { addSeconds, subSeconds } from 'date-fns';
+import { addMinutes, subSeconds } from 'date-fns';
 import envVar from 'env-var';
 import type { Connection } from 'mongoose';
 import { generatePDACertificationPath } from '@relaycorp/relaynet-testing';
-import { PrivateEndpointConnParams } from '@relaycorp/relaynet-core';
 import { getModelForClass, type ReturnModelType } from '@typegoose/typegoose';
 
 import { bufferToArrayBuffer } from '../buffer.js';
@@ -41,7 +41,7 @@ import {
 import { mockSpy } from '../../testUtils/jest.js';
 import { mockKms } from '../../testUtils/kms/mockKms.js';
 import { configureMockEnvVars } from '../../testUtils/envVars.js';
-import { PeerEndpoint } from '../../models/PeerEndpoint.model';
+import { PeerEndpoint } from '../../models/PeerEndpoint.model.js';
 
 import type { InternetEndpoint as InternetEndpointType } from './InternetEndpoint.js';
 
@@ -175,7 +175,7 @@ describe('InternetEndpoint instance', () => {
 
   describe('makeInitialSessionKeyIfMissing', () => {
     test('Key should be generated if config item is unset', async () => {
-      await endpoint.makeInitialSessionKeyIfMissing();
+      await expect(endpoint.makeInitialSessionKeyIfMissing()).resolves.toBeTrue();
 
       const { sessionKeys } = keyStores.privateKeyStore;
       const [[keyIdHex, keyData]] = Object.entries(sessionKeys);
@@ -192,7 +192,7 @@ describe('InternetEndpoint instance', () => {
       await config.set(ConfigKey.INITIAL_SESSION_KEY_ID_BASE64, keyIdBase64);
       await keyStores.privateKeyStore.saveSessionKey(privateKey, sessionKey.keyId, ENDPOINT_ID);
 
-      await endpoint.makeInitialSessionKeyIfMissing();
+      await expect(endpoint.makeInitialSessionKeyIfMissing()).resolves.toBeFalse();
 
       expect(keyStores.privateKeyStore.sessionKeys).toHaveProperty(
         sessionKey.keyId.toString('hex'),
@@ -222,7 +222,10 @@ describe('InternetEndpoint instance', () => {
     });
 
     test('Valid private endpoint channel should be saved', async () => {
-      const result = await endpoint.savePeerEndpointChannel(peerEndpointConnectionParams, dbConnection);
+      const result = await endpoint.savePeerEndpointChannel(
+        peerEndpointConnectionParams,
+        dbConnection,
+      );
 
       const peerEndpointCheckResult = await peerEndpointModel.exists({
         peerId: result.peer.id,
@@ -305,7 +308,7 @@ describe('InternetEndpoint instance', () => {
       senderCertificate = await issueEndpointCertificate({
         issuerPrivateKey: senderKeyPair.privateKey,
         subjectPublicKey: senderKeyPair.publicKey,
-        validityEndDate: addSeconds(new Date(), 1),
+        validityEndDate: addMinutes(new Date(), 1),
       });
     });
 

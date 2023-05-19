@@ -12,16 +12,16 @@ import {
   type ServiceMessage,
   type SessionKey,
   SessionKeyPair,
+  type PrivateEndpointConnParams,
 } from '@relaycorp/relaynet-core';
 import envVar from 'env-var';
 import type { Connection } from 'mongoose';
 import { initPrivateKeystoreFromEnv } from '@relaycorp/awala-keystore-cloud';
 import { getModelForClass } from '@typegoose/typegoose';
-import type { PrivateEndpointConnParams } from '@relaycorp/relaynet-core';
 
 import { Config, ConfigKey } from '../config.js';
 import { Kms } from '../kms/Kms.js';
-import { PeerEndpoint } from '../../models/PeerEndpoint.model';
+import { PeerEndpoint } from '../../models/PeerEndpoint.model.js';
 
 import { InternetPrivateEndpointChannel } from './InternetPrivateEndpointChannel.js';
 
@@ -110,10 +110,14 @@ export class InternetEndpoint extends Endpoint {
     return Buffer.from(keyIdBase64, 'base64');
   }
 
-  public async makeInitialSessionKeyIfMissing(): Promise<void> {
+  /**
+   * Generate the initial session key if it doesn't exist yet.
+   * @returns Whether the initial session key was created.
+   */
+  public async makeInitialSessionKeyIfMissing(): Promise<boolean> {
     const keyIdBase64 = await this.retrieveInitialSessionKeyId();
     if (keyIdBase64 !== null) {
-      return;
+      return false;
     }
 
     const { privateKey, sessionKey } = await SessionKeyPair.generate();
@@ -122,6 +126,7 @@ export class InternetEndpoint extends Endpoint {
       ConfigKey.INITIAL_SESSION_KEY_ID_BASE64,
       sessionKey.keyId.toString('base64'),
     );
+    return true;
   }
 
   public async retrieveInitialSessionPublicKey(): Promise<SessionKey> {
