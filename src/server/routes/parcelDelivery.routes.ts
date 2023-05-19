@@ -96,8 +96,6 @@ export default function registerRoutes(
     },
   );
 
-
-
   fastify.route<{
     // eslint-disable-next-line @typescript-eslint/naming-convention
     readonly Body: Buffer;
