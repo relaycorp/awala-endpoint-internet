@@ -1,20 +1,25 @@
+import { jest } from '@jest/globals';
 import type { CloudEvent } from 'cloudevents';
 import type { FastifyInstance, InjectOptions } from 'fastify';
 import { subDays } from 'date-fns';
 import {
+  CertificationPath,
   derDeserializeECDHPublicKey,
   derSerializePublicKey,
+  PrivateEndpointConnParams,
   type Recipient,
   type SessionKey,
 } from '@relaycorp/relaynet-core';
+import { generatePDACertificationPath } from '@relaycorp/relaynet-testing';
 
 import { configureMockEnvVars, REQUIRED_ENV_VARS } from '../../testUtils/envVars.js';
 import { makeTestPohttpServer } from '../../testUtils/pohttpServer.js';
 import { type MockLogSet, partialPinoLog } from '../../testUtils/logging.js';
-import type { InternetEndpoint } from '../../utilities/awala/InternetEndpoint.js';
 import { HTTP_STATUS_CODES } from '../../utilities/http.js';
 import {
   KEY_PAIR_SET,
+  PEER_ADDRESS,
+  PEER_KEY_PAIR,
   SERVICE_MESSAGE_CONTENT,
   SERVICE_MESSAGE_CONTENT_TYPE,
 } from '../../testUtils/awala/stubs.js';
@@ -39,17 +44,18 @@ describe('Parcel delivery route', () => {
 
   let server: FastifyInstance;
   let logs: MockLogSet;
-  let activeEndpoint: InternetEndpoint;
   let parcelRecipient: Recipient;
   let sessionKey: SessionKey;
+
   beforeEach(async () => {
-    ({ server, logs, endpoint: activeEndpoint } = getTestServerFixture());
+    ({ server, logs } = getTestServerFixture());
 
     parcelRecipient = {
-      id: activeEndpoint.id,
-      internetAddress: activeEndpoint.internetAddress,
+      id: server.activeEndpoint.id,
+      internetAddress: server.activeEndpoint.internetAddress,
     };
-    const { keyId, publicKey: privateKey } = await activeEndpoint.retrieveInitialSessionPublicKey();
+    const { keyId, publicKey: privateKey } =
+      await server.activeEndpoint.retrieveInitialSessionPublicKey();
     const serializedPublicKey = await derSerializePublicKey(privateKey);
     sessionKey = { keyId, publicKey: await derDeserializeECDHPublicKey(serializedPublicKey) };
   });
@@ -173,6 +179,99 @@ describe('Parcel delivery route', () => {
       datacontenttype: SERVICE_MESSAGE_CONTENT_TYPE,
       // eslint-disable-next-line @typescript-eslint/naming-convention,camelcase
       data_base64: SERVICE_MESSAGE_CONTENT.toString('base64'),
+    });
+  });
+
+  describe('Incoming PDA', () => {
+    const pdaContentType = 'application/vnd+relaycorp.awala.pda-path';
+
+    test('Valid PDA should be stored', async () => {
+      const certificatePath = await generatePDACertificationPath(KEY_PAIR_SET);
+      const pdaPath = new CertificationPath(certificatePath.pdaGrantee, [
+        certificatePath.privateEndpoint,
+        certificatePath.privateGateway,
+      ]);
+      const peerConnectionParams = new PrivateEndpointConnParams(
+        PEER_KEY_PAIR.privateGateway.publicKey,
+        PEER_ADDRESS,
+        pdaPath,
+      );
+      const messageContent = Buffer.from(await peerConnectionParams.serialize());
+      const { parcelSerialized } = await generateParcel(
+        parcelRecipient,
+        KEY_PAIR_SET,
+        new Date(),
+        sessionKey,
+        pdaContentType,
+        messageContent,
+      );
+      const spyOnSaveChannel = jest.spyOn(server.activeEndpoint, 'saveChannel');
+
+      const response = await server.inject({
+        ...validRequestOptions,
+        payload: parcelSerialized,
+      });
+
+      const [[connectionParams]] = spyOnSaveChannel.mock.calls;
+      expect(Buffer.from(await connectionParams.serialize())).toStrictEqual(messageContent);
+      expect(response).toHaveProperty('statusCode', HTTP_STATUS_CODES.ACCEPTED);
+      expect(logs).toContainEqual(partialPinoLog('info', 'Peer connection params stored'));
+    });
+
+    test('Invalid connection params should be accepted but not stored', async () => {
+      const certificatePath = await generatePDACertificationPath(PEER_KEY_PAIR);
+      const invalidPdaGrantee = certificatePath.privateGateway;
+      const invalidPda = new CertificationPath(invalidPdaGrantee, []);
+      const peerConnectionParams = new PrivateEndpointConnParams(
+        PEER_KEY_PAIR.privateGateway.publicKey,
+        PEER_ADDRESS,
+        invalidPda,
+      );
+      const messageContent = Buffer.from(await peerConnectionParams.serialize());
+      const { parcelSerialized } = await generateParcel(
+        parcelRecipient,
+        KEY_PAIR_SET,
+        new Date(),
+        sessionKey,
+        pdaContentType,
+        messageContent,
+      );
+      const spyOnSaveChannel = jest.spyOn(server.activeEndpoint, 'saveChannel');
+
+      const response = await server.inject({
+        ...validRequestOptions,
+        payload: parcelSerialized,
+      });
+
+      const [[connectionParams]] = spyOnSaveChannel.mock.calls;
+      expect(Buffer.from(await connectionParams.serialize())).toStrictEqual(messageContent);
+      expect(response).toHaveProperty('statusCode', HTTP_STATUS_CODES.ACCEPTED);
+      expect(logs).toContainEqual(
+        partialPinoLog('info', 'Refusing to store invalid peer connection params'),
+      );
+    });
+
+    test('Malformed connection params should be accepted but not stored', async () => {
+      const { parcelSerialized } = await generateParcel(
+        parcelRecipient,
+        KEY_PAIR_SET,
+        new Date(),
+        sessionKey,
+        pdaContentType,
+        Buffer.from('Malformed PDA'),
+      );
+      const spyOnSaveChannel = jest.spyOn(server.activeEndpoint, 'saveChannel');
+
+      const response = await server.inject({
+        ...validRequestOptions,
+        payload: parcelSerialized,
+      });
+
+      expect(spyOnSaveChannel).not.toHaveBeenCalled();
+      expect(response).toHaveProperty('statusCode', HTTP_STATUS_CODES.ACCEPTED);
+      expect(logs).toContainEqual(
+        partialPinoLog('info', 'Refusing to store malformed peer connection params'),
+      );
     });
   });
 });

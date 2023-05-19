@@ -1,6 +1,7 @@
 import { jest } from '@jest/globals';
 import {
   type Certificate,
+  CertificationPath,
   derDeserializeECDHPrivateKey,
   derSerializePrivateKey,
   derSerializePublicKey,
@@ -15,10 +16,14 @@ import {
   type PrivateKeyStore,
   type Recipient,
   SessionKeyPair,
+  PrivateEndpointConnParams,
+  getIdFromIdentityKey,
 } from '@relaycorp/relaynet-core';
 import { addMinutes, subSeconds } from 'date-fns';
 import envVar from 'env-var';
 import type { Connection } from 'mongoose';
+import { generatePDACertificationPath } from '@relaycorp/relaynet-testing';
+import { getModelForClass, type ReturnModelType } from '@typegoose/typegoose';
 
 import { bufferToArrayBuffer } from '../buffer.js';
 import { Config, ConfigKey } from '../config.js';
@@ -29,10 +34,14 @@ import {
   ENDPOINT_ID_KEY_PAIR,
   ENDPOINT_ID_KEY_REF,
   ENDPOINT_ID_PUBLIC_KEY_DER,
+  KEY_PAIR_SET,
+  PEER_ADDRESS,
+  PEER_KEY_PAIR,
 } from '../../testUtils/awala/stubs.js';
 import { mockSpy } from '../../testUtils/jest.js';
 import { mockKms } from '../../testUtils/kms/mockKms.js';
 import { configureMockEnvVars } from '../../testUtils/envVars.js';
+import { PeerEndpoint } from '../../models/PeerEndpoint.model.js';
 
 import type { InternetEndpoint as InternetEndpointType } from './InternetEndpoint.js';
 
@@ -150,8 +159,10 @@ describe('getActive', () => {
 describe('InternetEndpoint instance', () => {
   let config: Config;
   let endpoint: InternetEndpointType;
+  let dbConnection: Connection;
   beforeEach(() => {
-    config = new Config(getDbConnection());
+    dbConnection = getDbConnection();
+    config = new Config(dbConnection);
 
     endpoint = new InternetEndpoint(
       ENDPOINT_ID,
@@ -187,6 +198,46 @@ describe('InternetEndpoint instance', () => {
         sessionKey.keyId.toString('hex'),
       );
       await expect(config.get(ConfigKey.INITIAL_SESSION_KEY_ID_BASE64)).resolves.toBe(keyIdBase64);
+    });
+  });
+
+  describe('saveChannel', () => {
+    let peerConnectionParams: PrivateEndpointConnParams;
+    let peerEndpointModel: ReturnModelType<typeof PeerEndpoint>;
+
+    beforeEach(async () => {
+      const certificatePath = await generatePDACertificationPath(KEY_PAIR_SET);
+      const pdaPath = new CertificationPath(certificatePath.pdaGrantee, [
+        certificatePath.privateEndpoint,
+        certificatePath.privateGateway,
+      ]);
+      peerConnectionParams = new PrivateEndpointConnParams(
+        PEER_KEY_PAIR.privateGateway.publicKey,
+        PEER_ADDRESS,
+        pdaPath,
+      );
+      peerEndpointModel = getModelForClass(PeerEndpoint, {
+        existingConnection: dbConnection,
+      });
+    });
+
+    test('Valid channel should be stored', async () => {
+      await endpoint.saveChannel(peerConnectionParams, dbConnection);
+
+      const peerId = await getIdFromIdentityKey(peerConnectionParams.identityKey);
+      const peerEndpointCheckResult = await peerEndpointModel.exists({
+        peerId,
+        internetGatewayAddress: peerConnectionParams.internetGatewayAddress,
+      });
+      expect(peerEndpointCheckResult).not.toBeNull();
+    });
+
+    test('Save private endpoint channel method should be called', async () => {
+      const spyOnSavePrivateEndpointChannel = jest.spyOn(endpoint, 'savePrivateEndpointChannel');
+
+      await endpoint.saveChannel(peerConnectionParams, dbConnection);
+
+      expect(spyOnSavePrivateEndpointChannel).toHaveBeenCalledWith(peerConnectionParams);
     });
   });
 
