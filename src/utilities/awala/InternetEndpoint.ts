@@ -1,5 +1,4 @@
 import {
-  type Channel,
   derDeserializeRSAPublicKey,
   Endpoint,
   getIdFromIdentityKey,
@@ -9,7 +8,6 @@ import {
   MockPublicKeyStore,
   NodeConnectionParams,
   type Parcel,
-  type ServiceMessage,
   type SessionKey,
   SessionKeyPair,
   type PrivateEndpointConnParams,
@@ -78,9 +76,9 @@ export class InternetEndpoint extends Endpoint {
   public async savePeerEndpointChannel(
     connectionParams: PrivateEndpointConnParams,
     dbConnection: Connection,
-  ): Promise<Channel<ServiceMessage, string>> {
-    const superResponse = await this.savePrivateEndpointChannel(connectionParams);
-    const peerId = superResponse.peer.id;
+  ): Promise<void> {
+    const saveResponse = await this.savePrivateEndpointChannel(connectionParams);
+    const peerId = saveResponse.peer.id;
     const { internetGatewayAddress } = connectionParams;
 
     const privateEndpointModel = getModelForClass(PeerEndpoint, {
@@ -98,8 +96,6 @@ export class InternetEndpoint extends Endpoint {
         upsert: true,
       },
     );
-
-    return superResponse;
   }
 
   protected async retrieveInitialSessionKeyId(): Promise<Buffer | null> {

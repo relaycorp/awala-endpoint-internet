@@ -5,7 +5,6 @@ import {
   derDeserializeECDHPrivateKey,
   derSerializePrivateKey,
   derSerializePublicKey,
-  Endpoint,
   generateRSAKeyPair,
   InvalidMessageError,
   issueEndpointCertificate,
@@ -17,7 +16,7 @@ import {
   type PrivateKeyStore,
   type Recipient,
   SessionKeyPair,
-  PrivateEndpointConnParams,
+  PrivateEndpointConnParams, getIdFromIdentityKey,
 } from '@relaycorp/relaynet-core';
 import { addMinutes, subSeconds } from 'date-fns';
 import envVar from 'env-var';
@@ -222,21 +221,22 @@ describe('InternetEndpoint instance', () => {
     });
 
     test('Valid private endpoint channel should be saved', async () => {
-      const result = await endpoint.savePeerEndpointChannel(peerConnectionParams, dbConnection);
+      await endpoint.savePeerEndpointChannel(peerConnectionParams, dbConnection);
 
+      const peerId = await getIdFromIdentityKey(peerConnectionParams.identityKey);
       const peerEndpointCheckResult = await peerEndpointModel.exists({
-        peerId: result.peer.id,
+        peerId,
         internetGatewayAddress: peerConnectionParams.internetGatewayAddress,
       });
       expect(peerEndpointCheckResult).not.toBeNull();
     });
 
-    test('Super method should be called', async () => {
-      const superSpy = jest.spyOn(Endpoint.prototype, 'savePrivateEndpointChannel');
+    test('Save private endpoint channel method should be called', async () => {
+      const spyOnSavePrivateEndpointChannel = jest.spyOn(endpoint, 'savePrivateEndpointChannel');
 
       await endpoint.savePeerEndpointChannel(peerConnectionParams, dbConnection);
 
-      expect(superSpy).toHaveBeenCalledWith(peerConnectionParams);
+      expect(spyOnSavePrivateEndpointChannel).toHaveBeenCalledWith(peerConnectionParams);
     });
   });
 
