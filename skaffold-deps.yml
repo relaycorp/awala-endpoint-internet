@@ -1,0 +1,9 @@
+apiVersion: skaffold/v4beta2
+kind: Config
+metadata:
+  name: awala-endpoint-deps
+manifests:
+  rawYaml:
+    - k8s/dependencies/*.yml
+deploy:
+  kubectl: {}

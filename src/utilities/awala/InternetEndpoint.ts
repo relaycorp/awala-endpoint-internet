@@ -78,10 +78,14 @@ export class InternetEndpoint extends Endpoint {
     return Buffer.from(keyIdBase64, 'base64');
   }
 
-  public async makeInitialSessionKeyIfMissing(): Promise<void> {
+  /**
+   * Generate the initial session key if it doesn't exist yet.
+   * @returns Whether the initial session key was created.
+   */
+  public async makeInitialSessionKeyIfMissing(): Promise<boolean> {
     const keyIdBase64 = await this.retrieveInitialSessionKeyId();
     if (keyIdBase64 !== null) {
-      return;
+      return false;
     }
 
     const { privateKey, sessionKey } = await SessionKeyPair.generate();
@@ -90,6 +94,7 @@ export class InternetEndpoint extends Endpoint {
       ConfigKey.INITIAL_SESSION_KEY_ID_BASE64,
       sessionKey.keyId.toString('base64'),
     );
+    return true;
   }
 
   public async retrieveInitialSessionPublicKey(): Promise<SessionKey> {

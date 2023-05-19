@@ -43,8 +43,7 @@ describe('Parcel delivery route', () => {
   let parcelRecipient: Recipient;
   let sessionKey: SessionKey;
   beforeEach(async () => {
-    ({ server, logs } = getTestServerFixture());
-    activeEndpoint = await server.getActiveEndpoint();
+    ({ server, logs, endpoint: activeEndpoint } = getTestServerFixture());
 
     parcelRecipient = {
       id: activeEndpoint.id,
