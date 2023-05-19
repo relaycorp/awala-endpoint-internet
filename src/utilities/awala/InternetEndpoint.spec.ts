@@ -22,7 +22,7 @@ import { addSeconds, subSeconds } from 'date-fns';
 import envVar from 'env-var';
 import type { Connection } from 'mongoose';
 import { generatePDACertificationPath } from '@relaycorp/relaynet-testing';
-import { PrivateEndpointConnParams } from '@relaycorp/relaynet-core/build/main/lib/nodes/PrivateEndpointConnParams.js';
+import { PrivateEndpointConnParams } from '@relaycorp/relaynet-core';
 import { getModelForClass, type ReturnModelType } from '@typegoose/typegoose';
 
 import { bufferToArrayBuffer } from '../buffer.js';
@@ -41,7 +41,7 @@ import {
 import { mockSpy } from '../../testUtils/jest.js';
 import { mockKms } from '../../testUtils/kms/mockKms.js';
 import { configureMockEnvVars } from '../../testUtils/envVars.js';
-import { PrivateEndpointModelSchema } from '../../models/PrivateEndpoint.model.js';
+import { PeerEndpoint } from '../../models/PeerEndpoint.model';
 
 import type { InternetEndpoint as InternetEndpointType } from './InternetEndpoint.js';
 
@@ -201,9 +201,9 @@ describe('InternetEndpoint instance', () => {
     });
   });
 
-  describe('savePrivateEndpointChannel', () => {
-    let privateEndpoint: PrivateEndpointConnParams;
-    let privateEndpointModel: ReturnModelType<typeof PrivateEndpointModelSchema>;
+  describe('savePeerEndpointChannel', () => {
+    let peerEndpointConnectionParams: PrivateEndpointConnParams;
+    let peerEndpointModel: ReturnModelType<typeof PeerEndpoint>;
 
     beforeEach(async () => {
       const certificatePath = await generatePDACertificationPath(KEY_PAIR_SET);
@@ -211,32 +211,32 @@ describe('InternetEndpoint instance', () => {
         certificatePath.privateEndpoint,
         certificatePath.privateGateway,
       ]);
-      privateEndpoint = new PrivateEndpointConnParams(
+      peerEndpointConnectionParams = new PrivateEndpointConnParams(
         PRIVATE_ENDPOINT_KEY_PAIR.privateGateway.publicKey,
         PRIVATE_ENDPOINT_ADDRESS,
         pdaPath,
       );
-      privateEndpointModel = getModelForClass(PrivateEndpointModelSchema, {
+      peerEndpointModel = getModelForClass(PeerEndpoint, {
         existingConnection: dbConnection,
       });
     });
 
     test('Valid private endpoint channel should be saved', async () => {
-      const result = await endpoint.savePrivateEndpointChannel(privateEndpoint, dbConnection);
+      const result = await endpoint.savePeerEndpointChannel(peerEndpointConnectionParams, dbConnection);
 
-      const privateEndpointResult = await privateEndpointModel.exists({
+      const peerEndpointCheckResult = await peerEndpointModel.exists({
         peerId: result.peer.id,
-        internetGatewayAddress: privateEndpoint.internetGatewayAddress,
+        internetGatewayAddress: peerEndpointConnectionParams.internetGatewayAddress,
       });
-      expect(privateEndpointResult).not.toBeNull();
+      expect(peerEndpointCheckResult).not.toBeNull();
     });
 
     test('Super method should be called', async () => {
       const superSpy = jest.spyOn(Endpoint.prototype, 'savePrivateEndpointChannel');
 
-      await endpoint.savePrivateEndpointChannel(privateEndpoint, dbConnection);
+      await endpoint.savePeerEndpointChannel(peerEndpointConnectionParams, dbConnection);
 
-      expect(superSpy).toHaveBeenCalledWith(privateEndpoint);
+      expect(superSpy).toHaveBeenCalledWith(peerEndpointConnectionParams);
     });
   });
 

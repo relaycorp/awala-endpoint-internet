@@ -8,8 +8,7 @@ import {
   type Recipient,
   type SessionKey,
 } from '@relaycorp/relaynet-core';
-import { generatePDACertificationPath } from '@relaycorp/relaynet-testing';
-import { PrivateEndpointConnParams } from '@relaycorp/relaynet-core/build/main/lib/nodes/PrivateEndpointConnParams.js';
+import { generatePDACertificationPath, PDACertPath } from '@relaycorp/relaynet-testing';
 
 import { configureMockEnvVars, REQUIRED_ENV_VARS } from '../../testUtils/envVars.js';
 import { makeTestPohttpServer } from '../../testUtils/pohttpServer.js';
@@ -23,6 +22,11 @@ import {
   SERVICE_MESSAGE_CONTENT,
 } from '../../testUtils/awala/stubs.js';
 import { generateParcel } from '../../testUtils/awala/parcel.js';
+import {
+  PrivateEndpointConnParams
+} from '@relaycorp/relaynet-core';
+
+
 
 configureMockEnvVars(REQUIRED_ENV_VARS);
 
@@ -34,6 +38,7 @@ describe('parcel route', () => {
   let parcelRecipient: Recipient;
   let publicKey: CryptoKey;
   let sessionKey: SessionKey;
+  let certificatePath: PDACertPath;
   const validRequestOptions: InjectOptions = {
     headers: {
       // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -44,6 +49,11 @@ describe('parcel route', () => {
     payload: {},
     url: '/',
   };
+  beforeAll(async () => {
+    certificatePath = await generatePDACertificationPath(KEY_PAIR_SET);
+
+  })
+
 
   beforeEach(async () => {
     ({ server, logs } = getTestServerFixture());
@@ -162,14 +172,13 @@ describe('parcel route', () => {
     expect(logs).toContainEqual(partialPinoLog('info', 'Ignoring invalid service message'));
   });
 
-  describe('store PDA', () => {
+  describe('Incoming PDA', () => {
     test('Valid PDA should be stored', async () => {
-      const certificatePath = await generatePDACertificationPath(KEY_PAIR_SET);
       const pdaPath = new CertificationPath(certificatePath.pdaGrantee, [
         certificatePath.privateEndpoint,
         certificatePath.privateGateway,
       ]);
-      const privateEndpoint = new PrivateEndpointConnParams(
+      const peerEndpointConnectionParams = new PrivateEndpointConnParams(
         PRIVATE_ENDPOINT_KEY_PAIR.privateGateway.publicKey,
         PRIVATE_ENDPOINT_ADDRESS,
         pdaPath,
@@ -184,7 +193,7 @@ describe('parcel route', () => {
           keyId: sessionKey.keyId,
         },
         'application/vnd+relaycorp.awala.pda-path',
-        Buffer.from(await privateEndpoint.serialize()),
+        Buffer.from(await peerEndpointConnectionParams.serialize()),
       );
       const spyOnSavePrivateEndpointChannel = jest.spyOn(
         activeEndpoint,
@@ -204,12 +213,12 @@ describe('parcel route', () => {
     });
 
     test('Invalid PDA should be accepted but not stored', async () => {
-      const certificatePath = await generatePDACertificationPath(PRIVATE_ENDPOINT_KEY_PAIR);
+      certificatePath = await generatePDACertificationPath(PRIVATE_ENDPOINT_KEY_PAIR);
       const pdaPath = new CertificationPath(certificatePath.pdaGrantee, [
         certificatePath.privateEndpoint,
         certificatePath.privateGateway,
       ]);
-      const privateEndpoint = new PrivateEndpointConnParams(
+      const peerEndpointConnectionParams = new PrivateEndpointConnParams(
         PRIVATE_ENDPOINT_KEY_PAIR.privateGateway.publicKey,
         PRIVATE_ENDPOINT_ADDRESS,
         pdaPath,
@@ -223,7 +232,7 @@ describe('parcel route', () => {
           keyId: sessionKey.keyId,
         },
         'application/vnd+relaycorp.awala.pda-path',
-        Buffer.from(await privateEndpoint.serialize()),
+        Buffer.from(await peerEndpointConnectionParams.serialize()),
       );
       const spyOnSavePrivateEndpointChannel = jest.spyOn(
         activeEndpoint,

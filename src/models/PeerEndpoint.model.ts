@@ -1,6 +1,6 @@
 import { prop } from '@typegoose/typegoose';
 
-export class PrivateEndpointModelSchema {
+export class PeerEndpoint {
   @prop({ required: true, unique: true })
   public peerId!: string;
 

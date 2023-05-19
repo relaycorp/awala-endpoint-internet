@@ -17,11 +17,11 @@ import envVar from 'env-var';
 import type { Connection } from 'mongoose';
 import { initPrivateKeystoreFromEnv } from '@relaycorp/awala-keystore-cloud';
 import { getModelForClass } from '@typegoose/typegoose';
-import type { PrivateEndpointConnParams } from '@relaycorp/relaynet-core/build/main/lib/nodes/PrivateEndpointConnParams.js';
+import type { PrivateEndpointConnParams } from '@relaycorp/relaynet-core';
 
 import { Config, ConfigKey } from '../config.js';
 import { Kms } from '../kms/Kms.js';
-import { PrivateEndpointModelSchema } from '../../models/PrivateEndpoint.model.js';
+import { PeerEndpoint } from '../../models/PeerEndpoint.model';
 
 import { InternetPrivateEndpointChannel } from './InternetPrivateEndpointChannel.js';
 
@@ -75,15 +75,15 @@ export class InternetEndpoint extends Endpoint {
     super(id, identityKeyPair, keyStores, {});
   }
 
-  public override async savePrivateEndpointChannel(
+  public async savePeerEndpointChannel(
     connectionParams: PrivateEndpointConnParams,
-    dbConnection?: Connection,
+    dbConnection: Connection,
   ): Promise<Channel<ServiceMessage, string>> {
-    const superResponse = await super.savePrivateEndpointChannel(connectionParams);
+    const superResponse = await this.savePrivateEndpointChannel(connectionParams);
     const peerId = superResponse.peer.id;
     const { internetGatewayAddress } = connectionParams;
 
-    const privateEndpointModel = getModelForClass(PrivateEndpointModelSchema, {
+    const privateEndpointModel = getModelForClass(PeerEndpoint, {
       existingConnection: dbConnection,
     });
 

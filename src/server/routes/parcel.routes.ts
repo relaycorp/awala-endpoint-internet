@@ -1,6 +1,6 @@
 import type { FastifyBaseLogger, FastifyInstance, RouteOptions } from 'fastify';
 import { Parcel } from '@relaycorp/relaynet-core';
-import { PrivateEndpointConnParams } from '@relaycorp/relaynet-core/build/main/lib/nodes/PrivateEndpointConnParams.js';
+import { PrivateEndpointConnParams } from '@relaycorp/relaynet-core';
 
 import type { PluginDone } from '../../utilities/fastify/PluginDone.js';
 import { bufferToArrayBuffer } from '../../utilities/buffer.js';
@@ -52,9 +52,9 @@ export default function registerRoutes(
 
   async function storePda(pdaBuffer: Buffer, serviceOptions: ServiceOptions) {
     try {
-      const privateEndpointConnParams = await PrivateEndpointConnParams.deserialize(pdaBuffer);
-      await serviceOptions.activeEndpoint.savePrivateEndpointChannel(
-        privateEndpointConnParams,
+      const peerEndpointConnParams = await PrivateEndpointConnParams.deserialize(pdaBuffer);
+      await serviceOptions.activeEndpoint.savePeerEndpointChannel(
+        peerEndpointConnParams,
         fastify.mongoose,
       );
       serviceOptions.logger.info('Private endpoint connection params stored');
