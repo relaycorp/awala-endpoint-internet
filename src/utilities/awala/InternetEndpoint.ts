@@ -73,12 +73,12 @@ export class InternetEndpoint extends Endpoint {
     super(id, identityKeyPair, keyStores, {});
   }
 
-  public async savePeerEndpointChannel(
+  public async saveChannel(
     connectionParams: PrivateEndpointConnParams,
     dbConnection: Connection,
   ): Promise<void> {
-    const saveResponse = await this.savePrivateEndpointChannel(connectionParams);
-    const peerId = saveResponse.peer.id;
+    const channel = await this.savePrivateEndpointChannel(connectionParams);
+    const peerId = channel.peer.id;
     const { internetGatewayAddress } = connectionParams;
 
     const privateEndpointModel = getModelForClass(PeerEndpoint, {

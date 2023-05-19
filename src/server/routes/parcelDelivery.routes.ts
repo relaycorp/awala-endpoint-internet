@@ -64,7 +64,7 @@ async function getDecryptedParcel(
   }
 }
 
-async function storePda(
+async function createOrUpdateChannel(
   pdaBuffer: Buffer,
   activeEndpoint: InternetEndpoint,
   logger: FastifyBaseLogger,
@@ -74,12 +74,21 @@ async function storePda(
   try {
     privateEndpointConnParams = await PrivateEndpointConnParams.deserialize(pdaBuffer);
   } catch (err) {
+    logger.info({ err }, 'Refusing to store malformed peer connection params!');
+    return;
+  }
+
+  try {
+    await activeEndpoint.saveChannel(privateEndpointConnParams, dbConnection);
+    logger.info('Peer connection params stored');
+  } catch (err) {
     logger.info({ err }, 'Refusing to store invalid peer connection params!');
     return;
   }
 
-  await activeEndpoint.savePeerEndpointChannel(privateEndpointConnParams, dbConnection);
-  logger.info('Peer connection params stored');
+
+
+
 }
 
 export default function registerRoutes(
@@ -132,13 +141,12 @@ export default function registerRoutes(
       }
 
       if (serviceMessage.type === 'application/vnd+relaycorp.awala.pda-path') {
-        await storePda(serviceMessage.content, activeEndpoint, log, mongoose);
+        await createOrUpdateChannel(serviceMessage.content, activeEndpoint, log, mongoose);
         return reply.code(HTTP_STATUS_CODES.ACCEPTED).send();
       }
 
       await publishIncomingServiceMessage(parcel, serviceMessage);
 
-      // DECRYPT AND THEN EMIT EVENT (BUT THAT'S PART OF A DIFFERENT ISSUE)
       parcelAwareLogger.info('Parcel is valid and has been queued');
       return reply.code(HTTP_STATUS_CODES.ACCEPTED).send();
     },

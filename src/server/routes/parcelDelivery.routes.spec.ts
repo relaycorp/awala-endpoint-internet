@@ -204,9 +204,9 @@ describe('Parcel delivery route', () => {
         pdaContentType,
         Buffer.from(await peerConnectionParams.serialize()),
       );
-      const spyOnSavePeerEndpointChannel = jest.spyOn(
+      const spyOnSaveChannel = jest.spyOn(
         server.activeEndpoint,
-        'savePeerEndpointChannel',
+        'saveChannel',
       );
 
       const response = await server.inject({
@@ -214,7 +214,7 @@ describe('Parcel delivery route', () => {
         payload: parcelSerialized,
       });
 
-      expect(spyOnSavePeerEndpointChannel).toHaveBeenCalledOnceWith(
+      expect(spyOnSaveChannel).toHaveBeenCalledOnceWith(
         expect.objectContaining({
           internetGatewayAddress: peerConnectionParams.internetGatewayAddress,
         }),
@@ -225,17 +225,25 @@ describe('Parcel delivery route', () => {
     });
 
     test('Invalid connection params should be accepted but not stored', async () => {
+      const certificatePath = await generatePDACertificationPath(PEER_KEY_PAIR);
+      const invalidPdaGrantee = certificatePath.privateGateway;
+      const invalidPda = new CertificationPath(invalidPdaGrantee, []);
+      const peerConnectionParams = new PrivateEndpointConnParams(
+        PEER_KEY_PAIR.privateGateway.publicKey,
+        PEER_ADDRESS,
+        invalidPda,
+      );
       const { parcelSerialized } = await generateParcel(
         parcelRecipient,
         KEY_PAIR_SET,
         new Date(),
         sessionKey,
         pdaContentType,
-        Buffer.from('Invalid PDA'),
+        Buffer.from(await peerConnectionParams.serialize()),
       );
-      const spyOnSavePeerEndpointChannel = jest.spyOn(
+      const spyOnSaveChannel = jest.spyOn(
         server.activeEndpoint,
-        'savePeerEndpointChannel',
+        'saveChannel',
       );
 
       const response = await server.inject({
@@ -243,10 +251,39 @@ describe('Parcel delivery route', () => {
         payload: parcelSerialized,
       });
 
-      expect(spyOnSavePeerEndpointChannel).not.toHaveBeenCalledOnce();
+      expect(spyOnSaveChannel).toHaveBeenCalledOnceWith(
+        expect.objectContaining({
+          internetGatewayAddress: peerConnectionParams.internetGatewayAddress,
+        }),
+        server.mongoose,
+      );
+      expect(response).toHaveProperty('statusCode', HTTP_STATUS_CODES.ACCEPTED);
+      expect(logs).toContainEqual(partialPinoLog('info', 'Refusing to store invalid peer connection params!'));
+    });
+
+    test('Malformed connection params should be accepted but not stored', async () => {
+      const { parcelSerialized } = await generateParcel(
+        parcelRecipient,
+        KEY_PAIR_SET,
+        new Date(),
+        sessionKey,
+        pdaContentType,
+        Buffer.from('Malformed PDA'),
+      );
+      const spyOnSaveChannel = jest.spyOn(
+        server.activeEndpoint,
+        'saveChannel',
+      );
+
+      const response = await server.inject({
+        ...validRequestOptions,
+        payload: parcelSerialized,
+      });
+
+      expect(spyOnSaveChannel).not.toHaveBeenCalled();
       expect(response).toHaveProperty('statusCode', HTTP_STATUS_CODES.ACCEPTED);
       expect(logs).toContainEqual(
-        partialPinoLog('info', 'Refusing to store invalid peer connection params!'),
+        partialPinoLog('info', 'Refusing to store malformed peer connection params!'),
       );
     });
   });

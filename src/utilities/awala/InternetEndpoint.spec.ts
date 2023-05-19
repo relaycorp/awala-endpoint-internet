@@ -201,7 +201,7 @@ describe('InternetEndpoint instance', () => {
     });
   });
 
-  describe('savePeerEndpointChannel', () => {
+  describe('saveChannel', () => {
     let peerConnectionParams: PrivateEndpointConnParams;
     let peerEndpointModel: ReturnModelType<typeof PeerEndpoint>;
 
@@ -221,8 +221,8 @@ describe('InternetEndpoint instance', () => {
       });
     });
 
-    test('Valid private endpoint channel should be saved', async () => {
-      await endpoint.savePeerEndpointChannel(peerConnectionParams, dbConnection);
+    test('Valid channel should be stored', async () => {
+      await endpoint.saveChannel(peerConnectionParams, dbConnection);
 
       const peerId = await getIdFromIdentityKey(peerConnectionParams.identityKey);
       const peerEndpointCheckResult = await peerEndpointModel.exists({
@@ -235,7 +235,7 @@ describe('InternetEndpoint instance', () => {
     test('Save private endpoint channel method should be called', async () => {
       const spyOnSavePrivateEndpointChannel = jest.spyOn(endpoint, 'savePrivateEndpointChannel');
 
-      await endpoint.savePeerEndpointChannel(peerConnectionParams, dbConnection);
+      await endpoint.saveChannel(peerConnectionParams, dbConnection);
 
       expect(spyOnSavePrivateEndpointChannel).toHaveBeenCalledWith(peerConnectionParams);
     });
