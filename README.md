@@ -63,11 +63,12 @@ Emitted by the middleware.
 - `specversion`: `1.0`
 - `id`: The parcel id.
 - `type`: `com.relaycorp.awala.endpoint-internet.incoming-service-message`
-- `source`: The parcel sender's private address.
-- `subject`: The parcel recipient's private address.
+- `source`: The parcel sender's id.
+- `subject`: The parcel recipient's id.
 - `datacontenttype`: The content type of the service message.
 - `data`: The service message.
 - `time`: The creation time of the parcel.
+- `expiry` (`Timestamp`, custom attribute): The time at which the parcel expires.
 
 ### `outgoing-service-message`
 
@@ -76,8 +77,8 @@ Emitted by the app.
 - `specversion`: `1.0`
 - `id`: The parcel id.
 - `type`: `com.relaycorp.awala.endpoint-internet.outgoing-service-message`
-- `source`: The parcel sender's private address, or the constant `https://relaycorp.tech/awala-endpoint-internet`.
-- `subject`: The parcel recipient's private address.
+- `source`: The parcel sender's id, or the constant `https://relaycorp.tech/awala-endpoint-internet`.
+- `subject`: The parcel recipient's id.
 - `datacontenttype`: The content type of the service message.
 - `data`: The service message.
 - `time`: The creation time of the parcel.
