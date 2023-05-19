@@ -16,7 +16,8 @@ import {
   type PrivateKeyStore,
   type Recipient,
   SessionKeyPair,
-  PrivateEndpointConnParams, getIdFromIdentityKey,
+  PrivateEndpointConnParams,
+  getIdFromIdentityKey,
 } from '@relaycorp/relaynet-core';
 import { addMinutes, subSeconds } from 'date-fns';
 import envVar from 'env-var';
