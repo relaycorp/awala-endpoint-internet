@@ -196,13 +196,14 @@ describe('Parcel delivery route', () => {
         PEER_ADDRESS,
         pdaPath,
       );
+      const messageContent = Buffer.from(await peerConnectionParams.serialize());
       const { parcelSerialized } = await generateParcel(
         parcelRecipient,
         KEY_PAIR_SET,
         new Date(),
         sessionKey,
         pdaContentType,
-        Buffer.from(await peerConnectionParams.serialize()),
+        messageContent,
       );
       const spyOnSaveChannel = jest.spyOn(server.activeEndpoint, 'saveChannel');
 
@@ -211,12 +212,8 @@ describe('Parcel delivery route', () => {
         payload: parcelSerialized,
       });
 
-      expect(spyOnSaveChannel).toHaveBeenCalledOnceWith(
-        expect.objectContaining({
-          internetGatewayAddress: peerConnectionParams.internetGatewayAddress,
-        }),
-        server.mongoose,
-      );
+      const [[connectionParams]] = spyOnSaveChannel.mock.calls;
+      expect(Buffer.from(await connectionParams.serialize())).toStrictEqual(messageContent);
       expect(response).toHaveProperty('statusCode', HTTP_STATUS_CODES.ACCEPTED);
       expect(logs).toContainEqual(partialPinoLog('info', 'Peer connection params stored'));
     });
@@ -230,13 +227,14 @@ describe('Parcel delivery route', () => {
         PEER_ADDRESS,
         invalidPda,
       );
+      const messageContent = Buffer.from(await peerConnectionParams.serialize());
       const { parcelSerialized } = await generateParcel(
         parcelRecipient,
         KEY_PAIR_SET,
         new Date(),
         sessionKey,
         pdaContentType,
-        Buffer.from(await peerConnectionParams.serialize()),
+        messageContent,
       );
       const spyOnSaveChannel = jest.spyOn(server.activeEndpoint, 'saveChannel');
 
@@ -245,12 +243,8 @@ describe('Parcel delivery route', () => {
         payload: parcelSerialized,
       });
 
-      expect(spyOnSaveChannel).toHaveBeenCalledOnceWith(
-        expect.objectContaining({
-          internetGatewayAddress: peerConnectionParams.internetGatewayAddress,
-        }),
-        server.mongoose,
-      );
+      const [[connectionParams]] = spyOnSaveChannel.mock.calls;
+      expect(Buffer.from(await connectionParams.serialize())).toStrictEqual(messageContent);
       expect(response).toHaveProperty('statusCode', HTTP_STATUS_CODES.ACCEPTED);
       expect(logs).toContainEqual(
         partialPinoLog('info', 'Refusing to store invalid peer connection params'),
