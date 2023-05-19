@@ -74,7 +74,7 @@ async function createOrUpdateChannel(
   try {
     privateEndpointConnParams = await PrivateEndpointConnParams.deserialize(pdaBuffer);
   } catch (err) {
-    logger.info({ err }, 'Refusing to store malformed peer connection params!');
+    logger.info({ err }, 'Refusing to store malformed peer connection params');
     return;
   }
 
@@ -82,7 +82,7 @@ async function createOrUpdateChannel(
     await activeEndpoint.saveChannel(privateEndpointConnParams, dbConnection);
     logger.info('Peer connection params stored');
   } catch (err) {
-    logger.info({ err }, 'Refusing to store invalid peer connection params!');
+    logger.info({ err }, 'Refusing to store invalid peer connection params');
   }
 }
 

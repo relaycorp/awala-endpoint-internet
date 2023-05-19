@@ -253,7 +253,7 @@ describe('Parcel delivery route', () => {
       );
       expect(response).toHaveProperty('statusCode', HTTP_STATUS_CODES.ACCEPTED);
       expect(logs).toContainEqual(
-        partialPinoLog('info', 'Refusing to store invalid peer connection params!'),
+        partialPinoLog('info', 'Refusing to store invalid peer connection params'),
       );
     });
 
@@ -276,7 +276,7 @@ describe('Parcel delivery route', () => {
       expect(spyOnSaveChannel).not.toHaveBeenCalled();
       expect(response).toHaveProperty('statusCode', HTTP_STATUS_CODES.ACCEPTED);
       expect(logs).toContainEqual(
-        partialPinoLog('info', 'Refusing to store malformed peer connection params!'),
+        partialPinoLog('info', 'Refusing to store malformed peer connection params'),
       );
     });
   });
