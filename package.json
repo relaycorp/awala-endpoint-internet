@@ -28,7 +28,7 @@
     "@relaycorp/pino-cloud": "^1.0.28",
     "@relaycorp/relaynet-core": "^1.86.0",
     "@relaycorp/relaynet-testing": "^2.2.28",
-    "@relaycorp/webcrypto-kms": "^1.5.7",
+    "@relaycorp/webcrypto-kms": "^1.5.11",
     "@typegoose/typegoose": "^11.2.0",
     "cloudevents": "^7.0.0",
     "date-fns": "^2.30.0",
