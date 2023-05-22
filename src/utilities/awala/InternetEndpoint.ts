@@ -1,5 +1,7 @@
 import {
+  derDeserializeECDHPublicKey,
   derDeserializeRSAPublicKey,
+  derSerializePublicKey,
   Endpoint,
   getIdFromIdentityKey,
   InvalidMessageError,
@@ -8,9 +10,9 @@ import {
   MockPublicKeyStore,
   NodeConnectionParams,
   type Parcel,
+  type PrivateEndpointConnParams,
   type SessionKey,
   SessionKeyPair,
-  type PrivateEndpointConnParams,
 } from '@relaycorp/relaynet-core';
 import envVar from 'env-var';
 import type { Connection } from 'mongoose';
@@ -42,6 +44,11 @@ async function retrieveIdentityPrivateKeyRef(): Promise<CryptoKey> {
 async function getIdentityPublicKey() {
   const activeIdPublicKeyBase64 = envVar.get('ACTIVE_ID_PUBLIC_KEY').required().asString();
   return derDeserializeRSAPublicKey(Buffer.from(activeIdPublicKeyBase64, 'base64'));
+}
+
+async function getEcdhPublicKeyFromPrivateKey(privateKey: CryptoKey): Promise<CryptoKey> {
+  const serializedPublicKey = await derSerializePublicKey(privateKey);
+  return derDeserializeECDHPublicKey(serializedPublicKey);
 }
 
 export class InternetEndpoint extends Endpoint {
@@ -131,10 +138,11 @@ export class InternetEndpoint extends Endpoint {
       throw new Error('Initial session key id is missing from config');
     }
 
-    const publicKey = await this.keyStores.privateKeyStore.retrieveUnboundSessionKey(
+    const privateKey = await this.keyStores.privateKeyStore.retrieveUnboundSessionKey(
       keyId,
       this.id,
     );
+    const publicKey = await getEcdhPublicKeyFromPrivateKey(privateKey);
     return { keyId, publicKey };
   }
 

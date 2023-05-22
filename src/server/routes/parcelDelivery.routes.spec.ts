@@ -4,8 +4,6 @@ import type { FastifyInstance, InjectOptions } from 'fastify';
 import { subDays } from 'date-fns';
 import {
   CertificationPath,
-  derDeserializeECDHPublicKey,
-  derSerializePublicKey,
   PrivateEndpointConnParams,
   type Recipient,
   type SessionKey,
@@ -54,10 +52,7 @@ describe('Parcel delivery route', () => {
       id: server.activeEndpoint.id,
       internetAddress: server.activeEndpoint.internetAddress,
     };
-    const { keyId, publicKey: privateKey } =
-      await server.activeEndpoint.retrieveInitialSessionPublicKey();
-    const serializedPublicKey = await derSerializePublicKey(privateKey);
-    sessionKey = { keyId, publicKey: await derDeserializeECDHPublicKey(serializedPublicKey) };
+    sessionKey = await server.activeEndpoint.retrieveInitialSessionPublicKey();
   });
 
   test('Valid parcel should be accepted', async () => {
