@@ -1,4 +1,3 @@
-import { type CloudEvent, type CloudEventV1, HTTP, type Message } from 'cloudevents';
 import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import type { BaseLogger } from 'pino';
 
@@ -6,7 +5,10 @@ import { makeFastify } from '../utilities/fastify/server.js';
 import { HTTP_STATUS_CODES } from '../utilities/http.js';
 import type { PluginDone } from '../utilities/fastify/PluginDone.js';
 
-import { PohttpClientProblemType } from './PohttpClientProblemType.js';
+import { getModelForClass } from '@typegoose/typegoose';
+//import { PeerEndpoint } from '../models/PeerEndpoint.model';
+import { ConfigItem } from '../models/ConfigItem.model';
+import { ConfigItem2 } from '../models/ConfigItem2.model';
 
 function makePohttpClientPlugin(
   server: FastifyInstance,
@@ -23,27 +25,42 @@ function makePohttpClientPlugin(
     await reply.status(HTTP_STATUS_CODES.OK).send('It works');
   });
 
-  server.post('/', async (request, reply) => {
-    const message: Message = { headers: request.headers, body: request.body };
-    let events: CloudEventV1<unknown>;
-    try {
-      events = HTTP.toEvent(message) as CloudEventV1<unknown>;
-    } catch {
-      await reply
-        .status(HTTP_STATUS_CODES.BAD_REQUEST)
-        .send({ type: PohttpClientProblemType.INVALID_EVENT });
-      return;
-    }
+  server.post('/test1', async (_request, reply) => {
+    const privateEndpointModel = getModelForClass(ConfigItem2, {
+      existingConnection: server.mongoose,
+    });
 
-    const event = events as CloudEvent;
+    await privateEndpointModel.findOne({});
 
-    // Temporary log. Implement message sending functionality here
-    server.log.info(event.id);
-    await reply.status(HTTP_STATUS_CODES.NO_CONTENT).send();
+    return reply.status(HTTP_STATUS_CODES.ACCEPTED).send();
   });
+
+  server.post('/test2', async (_request, reply) => {
+    const configItem2Model = getModelForClass(ConfigItem2, {
+      existingConnection: server.mongoose,
+    });
+
+    await configItem2Model.findOne({});
+
+    return reply.status(HTTP_STATUS_CODES.ACCEPTED).send();
+  });
+
+  server.post('/test3', async (_request, reply) => {
+    const configItemModel = getModelForClass(ConfigItem, {
+      existingConnection: server.mongoose,
+    });
+
+    await configItemModel.findOne({});
+
+    return reply.status(HTTP_STATUS_CODES.ACCEPTED).send();
+  });
+
   done();
 }
 
 export async function makePohttpClient(logger?: BaseLogger): Promise<FastifyInstance> {
-  return makeFastify(makePohttpClientPlugin, logger);
+  const server = await makeFastify(makePohttpClientPlugin, logger);
+
+
+  return server;
 }
