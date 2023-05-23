@@ -11,7 +11,7 @@ The app comprises two HTTP servers and a bootstrapping script that should be run
 
 ### PoHTTP server
 
-This is a [PoHTTP server](https://specs.awala.network/RS-007) that receives parcels from Awala gateways via the Internet. It's the only component that should be publicly accessible.
+This is a [PoHTTP server](https://specs.awala.network/RS-007) that receives parcels from Awala gateways via the Internet. This server MUST be publicly accessible from the Internet.
 
 To run this process, run the Docker container with the command argument `pohttp-server`.
 
@@ -27,6 +27,14 @@ This script is responsible for generating some initial data required by the app.
 
 To run this process, run the Docker container with the command argument `pohttp-bootstrap`.
 
+## Backing services
+
+The middleware requires the uses backing services:
+
+- [**MongoDB**](https://www.mongodb.com) 6 or newer.
+- A **Key Management Service (KMS)** supported by [`@relaycorp/webcrypto-kms`](https://www.npmjs.com/package/@relaycorp/webcrypto-kms).
+- A [CloudEvents](https://cloudevents.io)-compliant broker (e.g., [Google Eventarc](https://cloud.google.com/eventarc/docs/overview), RabbitMQ).
+
 ## Environment variables
 
 All the processes use the following variables:
@@ -40,7 +48,7 @@ All the processes use the following variables:
 
 The HTTP servers additionally support the environment variable `PORT` (default: `8080`), to specify the port on which it should listen.
 
-## DNS and TLS requirements
+## DNS requirements
 
 The domain name specified as `INTERNET_ADDRESS` MUST have DNSSEC properly configured and contain an SRV record that maps the `_awala-pdc.tcp` service to the PoHTTP server's domain name.
 
@@ -50,7 +58,9 @@ For example, if the Internet address is `example.com` and the PoHTTP server runs
 _awala-pdc._tcp.example.com. 86400 IN SRV 0 5 443 awala-pohttp.example.com.
 ```
 
-Additionally, `awala-pohttp.example.com:443` must be a TLS 1.2+ host and use a valid certificate for `awala-pohttp.example.com`.
+## TLS requirements
+
+The PoHTTP server MUST use TLS 1.2+ host and a valid certificate.
 
 ## Example with Knative
 

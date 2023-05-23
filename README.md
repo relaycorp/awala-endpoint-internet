@@ -2,6 +2,8 @@
 
 This is a Message-Oriented Middleware (MOM) for server-side apps to communicate over [Awala](https://awala.network/) without implementing any of the networking or cryptography from the protocol suite.
 
+In concrete terms, as an Awala Internet Endpoint, this middleware implements the Awala protocol [PoHTTP](https://specs.awala.network/RS-007) as a server and a client, thus acting as a bridge between the app and its users' Awala gateways.
+
 ## Installation and usage
 
 Documentation for operators and app developers is available on [docs.relaycorp.tech](https://docs.relaycorp.tech/awala-endpoint-internet/).
