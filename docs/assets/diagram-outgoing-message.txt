@@ -1,0 +1,11 @@
+participant Gateway
+participant Endpoint (PoHTTP client)
+participant Broker
+
+title Awala Internet Endpoint: Outgoing message
+
+App->Broker: Service message + parcel metadata
+Broker->Endpoint (PoHTTP client): Service message + parcel metadata
+note over Endpoint (PoHTTP client): Encrypt service message
+note over Endpoint (PoHTTP client): Generate parcel
+Endpoint (PoHTTP client)->Gateway: Parcel
