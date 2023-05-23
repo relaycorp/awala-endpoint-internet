@@ -76,7 +76,7 @@ export class InternetEndpoint extends Endpoint {
   public async saveChannel(
     connectionParams: PrivateEndpointConnParams,
     dbConnection: Connection,
-  ): Promise<void> {
+  ): Promise<InternetPrivateEndpointChannel> {
     const channel = await this.savePrivateEndpointChannel(connectionParams);
     const peerId = channel.peer.id;
     const { internetGatewayAddress } = connectionParams;
@@ -96,6 +96,30 @@ export class InternetEndpoint extends Endpoint {
         upsert: true,
       },
     );
+    return channel;
+  }
+
+  public async getPeerChannel(
+    peerId: string,
+    dbConnection: Connection,
+  ): Promise<InternetPrivateEndpointChannel | null> {
+    const privateEndpointModel = getModelForClass(PeerEndpoint, {
+      existingConnection: dbConnection,
+    });
+
+    const peerEndpoint = await privateEndpointModel.findOne({
+      peerId,
+    });
+    if (peerEndpoint === null) {
+      return null;
+    }
+
+    const channel = await this.getChannel(peerId, peerEndpoint.internetGatewayAddress);
+    if (channel === null) {
+      throw new Error(`Failed to construct a channel for peerId ${peerId}`);
+    }
+
+    return channel;
   }
 
   protected async retrieveInitialSessionKeyId(): Promise<Buffer | null> {
