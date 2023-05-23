@@ -19,7 +19,8 @@
     "static-checks:prettier": "prettier \"src/**/*.ts\" --list-different",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
     "test:functional": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config src/functionalTests/jest.config.cjs --runInBand --detectOpenHandles",
-    "clean": "del-cli build test coverage"
+    "clean": "del-cli build test coverage",
+    "start": "skaffold dev"
   },
   "dependencies": {
     "@fastify/routes": "^5.1.0",

@@ -1,85 +1,36 @@
 # Awala Internet Endpoint
 
-This is a Message-Oriented Middleware (MOM) that allows server-side apps to communicate over Awala without implementing any of the networking or cryptography from the Awala protocol suite.
+This is a Message-Oriented Middleware (MOM) for server-side apps to communicate over [Awala](https://awala.network/) without implementing any of the networking or cryptography from the protocol suite.
 
-## Components
+## Installation and usage
 
-The middleware itself is split into a [PoHTTP](https://specs.awala.network/RS-007) server and a client, which interact with the third-party app via a broker (e.g., [Google PubSub](https://cloud.google.com/pubsub)).
+Documentation for operators and app developers is available on [docs.relaycorp.tech](https://docs.relaycorp.tech/awala-endpoint-internet/).
 
-The following diagram illustrates how they'd interact with each other when the app implements the [Awala Ping service](https://specs.awala.network/RS-014):
+## Development
 
-![](./diagram.png)
+This app requires the following system dependencies:
 
-### PoHTTP server
+- Node.js 18.
+- Kubernetes 1.22+ (we strongly recommend [Minikube](https://minikube.sigs.k8s.io/docs/start/) with Docker).
+- [Knative](https://knative.dev/docs/install/quickstart-install/#install-the-knative-cli) v1.9+.
+- [Skaffold](https://skaffold.dev/docs/install/) v2.1+.
 
-Publicly accessible from the Internet. No auth required:
+To start the app, simply get Skaffold to deploy the [relevant Kubernetes resources](./k8s) by running `npm start`.
 
-- `GET /connection-params.der`: Connection params.
-- `POST /`.
-  1. Parse and validate parcel.
-  2. Decrypt payload.
-  3. Process service message:
-    - If it's an Awala PDA, store it.
-    - If it's a service message, send it to the broker.
+### Automated testing
 
-Configuration:
+The unit test suite can be run with the standard `npm test`.
 
-- `INTERNET_ENDPOINT_PEER_SESSION_MAX_AGE` (optional): The number of seconds that the peers' session keys (received in the PDAs) will be valid for.
+If you'd like to run some tests against the real instance of the app managed by Skaffold, the simplest way to do that is to add/modify [functional tests](./src/functionalTests) and then run `npm run test:integration` (alternatively, you can use your IDE to only run the test you're interested in).
 
-### App
+### Manual testing
 
-The third-party app that exchanges Awala service messages with this middleware.
+If for whatever reason you want to manually test the app, you first need to get the local URLs to the services by running:
 
-It MUST expose a CloudEvents server responsible for processing `incoming-service-message` events. It MUST only be accessible from a private network without auth.
+```
+kn service list
+```
 
-It MAY also have other components that interact with the middleware, besides the CloudEvents server.
+## Contributions
 
-The app MUST send service messages to Awala using the `outgoing-service-message` event.
-
-### PoHTTP client
-
-It MUST be a CloudEvents server responsible for processing `outgoing-service-message` events. It MUST only be accessible from a private network without auth.
-
-### Environment variables
-
-- `INTERNET_ADDRESS` (required; e.g., `ping.awala.services`).
-- `ACTIVE_ID_KEY_REF` (required).
-- `KMS_ADAPTER` (required).
-- `PRIVATE_KEY_STORE_ADAPTER` (required).
-
-## Backing services
-
-- KMS.
-- MongoDB: For encryption keys.
-
-## Events
-
-All events must use the binary mode of CloudEvents.
-
-### `incoming-service-message`
-
-Emitted by the middleware.
-
-- `specversion`: `1.0`
-- `id`: The parcel id.
-- `type`: `com.relaycorp.awala.endpoint-internet.incoming-service-message`
-- `source`: The parcel sender's id.
-- `subject`: The parcel recipient's id.
-- `datacontenttype`: The content type of the service message.
-- `data`: The service message.
-- `time`: The creation time of the parcel.
-- `expiry` (`Timestamp`, custom attribute): The time at which the parcel expires.
-
-### `outgoing-service-message`
-
-Emitted by the app.
-
-- `specversion`: `1.0`
-- `id`: The parcel id.
-- `type`: `com.relaycorp.awala.endpoint-internet.outgoing-service-message`
-- `source`: The parcel sender's id, or the constant `https://relaycorp.tech/awala-endpoint-internet`.
-- `subject`: The parcel recipient's id.
-- `datacontenttype`: The content type of the service message.
-- `data`: The service message.
-- `time`: The creation time of the parcel.
-- `expiry` (`Timestamp`, custom attribute): The time at which the parcel expires.
+We love contributions! If you haven't contributed to a Relaycorp project before, please take a minute to [read our guidelines](https://github.com/relaycorp/.github/blob/master/CONTRIBUTING.md) first.
