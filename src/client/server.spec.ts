@@ -23,11 +23,12 @@ describe('makePohttpClient', () => {
     });
   });
 
-  describe('GET', () => {
+  describe('GET 2', () => {
     test('test get last session key', async () => {
       const response = await server.inject({ method: 'GET', url: '/testsessionkey' });
 
-      expect(response.statusCode).toBe(HTTP_STATUS_CODES.OK);
+      const json = response.json();
+      expect(json.recipientSessionKey).not.toBe(null);
     });
   });
 
@@ -59,5 +60,3 @@ describe('makePohttpClient', () => {
     });
   });
 });
-
-
