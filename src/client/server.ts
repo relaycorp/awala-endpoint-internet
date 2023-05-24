@@ -3,13 +3,17 @@ import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import type { BaseLogger } from 'pino';
 import { Parcel, ServiceMessage, type Channel } from '@relaycorp/relaynet-core';
 import { isValid, differenceInSeconds } from 'date-fns';
-import * as Pohttp from '@relaycorp/relaynet-pohttp';
 import type { Connection } from 'mongoose';
 
 import { makeFastify } from '../utilities/fastify/server.js';
 import { HTTP_STATUS_CODES } from '../utilities/http.js';
 import type { PluginDone } from '../utilities/fastify/PluginDone.js';
 import type { InternetEndpoint } from '../utilities/awala/InternetEndpoint.js';
+import {
+  deliverParcel,
+  PoHTTPClientBindingError,
+  PoHTTPInvalidParcelError,
+} from '@relaycorp/relaynet-pohttp';
 
 interface EventData {
   id: string;
@@ -141,9 +145,9 @@ function makePohttpClientPlugin(
     });
 
     try {
-      await Pohttp.deliverParcel(channel.peer.internetAddress, parcelSerialised, { useTls: true });
+      await deliverParcel(channel.peer.internetAddress, parcelSerialised, { useTls: true });
     } catch (err) {
-      if (err instanceof Pohttp.PoHTTPInvalidParcelError || err instanceof Pohttp.PoHTTPClientBindingError) {
+      if (err instanceof PoHTTPInvalidParcelError || err instanceof PoHTTPClientBindingError) {
         server.log.info({ err }, 'Discarding pong delivery because server refused parcel');
       }else{
         return reply.status(HTTP_STATUS_CODES.NO_CONTENT).send();
