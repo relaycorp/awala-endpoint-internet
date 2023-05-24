@@ -6,7 +6,7 @@ import type { InternetEndpoint } from '../utilities/awala/InternetEndpoint.js';
 
 import { makeMockLogging, type MockLogSet } from './logging.js';
 import { configureMockEnvVars, type EnvVarSet, type EnvVarMocker } from './envVars.js';
-import { clearMongooseModelCache, setUpTestDbConnection } from './db.js';
+import { setUpTestDbConnection } from './db.js';
 import { mockInternetEndpoint } from './awala/mockInternetEndpoint.js';
 
 export interface TestServerFixture {
@@ -33,7 +33,6 @@ export function makeTestServer(
 
   afterEach(async () => {
     await server.close();
-    clearMongooseModelCache();
   });
 
   return () => ({
