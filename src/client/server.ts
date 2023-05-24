@@ -1,14 +1,12 @@
+import { getModelForClass } from '@typegoose/typegoose';
 import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import type { BaseLogger } from 'pino';
 
 import { makeFastify } from '../utilities/fastify/server.js';
 import { HTTP_STATUS_CODES } from '../utilities/http.js';
 import type { PluginDone } from '../utilities/fastify/PluginDone.js';
-
-import { getModelForClass } from '@typegoose/typegoose';
-//import { PeerEndpoint } from '../models/PeerEndpoint.model';
-import { ConfigItem } from '../models/ConfigItem.model';
-import { ConfigItem2 } from '../models/ConfigItem2.model';
+import { ConfigItem } from '../models/ConfigItem.model.js';
+import { ConfigItem2 } from '../models/ConfigItem2.model.js';
 
 function makePohttpClientPlugin(
   server: FastifyInstance,
@@ -59,8 +57,5 @@ function makePohttpClientPlugin(
 }
 
 export async function makePohttpClient(logger?: BaseLogger): Promise<FastifyInstance> {
-  const server = await makeFastify(makePohttpClientPlugin, logger);
-
-
-  return server;
+  return makeFastify(makePohttpClientPlugin, logger);
 }
