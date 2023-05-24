@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { createConnection, type Connection, type ConnectOptions, STATES } from 'mongoose';
 import { deleteModelWithClass } from '@typegoose/typegoose';
 
-import { PeerEndpoint } from '../models/PeerEndpoint.model.js'
+import { PeerEndpoint } from '../models/PeerEndpoint.model.js';
 import { ConfigItem } from '../models/ConfigItem.model.js';
 import { ConfigItem2 } from '../models/ConfigItem2.model.js';
 
@@ -17,6 +17,10 @@ const BASE_MONGO_URI = (global as any).__MONGO_URI__ as string;
 
 // Ensure every Jest worker gets its own database.
 export const MONGODB_URI = `${BASE_MONGO_URI}${randomUUID()}`;
+
+export function clearMongooseModelCache() {
+  MODELS.forEach(deleteModelWithClass);
+}
 
 export function setUpTestDbConnection(): () => Connection {
   let connection: Connection;
@@ -38,7 +42,7 @@ export function setUpTestDbConnection(): () => Connection {
     if (connection.readyState === STATES.disconnected) {
       // The test closed the connection, so we shouldn't just reconnect, but also purge TypeGoose'
       // model cache because every item there is bound to the old connection.
-      MODELS.forEach(deleteModelWithClass);
+      clearMongooseModelCache();
       connection = await connect();
     }
 
