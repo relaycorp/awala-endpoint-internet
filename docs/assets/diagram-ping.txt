@@ -1,0 +1,10 @@
+title Awala Ping via Internet endpoint
+
+Gateway->Endpoint: Parcel (PDA)
+note over Endpoint: Save PDA
+Gateway->Endpoint: Parcel (Ping)
+Endpoint->Broker: Service message (Ping)
+Broker->App: Service message (Ping)
+App->Broker: Service message (Pong)
+Broker->Endpoint: Service message (Pong)
+Endpoint->Gateway: Parcel (Pong)

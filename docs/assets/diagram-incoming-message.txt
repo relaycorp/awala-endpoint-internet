@@ -1,0 +1,7 @@
+title Awala Internet Endpoint: Incoming message
+
+Gateway->Endpoint (PoHTTP server): Parcel
+note over Endpoint (PoHTTP server): Validate parcel
+note over Endpoint (PoHTTP server): Decrypt service message
+Endpoint (PoHTTP server)->Broker: Service message + parcel metadata
+Broker->App: Service message + parcel metadata
