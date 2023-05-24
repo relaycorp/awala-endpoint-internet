@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, type LightMyRequestResponse } from 'fastify';
 import { CloudEvent } from 'cloudevents';
 import type { DeliveryOptions } from '@relaycorp/relaynet-pohttp/build/main/lib/client.js';
 import { getModelForClass } from '@typegoose/typegoose';
@@ -22,7 +22,6 @@ import { mockSpy } from '../testUtils/jest.js';
 import { type MockLogSet, partialPinoLog } from '../testUtils/logging.js';
 import { PeerEndpoint } from '../models/PeerEndpoint.model.js';
 import { KEY_PAIR_SET, PEER_ADDRESS, PEER_KEY_PAIR } from '../testUtils/awala/stubs.js';
-import { LightMyRequestResponse } from 'fastify';
 
 const mockDeliverParcel = mockSpy(
   jest.fn<
@@ -39,11 +38,9 @@ jest.unstable_mockModule('@relaycorp/relaynet-pohttp', () => ({
 
 const { setUpTestPohttpClient } = await import('../testUtils/pohttpClient.js');
 
-
-
 describe('makePohttpClient', () => {
   const expiry = addDays(Date.now(), 5);
-  const CLOUD_EVENT_DATA = {
+  const cloudEventData = {
     id: CE_ID,
     source: CE_SOURCE,
     type: 'testType',
@@ -97,59 +94,60 @@ describe('makePohttpClient', () => {
       let event: CloudEvent<string>;
 
       let response: LightMyRequestResponse;
-      let internetAddress:  string;
-      let parcelBuffer: Buffer | ArrayBuffer;
+      let internetAddress: string;
+      let parcelBuffer: ArrayBuffer | Buffer;
       let payload: ServiceMessage;
       let parcel: Parcel;
       beforeEach(async () => {
         time = new Date();
         ttl = differenceInSeconds(expiry, time);
         event = new CloudEvent({
-          ...CLOUD_EVENT_DATA,
+          ...cloudEventData,
           subject: privateEndpointChannel.peer.id,
         });
 
         response = await postEvent(event, server);
 
-
-        ([[internetAddress, parcelBuffer]] = mockDeliverParcel.mock.calls);
+        [[internetAddress, parcelBuffer]] = mockDeliverParcel.mock.calls;
         parcel = await Parcel.deserialize(parcelBuffer);
         ({ payload } = await parcel.unwrapPayload(sessionPrivateKey));
-      })
+      });
 
-
-      test('Should resolve into no content status', async () => {
+      test('Should resolve into no content status', () => {
         expect(response.statusCode).toBe(HTTP_STATUS_CODES.NO_CONTENT);
       });
 
-      test('Parcel payload should be a valid message', async () => {
+      test('Parcel payload should be a valid message', () => {
         const serviceMessage = new ServiceMessage(
-          CLOUD_EVENT_DATA.datacontenttype,
-          Buffer.from(CLOUD_EVENT_DATA.data),
+          cloudEventData.datacontenttype,
+          Buffer.from(cloudEventData.data),
         );
 
         expect(
           Buffer.from(payload.serialize()).equals(Buffer.from(serviceMessage.serialize())),
-        ).toBeTrue();;
+        ).toBeTrue();
       });
 
-      test('Parcel should be sent to a valid address', async () => {
+      test('Parcel should be sent to a valid address', () => {
         expect(internetAddress).toBe(PEER_ADDRESS);
       });
 
-      test('Should set a correct ttl', async () => {
+      test('Should set a correct ttl', () => {
         expect(parcel.ttl).toBeGreaterThan(ttl - tenSeconds);
         expect(parcel.ttl).toBeLessThan(ttl + tenSeconds);
       });
 
-      test('Should set correct creation date', async () => {
-        expect(parcel.creationDate).toBeBetween(subSeconds(new Date(time), 20), addSeconds(time, 20));
+      test('Should set correct creation date', () => {
+        expect(parcel.creationDate).toBeBetween(
+          subSeconds(new Date(time), 20),
+          addSeconds(time, 20),
+        );
       });
-    })
+    });
 
     test('Missing subject should resolve into bad request', async () => {
       const event = new CloudEvent({
-        ...CLOUD_EVENT_DATA,
+        ...cloudEventData,
         subject: undefined,
       });
 
@@ -176,7 +174,7 @@ describe('makePohttpClient', () => {
 
     test('Missing datacontenttype should resolve into bad request', async () => {
       const event = new CloudEvent({
-        ...CLOUD_EVENT_DATA,
+        ...cloudEventData,
         datacontenttype: undefined,
       });
 
@@ -189,7 +187,7 @@ describe('makePohttpClient', () => {
     });
 
     test('Missing expiry should resolve into bad request', async () => {
-      const eventData: { [key: string]: unknown } = { ...CLOUD_EVENT_DATA };
+      const eventData: { [key: string]: unknown } = { ...cloudEventData };
       delete eventData.expiry;
       const event = new CloudEvent(eventData);
 
@@ -201,7 +199,7 @@ describe('makePohttpClient', () => {
 
     test('Non string expiry should resolve into bad request', async () => {
       const event = new CloudEvent({
-        ...CLOUD_EVENT_DATA,
+        ...cloudEventData,
         expiry: {},
       });
 
@@ -213,7 +211,7 @@ describe('makePohttpClient', () => {
 
     test('Malformed expiry should resolve into bad request', async () => {
       const event = new CloudEvent({
-        ...CLOUD_EVENT_DATA,
+        ...cloudEventData,
         expiry: 'invalid Date',
       });
 
@@ -227,7 +225,7 @@ describe('makePohttpClient', () => {
       const time = new Date();
       const past = subDays(time, 10);
       const event = new CloudEvent({
-        ...CLOUD_EVENT_DATA,
+        ...cloudEventData,
         expiry: past,
       });
 
@@ -239,7 +237,7 @@ describe('makePohttpClient', () => {
 
     test('Missing data should resolve into bad request', async () => {
       const event = new CloudEvent({
-        ...CLOUD_EVENT_DATA,
+        ...cloudEventData,
         data: undefined,
       });
 
@@ -251,7 +249,7 @@ describe('makePohttpClient', () => {
 
     test('Malformed data should resolve into bad request', async () => {
       const event = new CloudEvent({
-        ...CLOUD_EVENT_DATA,
+        ...cloudEventData,
         data: 1,
       });
 
@@ -262,7 +260,7 @@ describe('makePohttpClient', () => {
     });
 
     test('Non existing gateway db entry should resolve into service unavailable', async () => {
-      const event = new CloudEvent(CLOUD_EVENT_DATA);
+      const event = new CloudEvent(cloudEventData);
 
       const response = await postEvent(event, server);
 
@@ -273,12 +271,12 @@ describe('makePohttpClient', () => {
     });
 
     test('Non existing saved channel should resolve into service unavailable', async () => {
-      const event = new CloudEvent(CLOUD_EVENT_DATA);
+      const event = new CloudEvent(cloudEventData);
       const privateEndpointModel = getModelForClass(PeerEndpoint, {
         existingConnection: dbConnection,
       });
       await privateEndpointModel.create({
-        peerId: CLOUD_EVENT_DATA.subject,
+        peerId: cloudEventData.subject,
         internetGatewayAddress: PEER_ADDRESS,
       });
 

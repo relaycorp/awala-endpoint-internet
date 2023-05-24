@@ -75,7 +75,7 @@ function getMessageData(event: CloudEventV1<unknown>): EventData {
     dataContentType: event.datacontenttype,
     data: messageBody,
     ttl: getTtl(event.expiry, creationDate),
-    creationDate
+    creationDate,
   };
 }
 
@@ -141,14 +141,16 @@ function makePohttpClientPlugin(
       return reply.status(HTTP_STATUS_CODES.SERVICE_UNAVAILABLE).send();
     }
 
-    const serviceMessage = new ServiceMessage(eventData.dataContentType, eventData.data);
-
-    const parcelSerialised = await channel.makeMessage(serviceMessage, Parcel, {
-      ttl: eventData.ttl,
-      //getting error: "Id should not span more than 64 characters (got 65)",
-      //id: eventData.peerId,
-      creationDate: eventData.creationDate
-    });
+    const parcelSerialised = await channel.makeMessage(
+      new ServiceMessage(eventData.dataContentType, eventData.data),
+      Parcel,
+      {
+        ttl: eventData.ttl,
+        // getting error: "Id should not span more than 64 characters (got 65)",
+        // id: eventData.peerId,
+        creationDate: eventData.creationDate,
+      },
+    );
 
     try {
       await deliverParcel(channel.peer.internetAddress, parcelSerialised, { useTls: true });
