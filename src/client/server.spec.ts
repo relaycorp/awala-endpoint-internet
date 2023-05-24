@@ -7,7 +7,6 @@ import { CE_ID, CE_SOURCE } from '../testUtils/eventing/stubs.js';
 import { postEvent } from '../testUtils/eventing/cloudEvents.js';
 
 import { PohttpClientProblemType } from './PohttpClientProblemType.js';
-
 describe('makePohttpClient', () => {
   const getTestServerFixture = setUpTestPohttpClient();
   let server: FastifyInstance;
@@ -21,6 +20,14 @@ describe('makePohttpClient', () => {
 
       expect(response.statusCode).toBe(HTTP_STATUS_CODES.OK);
       expect(response.body).toBe('It works');
+    });
+  });
+
+  describe('GET', () => {
+    test('test get last session key', async () => {
+      const response = await server.inject({ method: 'GET', url: '/testsessionkey' });
+
+      expect(response.statusCode).toBe(HTTP_STATUS_CODES.OK);
     });
   });
 
@@ -52,3 +59,5 @@ describe('makePohttpClient', () => {
     });
   });
 });
+
+

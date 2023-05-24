@@ -7,6 +7,9 @@ import { HTTP_STATUS_CODES } from '../utilities/http.js';
 import type { PluginDone } from '../utilities/fastify/PluginDone.js';
 
 import { PohttpClientProblemType } from './PohttpClientProblemType.js';
+import { generatePDACertificationPath } from '@relaycorp/relaynet-testing';
+import { KEY_PAIR_SET, PEER_ADDRESS, PEER_KEY_PAIR } from '../testUtils/awala/stubs';
+import { CertificationPath, PrivateEndpointConnParams } from '@relaycorp/relaynet-core';
 
 function makePohttpClientPlugin(
   server: FastifyInstance,
@@ -40,6 +43,34 @@ function makePohttpClientPlugin(
     // Temporary log. Implement message sending functionality here
     server.log.info(event.id);
     await reply.status(HTTP_STATUS_CODES.NO_CONTENT).send();
+  });
+
+
+  server.get('/testsessionkey', async (_request, reply) => {
+
+
+    const certificatePath = await generatePDACertificationPath(KEY_PAIR_SET);
+    const pdaPath = new CertificationPath(certificatePath.pdaGrantee, [
+      certificatePath.privateEndpoint,
+      certificatePath.privateGateway,
+    ]);
+    const peerConnectionParams = new PrivateEndpointConnParams(
+      PEER_KEY_PAIR.privateGateway.publicKey,
+      PEER_ADDRESS,
+      pdaPath,
+    );
+    const privateEndpointChannel = await server.activeEndpoint.saveChannel(
+      peerConnectionParams,
+      server.mongoose
+    );
+
+    const recipientSessionKey = await privateEndpointChannel.keyStores.publicKeyStore.retrieveLastSessionKey(
+      privateEndpointChannel.peer.id,
+    );
+
+    // this logs null
+    console.log(recipientSessionKey, "session Key");
+    await reply.status(HTTP_STATUS_CODES.OK).send();
   });
   done();
 }

@@ -76,7 +76,7 @@ export class InternetEndpoint extends Endpoint {
   public async saveChannel(
     connectionParams: PrivateEndpointConnParams,
     dbConnection: Connection,
-  ): Promise<void> {
+  ): Promise<InternetPrivateEndpointChannel> {
     const channel = await this.savePrivateEndpointChannel(connectionParams);
     const peerId = channel.peer.id;
     const { internetGatewayAddress } = connectionParams;
@@ -96,6 +96,8 @@ export class InternetEndpoint extends Endpoint {
         upsert: true,
       },
     );
+
+    return channel;
   }
 
   protected async retrieveInitialSessionKeyId(): Promise<Buffer | null> {
