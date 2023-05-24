@@ -21,9 +21,10 @@ interface EventData {
   dataContentType: string;
   data: Buffer;
   ttl: number;
+  creationDate: Date;
 }
 
-function getTtl(expiry: unknown, time: string) {
+function getTtl(expiry: unknown, creationDate: Date) {
   if (expiry === undefined) {
     throw new Error('Ignoring event due to missing expiry');
   }
@@ -33,7 +34,6 @@ function getTtl(expiry: unknown, time: string) {
   }
 
   const expiryDate = new Date(expiry);
-  const creationDate = new Date(time);
 
   if (!isValid(expiryDate)) {
     throw new Error('Ignoring event due to malformed expiry');
@@ -68,12 +68,14 @@ function getMessageData(event: CloudEventV1<unknown>): EventData {
     throw new TypeError('Ignoring event due to invalid data');
   }
 
+  const creationDate = new Date(event.time!);
   return {
     id: event.id,
     peerId: event.subject,
     dataContentType: event.datacontenttype,
     data: messageBody,
-    ttl: getTtl(event.expiry, event.time!),
+    ttl: getTtl(event.expiry, creationDate),
+    creationDate
   };
 }
 
@@ -140,17 +142,22 @@ function makePohttpClientPlugin(
     }
 
     const serviceMessage = new ServiceMessage(eventData.dataContentType, eventData.data);
+
     const parcelSerialised = await channel.makeMessage(serviceMessage, Parcel, {
       ttl: eventData.ttl,
+      //getting error: "Id should not span more than 64 characters (got 65)",
+      //id: eventData.peerId,
+      creationDate: eventData.creationDate
     });
 
     try {
       await deliverParcel(channel.peer.internetAddress, parcelSerialised, { useTls: true });
     } catch (err) {
       if (err instanceof PoHTTPInvalidParcelError || err instanceof PoHTTPClientBindingError) {
-        server.log.info({ err }, 'Discarding pong delivery because server refused parcel');
+        server.log.info({ err }, 'Delivery failed due to server refusing parcel');
       } else {
-        return reply.status(HTTP_STATUS_CODES.NO_CONTENT).send();
+        server.log.info({ err }, 'Retry due to failed delivery');
+        return reply.status(HTTP_STATUS_CODES.BAD_GATEWAY).send();
       }
     }
 

@@ -13,7 +13,7 @@ import {
   ServiceMessage,
   SessionKeyPair,
 } from '@relaycorp/relaynet-core';
-import { addDays, formatISO, subDays } from 'date-fns';
+import { addDays, addSeconds, differenceInSeconds, formatISO, subDays, subSeconds } from 'date-fns';
 
 import { HTTP_STATUS_CODES } from '../utilities/http.js';
 import { CE_ID, CE_SOURCE } from '../testUtils/eventing/stubs.js';
@@ -22,6 +22,7 @@ import { mockSpy } from '../testUtils/jest.js';
 import { type MockLogSet, partialPinoLog } from '../testUtils/logging.js';
 import { PeerEndpoint } from '../models/PeerEndpoint.model.js';
 import { KEY_PAIR_SET, PEER_ADDRESS, PEER_KEY_PAIR } from '../testUtils/awala/stubs.js';
+import { LightMyRequestResponse } from 'fastify';
 
 const mockDeliverParcel = mockSpy(
   jest.fn<
@@ -38,18 +39,20 @@ jest.unstable_mockModule('@relaycorp/relaynet-pohttp', () => ({
 
 const { setUpTestPohttpClient } = await import('../testUtils/pohttpClient.js');
 
-const CLOUD_EVENT_DATA = {
-  id: CE_ID,
-  source: CE_SOURCE,
-  type: 'testType',
-  subject: 'peerId',
-  datacontenttype: 'test/content-type',
-  time: formatISO(Date.now()),
-  expiry: formatISO(addDays(Date.now(), 1)),
-  data: 'test data',
-};
+
 
 describe('makePohttpClient', () => {
+  const expiry = addDays(Date.now(), 5);
+  const CLOUD_EVENT_DATA = {
+    id: CE_ID,
+    source: CE_SOURCE,
+    type: 'testType',
+    subject: 'peerId',
+    datacontenttype: 'test/content-type',
+    expiry: formatISO(expiry),
+    data: 'test data',
+  };
+
   const getTestServerFixture = setUpTestPohttpClient();
   let server: FastifyInstance;
   let logs: MockLogSet;
@@ -87,27 +90,62 @@ describe('makePohttpClient', () => {
   });
 
   describe('POST', () => {
-    test('Parcel should be sent', async () => {
-      const event = new CloudEvent({
-        ...CLOUD_EVENT_DATA,
-        subject: privateEndpointChannel.peer.id,
+    describe('Successful delivery', () => {
+      const tenSeconds: number = 10 * 1000;
+      let time: Date;
+      let ttl: number;
+      let event: CloudEvent<string>;
+
+      let response: LightMyRequestResponse;
+      let internetAddress:  string;
+      let parcelBuffer: Buffer | ArrayBuffer;
+      let payload: ServiceMessage;
+      let parcel: Parcel;
+      beforeEach(async () => {
+        time = new Date();
+        ttl = differenceInSeconds(expiry, time);
+        event = new CloudEvent({
+          ...CLOUD_EVENT_DATA,
+          subject: privateEndpointChannel.peer.id,
+        });
+
+        response = await postEvent(event, server);
+
+
+        ([[internetAddress, parcelBuffer]] = mockDeliverParcel.mock.calls);
+        parcel = await Parcel.deserialize(parcelBuffer);
+        ({ payload } = await parcel.unwrapPayload(sessionPrivateKey));
+      })
+
+
+      test('Should resolve into no content status', async () => {
+        expect(response.statusCode).toBe(HTTP_STATUS_CODES.NO_CONTENT);
       });
 
-      const response = await postEvent(event, server);
+      test('Parcel payload should be a valid message', async () => {
+        const serviceMessage = new ServiceMessage(
+          CLOUD_EVENT_DATA.datacontenttype,
+          Buffer.from(CLOUD_EVENT_DATA.data),
+        );
 
-      const serviceMessage = new ServiceMessage(
-        CLOUD_EVENT_DATA.datacontenttype,
-        Buffer.from(CLOUD_EVENT_DATA.data),
-      );
+        expect(
+          Buffer.from(payload.serialize()).equals(Buffer.from(serviceMessage.serialize())),
+        ).toBeTrue();;
+      });
 
-      const [[, parcelBuffer]] = mockDeliverParcel.mock.calls;
-      const parcel = await Parcel.deserialize(parcelBuffer);
-      const { payload } = await parcel.unwrapPayload(sessionPrivateKey);
-      expect(
-        Buffer.from(payload.serialize()).equals(Buffer.from(serviceMessage.serialize())),
-      ).toBeTrue();
-      expect(response.statusCode).toBe(HTTP_STATUS_CODES.NO_CONTENT);
-    });
+      test('Parcel should be sent to a valid address', async () => {
+        expect(internetAddress).toBe(PEER_ADDRESS);
+      });
+
+      test('Should set a correct ttl', async () => {
+        expect(parcel.ttl).toBeGreaterThan(ttl - tenSeconds);
+        expect(parcel.ttl).toBeLessThan(ttl + tenSeconds);
+      });
+
+      test('Should set correct creation date', async () => {
+        expect(parcel.creationDate).toBeBetween(subSeconds(new Date(time), 20), addSeconds(time, 20));
+      });
+    })
 
     test('Missing subject should resolve into bad request', async () => {
       const event = new CloudEvent({
@@ -186,7 +224,8 @@ describe('makePohttpClient', () => {
     });
 
     test('Expiry less than time should resolve into bad request', async () => {
-      const past = subDays(new Date(CLOUD_EVENT_DATA.time), 10);
+      const time = new Date();
+      const past = subDays(time, 10);
       const event = new CloudEvent({
         ...CLOUD_EVENT_DATA,
         expiry: past,
