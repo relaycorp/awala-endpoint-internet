@@ -1,31 +1,47 @@
 import { type CloudEventV1, HTTP, type Message } from 'cloudevents';
 import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import type { BaseLogger } from 'pino';
-import {
-  CertificationPath,
-  PrivateEndpointConnParams,
-  ServiceMessage,
-  SessionEnvelopedData,
-} from '@relaycorp/relaynet-core';
-import { isValid } from 'date-fns';
+import { Parcel, ServiceMessage, type Channel } from '@relaycorp/relaynet-core';
+import { isValid, differenceInSeconds } from 'date-fns';
+import { deliverParcel } from '@relaycorp/relaynet-pohttp';
+import type { Connection } from 'mongoose';
 
 import { makeFastify } from '../utilities/fastify/server.js';
 import { HTTP_STATUS_CODES } from '../utilities/http.js';
 import type { PluginDone } from '../utilities/fastify/PluginDone.js';
-
-import { InternetPrivateEndpointChannel } from '../utilities/awala/InternetPrivateEndpointChannel';
-import { generatePDACertificationPath } from '@relaycorp/relaynet-testing';
-import { KEY_PAIR_SET, PEER_ADDRESS, PEER_KEY_PAIR } from '../testUtils/awala/stubs';
-import { getModelForClass } from '@typegoose/typegoose';
-import { PeerEndpoint } from '../models/PeerEndpoint.model';
+import type { InternetEndpoint } from '../utilities/awala/InternetEndpoint.js';
 
 interface EventData {
   id: string;
   peerId: string;
   dataContentType: string;
   data: Buffer;
-  creationDate: Date;
-  expiryDate: Date;
+  ttl: number;
+}
+
+function getTtl(expiry: unknown, time: string) {
+  if (expiry === undefined) {
+    throw new Error('Ignoring event due to missing expiry');
+  }
+
+  if (typeof expiry !== 'string') {
+    throw new TypeError('Ignoring event due to malformed expiry');
+  }
+
+  const expiryDate = new Date(expiry);
+  const creationDate = new Date(time);
+
+  if (!isValid(expiryDate)) {
+    throw new Error('Ignoring event due to malformed expiry');
+  }
+
+  const difference = differenceInSeconds(expiryDate, creationDate);
+
+  if (difference < 0) {
+    throw new Error('Ignoring expiry less than time');
+  }
+
+  return difference;
 }
 
 function getMessageData(event: CloudEventV1<unknown>): EventData {
@@ -37,35 +53,52 @@ function getMessageData(event: CloudEventV1<unknown>): EventData {
     throw new Error('Ignoring event due to missing data content type');
   }
 
-  const expiryDate = event.expiry;
-  if (expiryDate === undefined){
-    throw new Error('Ignoring event due to missing expiry');
-  }
-
-  if (typeof expiryDate !== 'string' || !isValid(new Date(expiryDate))) {
-    throw new Error('Ignoring event due to malformed expiry');
-  }
-
   if (event.data === undefined) {
     throw new Error('Ignoring event due to missing data');
   }
 
-  let parcelBody: Buffer;
-
+  let messageBody: Buffer;
   if (typeof event.data === 'string') {
-    parcelBody = Buffer.from(event.data);
+    messageBody = Buffer.from(event.data);
   } else {
-    throw new Error('Ignoring event due to invalid data');
+    throw new TypeError('Ignoring event due to invalid data');
   }
 
   return {
     id: event.id,
     peerId: event.subject,
     dataContentType: event.datacontenttype,
-    data: parcelBody,
-    creationDate: new Date(event.time!),
-    expiryDate: new Date(expiryDate),
+    data: messageBody,
+    ttl: getTtl(event.expiry, event.time!),
   };
+}
+
+async function getChannel(
+  eventData: EventData,
+  activeEndpoint: InternetEndpoint,
+  logger: BaseLogger,
+  dbConnection: Connection,
+) {
+  let channel: Channel<ServiceMessage, string> | null;
+  try {
+    channel = await activeEndpoint.getPeerChannel(eventData.peerId, dbConnection);
+  } catch {
+    logger.warn(
+      { eventId: eventData.id },
+      'Ignoring event due to not having a registered private endpoint',
+    );
+    return null;
+  }
+
+  if (!channel) {
+    logger.warn(
+      { eventId: eventData.id },
+      'Ignoring event due to not having a an peer endpoint db',
+    );
+    return null;
+  }
+
+  return channel;
 }
 
 function makePohttpClientPlugin(
@@ -73,6 +106,7 @@ function makePohttpClientPlugin(
   _opts: FastifyPluginOptions,
   done: PluginDone,
 ): void {
+  server.removeAllContentTypeParsers();
   server.addContentTypeParser(
     'application/cloudevents+json',
     { parseAs: 'string' },
@@ -83,101 +117,30 @@ function makePohttpClientPlugin(
     await reply.status(HTTP_STATUS_CODES.OK).send('It works');
   });
 
-  server.post('/test', async (_request, reply) => {
-    const privateEndpointModel = getModelForClass(PeerEndpoint, {
-      existingConnection: server.mongoose,
-    });
-
-      const peerEndpoint = await privateEndpointModel.findOne({
-        peerId: '1',
-      });
-      console.log(peerEndpoint);
-
-
-    return reply.status(HTTP_STATUS_CODES.ACCEPTED).send();
-
-
-  })
-
   server.post('/', async (request, reply) => {
     const message: Message = { headers: request.headers, body: request.body };
-    let event: CloudEventV1<unknown>;
-    try {
-      event = HTTP.toEvent(message) as CloudEventV1<unknown>;
-    } catch {
-      return reply
-        .status(HTTP_STATUS_CODES.BAD_REQUEST)
-        .send();
-    }
+    const event = HTTP.toEvent(message) as CloudEventV1<unknown>;
 
     let eventData: EventData;
     try {
       eventData = getMessageData(event);
     } catch (err) {
       const msg = (err as Error).message;
-      server.log.info({eventId: event.id}, msg);
+      server.log.info({ eventId: event.id }, msg);
       return reply.status(HTTP_STATUS_CODES.BAD_REQUEST).send();
     }
 
-    let channel: InternetPrivateEndpointChannel | null;
-    try{
-      channel = await server.activeEndpoint.getPeerChannel(eventData.peerId, server.mongoose);
-    }catch (e){
-      server.log.warn({eventId: event.id}, 'Ignoring event due to not having a registered private endpoint');
-      return reply
-        .status(HTTP_STATUS_CODES.SERVICE_UNAVAILABLE)
-        .send();
+    const channel = await getChannel(eventData, server.activeEndpoint, server.log, server.mongoose);
+    if (channel === null) {
+      return reply.status(HTTP_STATUS_CODES.SERVICE_UNAVAILABLE).send();
     }
 
-
-    if (!channel) {
-      server.log.warn({eventId: event.id}, 'Ignoring event due to not having a an peer endpoint db');
-      return reply
-        .status(HTTP_STATUS_CODES.SERVICE_UNAVAILABLE)
-        .send();
-    }
-
-    try {
-      const certificatePath = await generatePDACertificationPath(KEY_PAIR_SET);
-      const pdaPath = new CertificationPath(certificatePath.pdaGrantee, [
-        certificatePath.privateEndpoint,
-        certificatePath.privateGateway,
-      ]);
-      const peerConnectionParams = new PrivateEndpointConnParams(
-        PEER_KEY_PAIR.privateGateway.publicKey,
-        PEER_ADDRESS,
-        pdaPath,
-      );
-      const privateEndpointChannel = await server.activeEndpoint.saveChannel(
-        peerConnectionParams,
-        server.mongoose
-      );
-
-      // const channel1 = await server.activeEndpoint.getPeerChannel(privateEndpointChannel.peer.id, server.mongoose);
-
-      const serviceMessage = new ServiceMessage(eventData.dataContentType, eventData.data);
-
-      const recipientSessionKey = await privateEndpointChannel!.keyStores.publicKeyStore.retrieveLastSessionKey(
-        privateEndpointChannel.peer.id,
-      );
-
-      console.log(recipientSessionKey)
-
-      const { envelopedData } = await SessionEnvelopedData.encrypt(
-        serviceMessage.serialize(),
-        recipientSessionKey!,
-      );
-
-      console.log(envelopedData);
-      // const parcelSerialised = await channel.makeMessage(
-      //   envelopedData.serialize(),
-      //   Parcel,
-      // );
-      // await deliverParcel(channel.peer.internetAddress, parcelSerialised);
-    }catch (e){
-      console.log(e);
-    }
-    server.log.info({eventId: event.id}, 'Parcel sent');
+    const serviceMessage = new ServiceMessage(eventData.dataContentType, eventData.data);
+    const parcelSerialised = await channel.makeMessage(serviceMessage, Parcel, {
+      ttl: eventData.ttl,
+    });
+    await deliverParcel(channel.peer.internetAddress, parcelSerialised);
+    server.log.info({ eventId: event.id }, 'Parcel sent');
     return reply.status(HTTP_STATUS_CODES.ACCEPTED).send();
   });
   done();

@@ -9,7 +9,7 @@ export async function postEvent(
 
   return fastify.inject({
     method: 'POST',
-    url: '/test',
+    url: '/',
     headers: message.headers,
     payload: message.body as string,
   });
