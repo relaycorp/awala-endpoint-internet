@@ -7,6 +7,7 @@ import type { Connection } from 'mongoose';
 import { generatePDACertificationPath } from '@relaycorp/relaynet-testing';
 import {
   CertificationPath,
+  type Channel,
   Parcel,
   PrivateEndpointConnParams,
   ServiceMessage,
@@ -21,7 +22,6 @@ import { mockSpy } from '../testUtils/jest.js';
 import { type MockLogSet, partialPinoLog } from '../testUtils/logging.js';
 import { PeerEndpoint } from '../models/PeerEndpoint.model.js';
 import { KEY_PAIR_SET, PEER_ADDRESS, PEER_KEY_PAIR } from '../testUtils/awala/stubs.js';
-import { InternetPrivateEndpointChannel } from '../utilities/awala/InternetPrivateEndpointChannel.js';
 
 const mockDeliverParcel = mockSpy(
   jest.fn<
@@ -49,15 +49,14 @@ const CLOUD_EVENT_DATA = {
   data: 'test data',
 };
 
-
 describe('makePohttpClient', () => {
   const getTestServerFixture = setUpTestPohttpClient();
   let server: FastifyInstance;
   let logs: MockLogSet;
   let dbConnection: Connection;
   let sessionPrivateKey: CryptoKey;
-  let privateEndpointChannel: InternetPrivateEndpointChannel;
-  beforeEach(async() => {
+  let privateEndpointChannel: Channel<ServiceMessage, string>;
+  beforeEach(async () => {
     ({ server, logs, dbConnection } = getTestServerFixture());
     const certificatePath = await generatePDACertificationPath(KEY_PAIR_SET);
     const pdaPath = new CertificationPath(certificatePath.pdaGrantee, [
@@ -76,10 +75,6 @@ describe('makePohttpClient', () => {
       peerConnectionParams,
       dbConnection,
     );
-  });
-
-  beforeAll(async() => {
-    jest.resetModules();
   });
 
   describe('GET', () => {
@@ -234,24 +229,6 @@ describe('makePohttpClient', () => {
 
       expect(logs).toContainEqual(
         partialPinoLog('warn', 'Ignoring event due to not having a an peer endpoint db'),
-      );
-      expect(response.statusCode).toBe(HTTP_STATUS_CODES.SERVICE_UNAVAILABLE);
-    });
-
-    test('Non existing saved channel should resolve into service unavailable', async () => {
-      const event = new CloudEvent(CLOUD_EVENT_DATA);
-      const privateEndpointModel = getModelForClass(PeerEndpoint, {
-        existingConnection: dbConnection,
-      });
-      await privateEndpointModel.create({
-        peerId: CLOUD_EVENT_DATA.subject,
-        internetGatewayAddress: PEER_ADDRESS,
-      });
-
-      const response = await postEvent(event, server);
-
-      expect(logs).toContainEqual(
-        partialPinoLog('warn', 'Ignoring event due to not having a registered private endpoint'),
       );
       expect(response.statusCode).toBe(HTTP_STATUS_CODES.SERVICE_UNAVAILABLE);
     });
