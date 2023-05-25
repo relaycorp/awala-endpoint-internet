@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import type { FastifyInstance, type LightMyRequestResponse } from 'fastify';
+import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { CloudEvent } from 'cloudevents';
 import type { DeliveryOptions } from '@relaycorp/relaynet-pohttp/build/main/lib/client.js';
 import { getModelForClass } from '@typegoose/typegoose';
