@@ -135,6 +135,10 @@ describe('makePohttpClient', () => {
           expect(response.statusCode).toBe(HTTP_STATUS_CODES.NO_CONTENT);
         });
 
+        test('Parcel should have the correct id', () => {
+          expect(parcel.id).toBe(cloudEventData.id);
+        });
+
         test('Parcel payload should be a valid message', () => {
           const serviceMessage = new ServiceMessage(
             cloudEventData.datacontenttype,
