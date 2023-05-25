@@ -131,8 +131,7 @@ function makePohttpClientPlugin(
     try {
       eventData = getMessageData(event);
     } catch (err) {
-      const msg = (err as Error).message;
-      server.log.info({ eventId: event.id }, msg);
+      server.log.info({ eventId: event.id }, (err as Error).message);
       return reply.status(HTTP_STATUS_CODES.BAD_REQUEST).send();
     }
 
@@ -156,8 +155,10 @@ function makePohttpClientPlugin(
     try {
       await deliverParcel(channel.peer.internetAddress, parcelSerialised, { useTls: true });
     } catch (err) {
-      if (err instanceof PoHTTPInvalidParcelError || err instanceof PoHTTPClientBindingError) {
+      if (err instanceof PoHTTPInvalidParcelError) {
         server.log.info({ err }, 'Delivery failed due to server refusing parcel');
+      } else if (err instanceof PoHTTPClientBindingError) {
+        server.log.info({ err }, 'Delivery failed due to server binding');
       } else {
         server.log.info({ err }, 'Retry due to failed delivery');
         return reply.status(HTTP_STATUS_CODES.BAD_GATEWAY).send();

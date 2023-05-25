@@ -32,8 +32,19 @@ const mockDeliverParcel = mockSpy(
     ) => Promise<void>
   >(),
 );
+
+// eslint-disable-next-line @typescript-eslint/naming-convention
+class PoHTTPInvalidParcelError extends Error {}
+
+// eslint-disable-next-line @typescript-eslint/naming-convention
+class PoHTTPClientBindingError extends Error {}
+
 jest.unstable_mockModule('@relaycorp/relaynet-pohttp', () => ({
   deliverParcel: mockDeliverParcel,
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  PoHTTPInvalidParcelError,
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  PoHTTPClientBindingError,
 }));
 
 const { setUpTestPohttpClient } = await import('../testUtils/pohttpClient.js');
@@ -87,61 +98,154 @@ describe('makePohttpClient', () => {
   });
 
   describe('POST', () => {
-    describe('Successful delivery', () => {
+    describe('deliverParcel', () => {
       const tenSeconds: number = 10 * 1000;
       let time: Date;
       let ttl: number;
       let event: CloudEvent<string>;
 
-      let response: LightMyRequestResponse;
-      let internetAddress: string;
-      let parcelBuffer: ArrayBuffer | Buffer;
-      let payload: ServiceMessage;
-      let parcel: Parcel;
-      beforeEach(async () => {
+      beforeEach(() => {
         time = new Date();
         ttl = differenceInSeconds(expiry, time);
         event = new CloudEvent({
           ...cloudEventData,
           subject: privateEndpointChannel.peer.id,
         });
-
-        response = await postEvent(event, server);
-
-        [[internetAddress, parcelBuffer]] = mockDeliverParcel.mock.calls;
-        parcel = await Parcel.deserialize(parcelBuffer);
-        ({ payload } = await parcel.unwrapPayload(sessionPrivateKey));
       });
 
-      test('Should resolve into no content status', () => {
-        expect(response.statusCode).toBe(HTTP_STATUS_CODES.NO_CONTENT);
+      describe('Successful delivery', () => {
+        let response: LightMyRequestResponse;
+        let internetAddress: string;
+        let parcelBuffer: ArrayBuffer | Buffer;
+        let payload: ServiceMessage;
+        let parcel: Parcel;
+        beforeEach(async () => {
+          response = await postEvent(event, server);
+
+          [[internetAddress, parcelBuffer]] = mockDeliverParcel.mock.calls;
+          parcel = await Parcel.deserialize(parcelBuffer);
+          ({ payload } = await parcel.unwrapPayload(sessionPrivateKey));
+        });
+
+        test('Successful result should be log', () => {
+          expect(logs).toContainEqual(partialPinoLog('info', 'Parcel sent'));
+        });
+
+        test('Should resolve into no content status', () => {
+          expect(response.statusCode).toBe(HTTP_STATUS_CODES.NO_CONTENT);
+        });
+
+        test('Parcel payload should be a valid message', () => {
+          const serviceMessage = new ServiceMessage(
+            cloudEventData.datacontenttype,
+            Buffer.from(cloudEventData.data),
+          );
+
+          expect(
+            Buffer.from(payload.serialize()).equals(Buffer.from(serviceMessage.serialize())),
+          ).toBeTrue();
+        });
+
+        test('Parcel should be sent to a valid address', () => {
+          expect(internetAddress).toBe(PEER_ADDRESS);
+        });
+
+        test('Should set a correct ttl', () => {
+          expect(parcel.ttl).toBeGreaterThan(ttl - tenSeconds);
+          expect(parcel.ttl).toBeLessThan(ttl + tenSeconds);
+        });
+
+        test('Should set correct creation date', () => {
+          expect(parcel.creationDate).toBeBetween(
+            subSeconds(new Date(time), 20),
+            addSeconds(time, 20),
+          );
+        });
       });
 
-      test('Parcel payload should be a valid message', () => {
-        const serviceMessage = new ServiceMessage(
-          cloudEventData.datacontenttype,
-          Buffer.from(cloudEventData.data),
-        );
+      describe('Handle deliver parcel errors', () => {
+        test('Invalid parcel error should be logged', async () => {
+          const errorMessage = 'INVALID PARCEL ERROR';
+          mockDeliverParcel.mockImplementationOnce(() => {
+            throw new PoHTTPInvalidParcelError(errorMessage);
+          });
 
-        expect(
-          Buffer.from(payload.serialize()).equals(Buffer.from(serviceMessage.serialize())),
-        ).toBeTrue();
-      });
+          await postEvent(event, server);
 
-      test('Parcel should be sent to a valid address', () => {
-        expect(internetAddress).toBe(PEER_ADDRESS);
-      });
+          expect(logs).toContainEqual(
+            partialPinoLog('info', 'Delivery failed due to server refusing parcel', {
+              err: expect.objectContaining({
+                message: errorMessage,
+              }),
+            }),
+          );
+        });
 
-      test('Should set a correct ttl', () => {
-        expect(parcel.ttl).toBeGreaterThan(ttl - tenSeconds);
-        expect(parcel.ttl).toBeLessThan(ttl + tenSeconds);
-      });
+        test('Invalid parcel error should resolve into no content status', async () => {
+          const errorMessage = 'INVALID PARCEL ERROR';
+          mockDeliverParcel.mockImplementationOnce(() => {
+            throw new PoHTTPInvalidParcelError(errorMessage);
+          });
 
-      test('Should set correct creation date', () => {
-        expect(parcel.creationDate).toBeBetween(
-          subSeconds(new Date(time), 20),
-          addSeconds(time, 20),
-        );
+          const response = await postEvent(event, server);
+
+          expect(response.statusCode).toBe(HTTP_STATUS_CODES.NO_CONTENT);
+        });
+
+        test('Client binding parcel error should be logged', async () => {
+          const errorMessage = 'CLIENT BINDING ERROR';
+          mockDeliverParcel.mockImplementationOnce(() => {
+            throw new PoHTTPClientBindingError(errorMessage);
+          });
+
+          await postEvent(event, server);
+
+          expect(logs).toContainEqual(
+            partialPinoLog('info', 'Delivery failed due to server binding', {
+              err: expect.objectContaining({
+                message: errorMessage,
+              }),
+            }),
+          );
+        });
+
+        test('Client binding parcel error should resolve into no content status', async () => {
+          const errorMessage = 'CLIENT BINDING ERROR';
+          mockDeliverParcel.mockImplementationOnce(() => {
+            throw new PoHTTPClientBindingError(errorMessage);
+          });
+
+          const response = await postEvent(event, server);
+
+          expect(response.statusCode).toBe(HTTP_STATUS_CODES.NO_CONTENT);
+        });
+
+        test('Unexpected error should resolve into bad gateway status', async () => {
+          mockDeliverParcel.mockImplementationOnce(() => {
+            throw new Error('ERROR');
+          });
+
+          const response = await postEvent(event, server);
+
+          expect(response.statusCode).toBe(HTTP_STATUS_CODES.BAD_GATEWAY);
+        });
+
+        test('Unexpected error should be logged', async () => {
+          const errorMessage = 'UNEXPECTED ERROR ERROR';
+          mockDeliverParcel.mockImplementationOnce(() => {
+            throw new Error(errorMessage);
+          });
+
+          await postEvent(event, server);
+
+          expect(logs).toContainEqual(
+            partialPinoLog('info', 'Retry due to failed delivery', {
+              err: expect.objectContaining({
+                message: errorMessage,
+              }),
+            }),
+          );
+        });
       });
     });
 
