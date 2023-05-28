@@ -1,8 +1,7 @@
 import { type CloudEventV1, HTTP, type Message } from 'cloudevents';
 import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import type { BaseLogger } from 'pino';
-import { Parcel, ServiceMessage, type Channel } from '@relaycorp/relaynet-core';
-import { isValid, differenceInSeconds } from 'date-fns';
+import { Parcel, ServiceMessage } from '@relaycorp/relaynet-core';
 import type { Connection } from 'mongoose';
 import {
   deliverParcel,
@@ -14,92 +13,23 @@ import { makeFastify } from '../utilities/fastify/server.js';
 import { HTTP_STATUS_CODES } from '../utilities/http.js';
 import type { PluginDone } from '../utilities/fastify/PluginDone.js';
 import type { InternetEndpoint } from '../utilities/awala/InternetEndpoint.js';
-
-interface EventData {
-  id: string;
-  peerId: string;
-  dataContentType: string;
-  data: Buffer;
-  ttl: number;
-  creationDate: Date;
-}
-
-function getTtl(expiry: unknown, creationDate: Date) {
-  if (expiry === undefined) {
-    throw new Error('Ignoring event due to missing expiry');
-  }
-
-  if (typeof expiry !== 'string') {
-    throw new TypeError('Ignoring event due to malformed expiry');
-  }
-
-  const expiryDate = new Date(expiry);
-
-  if (!isValid(expiryDate)) {
-    throw new Error('Ignoring event due to malformed expiry');
-  }
-
-  const difference = differenceInSeconds(expiryDate, creationDate);
-
-  if (difference < 0) {
-    throw new Error('Ignoring expiry less than time');
-  }
-
-  return difference;
-}
-
-function getMessageData(event: CloudEventV1<unknown>): EventData {
-  if (event.subject === undefined) {
-    throw new Error('Ignoring event due to missing subject');
-  }
-
-  if (event.datacontenttype === undefined) {
-    throw new Error('Ignoring event due to missing data content type');
-  }
-
-  if (event.data === undefined) {
-    throw new Error('Ignoring event due to missing data');
-  }
-
-  let messageBody: Buffer;
-  if (typeof event.data === 'string') {
-    messageBody = Buffer.from(event.data);
-  } else {
-    throw new TypeError('Ignoring event due to invalid data');
-  }
-
-  const creationDate = new Date(event.time!);
-  return {
-    id: event.id,
-    peerId: event.subject,
-    dataContentType: event.datacontenttype,
-    data: messageBody,
-    ttl: getTtl(event.expiry, creationDate),
-    creationDate,
-  };
-}
+import {
+  getOutgoingServiceMessageOptions,
+  type OutgoingServiceMessageOptions,
+} from '../events/outgoingServiceMessage.event.js';
 
 async function getChannel(
-  eventData: EventData,
+  eventData: OutgoingServiceMessageOptions,
   activeEndpoint: InternetEndpoint,
   logger: BaseLogger,
   dbConnection: Connection,
 ) {
-  let channel: Channel<ServiceMessage, string> | null;
-  try {
-    channel = await activeEndpoint.getPeerChannel(eventData.peerId, dbConnection);
-  } catch {
-    logger.warn(
-      { eventId: eventData.id },
-      'Ignoring event due to not having a registered private endpoint',
-    );
-    return null;
-  }
+  const channel = await activeEndpoint.getPeerChannel(eventData.peerId, dbConnection);
 
   if (!channel) {
     logger.warn(
-      { eventId: eventData.id },
-      'Ignoring event due to not having a an peer endpoint db',
+      { eventId: eventData.parcelId },
+      'Ignoring event due to not having a an peer endpoint in the db',
     );
     return null;
   }
@@ -113,11 +43,9 @@ function makePohttpClientPlugin(
   done: PluginDone,
 ): void {
   server.removeAllContentTypeParsers();
-  server.addContentTypeParser(
-    'application/cloudevents+json',
-    { parseAs: 'string' },
-    server.getDefaultJsonParser('ignore', 'ignore'),
-  );
+  server.addContentTypeParser('*', { parseAs: 'buffer' }, (_request, payload, next) => {
+    next(null, payload);
+  });
 
   server.get('/', async (_request, reply) => {
     await reply.status(HTTP_STATUS_CODES.OK).send('It works');
@@ -126,27 +54,31 @@ function makePohttpClientPlugin(
   server.post('/', async (request, reply) => {
     const message: Message = { headers: request.headers, body: request.body };
     const event = HTTP.toEvent(message) as CloudEventV1<unknown>;
-
-    let eventData: EventData;
-    try {
-      eventData = getMessageData(event);
-    } catch (err) {
-      server.log.info({ eventId: event.id }, (err as Error).message);
+    const parcelAwareLogger = request.log.child({
+      parcelId: event.id,
+    });
+    const messageOptions = getOutgoingServiceMessageOptions(event, request.log);
+    if (!messageOptions) {
       return reply.status(HTTP_STATUS_CODES.BAD_REQUEST).send();
     }
 
-    const channel = await getChannel(eventData, server.activeEndpoint, server.log, server.mongoose);
+    const channel = await getChannel(
+      messageOptions,
+      server.activeEndpoint,
+      parcelAwareLogger,
+      server.mongoose,
+    );
     if (channel === null) {
       return reply.status(HTTP_STATUS_CODES.SERVICE_UNAVAILABLE).send();
     }
 
     const parcelSerialised = await channel.makeMessage(
-      new ServiceMessage(eventData.dataContentType, eventData.data),
+      new ServiceMessage(messageOptions.contentType, messageOptions.content),
       Parcel,
       {
-        ttl: eventData.ttl,
-        id: eventData.id,
-        creationDate: eventData.creationDate,
+        ttl: messageOptions.ttl,
+        id: messageOptions.parcelId,
+        creationDate: messageOptions.creationDate,
       },
     );
 
@@ -154,16 +86,16 @@ function makePohttpClientPlugin(
       await deliverParcel(channel.peer.internetAddress, parcelSerialised, { useTls: true });
     } catch (err) {
       if (err instanceof PoHTTPInvalidParcelError) {
-        server.log.info({ err }, 'Delivery failed due to server refusing parcel');
+        parcelAwareLogger.info({ err }, 'Delivery failed due to server refusing parcel');
       } else if (err instanceof PoHTTPClientBindingError) {
-        server.log.info({ err }, 'Delivery failed due to server binding');
+        parcelAwareLogger.info({ err }, 'Delivery failed due to server binding');
       } else {
-        server.log.info({ err }, 'Retry due to failed delivery');
+        parcelAwareLogger.warn({ err }, 'Failed to deliver parcel');
         return reply.status(HTTP_STATUS_CODES.BAD_GATEWAY).send();
       }
     }
 
-    server.log.info({ eventId: event.id }, 'Parcel sent');
+    parcelAwareLogger.info({ eventId: event.id }, 'Parcel delivered');
     return reply.status(HTTP_STATUS_CODES.NO_CONTENT).send();
   });
   done();
