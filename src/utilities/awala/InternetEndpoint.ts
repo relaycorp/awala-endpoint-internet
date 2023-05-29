@@ -123,7 +123,7 @@ export class InternetEndpoint extends Endpoint {
 
     const channel = await this.getChannel(peerId, peerEndpoint.internetGatewayAddress);
     if (channel === null) {
-      throw new Error(`Failed to construct a channel for peerId ${peerId}`);
+      throw new Error(`Could not find channel for peer ${peerId}`);
     }
 
     return channel;

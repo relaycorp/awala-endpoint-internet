@@ -3,6 +3,7 @@ import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import type { BaseLogger } from 'pino';
 import { Parcel, ServiceMessage } from '@relaycorp/relaynet-core';
 import type { Connection } from 'mongoose';
+import envVar from 'env-var';
 import {
   deliverParcel,
   PoHTTPClientBindingError,
@@ -29,7 +30,7 @@ async function getChannel(
   if (!channel) {
     logger.warn(
       { eventId: eventData.parcelId },
-      'Ignoring event due to not having a an peer endpoint in the db',
+      `Could not find channel with peer ${eventData.peerId}`,
     );
     return null;
   }
@@ -42,6 +43,7 @@ function makePohttpClientPlugin(
   _opts: FastifyPluginOptions,
   done: PluginDone,
 ): void {
+  envVar.get('POHTTP_TLS_REQUIRED').default('true').asBool();
   server.removeAllContentTypeParsers();
   server.addContentTypeParser('*', { parseAs: 'buffer' }, (_request, payload, next) => {
     next(null, payload);
@@ -82,20 +84,27 @@ function makePohttpClientPlugin(
       },
     );
 
+    const isUseTls = envVar.get('POHTTP_TLS_REQUIRED').default('true').asBool();
     try {
-      await deliverParcel(channel.peer.internetAddress, parcelSerialised, { useTls: true });
+      await deliverParcel(channel.peer.internetAddress, parcelSerialised, { useTls: isUseTls });
     } catch (err) {
       if (err instanceof PoHTTPInvalidParcelError) {
-        parcelAwareLogger.info({ err }, 'Delivery failed due to server refusing parcel');
+        parcelAwareLogger.info(
+          { err, internetGatewayAddress: channel.peer.internetAddress },
+          'Gateway refused parcel as invalid',
+        );
       } else if (err instanceof PoHTTPClientBindingError) {
-        parcelAwareLogger.info({ err }, 'Delivery failed due to server binding');
+        parcelAwareLogger.info(
+          { err, internetGatewayAddress: channel.peer.internetAddress },
+          'Gateway refused parcel delivery due to binding error',
+        );
       } else {
         parcelAwareLogger.warn({ err }, 'Failed to deliver parcel');
         return reply.status(HTTP_STATUS_CODES.BAD_GATEWAY).send();
       }
     }
 
-    parcelAwareLogger.info({ eventId: event.id }, 'Parcel delivered');
+    parcelAwareLogger.info('Parcel delivered');
     return reply.status(HTTP_STATUS_CODES.NO_CONTENT).send();
   });
   done();

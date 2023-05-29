@@ -239,6 +239,16 @@ describe('InternetEndpoint instance', () => {
 
       expect(spyOnSavePrivateEndpointChannel).toHaveBeenCalledWith(peerConnectionParams);
     });
+
+    test('Result of save private endpoint channel method should returned', async () => {
+      const spyOnSavePrivateEndpointChannel = jest.spyOn(endpoint, 'savePrivateEndpointChannel');
+
+      const response = await endpoint.saveChannel(peerConnectionParams, dbConnection);
+
+      const savePrivateEndpointChannelResult = await spyOnSavePrivateEndpointChannel.mock.results[0]
+        .value;
+      expect(response).toStrictEqual(savePrivateEndpointChannelResult);
+    });
   });
 
   describe('getPeerChannel', () => {
@@ -299,7 +309,7 @@ describe('InternetEndpoint instance', () => {
         Error,
       );
 
-      expect(error.message).toBe(`Failed to construct a channel for peerId ${testPeerId}`);
+      expect(error.message).toBe(`Could not find channel for peer ${testPeerId}`);
     });
   });
 

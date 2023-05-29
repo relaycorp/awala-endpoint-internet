@@ -6,6 +6,7 @@ import type { PluginDone } from '../PluginDone.js';
 
 function fastifyMongoose(fastify: FastifyInstance, _opts: RouteOptions, done: PluginDone): void {
   const mongooseConnection = createMongooseConnectionFromEnv();
+
   fastify.addHook('onClose', async () => {
     await mongooseConnection.close();
   });

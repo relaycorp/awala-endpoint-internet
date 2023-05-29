@@ -9,6 +9,7 @@ export interface EnvVarSet {
 
 export const REQUIRED_ENV_VARS = {
   ENDPOINT_VERSION: '1.0.0',
+  POHTTP_TLS_REQUIRED: 'true',
   MONGODB_URI,
 };
 
