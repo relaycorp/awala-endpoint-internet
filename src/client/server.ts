@@ -38,12 +38,16 @@ async function getChannel(
   return channel;
 }
 
-function makePohttpClientPlugin(
+function getPohttpTlsRequired() {
+  return envVar.get('POHTTP_TLS_REQUIRED').default('true').asBool();
+}
+
+export function makePohttpClientPlugin(
   server: FastifyInstance,
   _opts: FastifyPluginOptions,
   done: PluginDone,
 ): void {
-  envVar.get('POHTTP_TLS_REQUIRED').default('true').asBool();
+  getPohttpTlsRequired();
   server.removeAllContentTypeParsers();
   server.addContentTypeParser('*', { parseAs: 'buffer' }, (_request, payload, next) => {
     next(null, payload);
@@ -84,9 +88,10 @@ function makePohttpClientPlugin(
       },
     );
 
-    const isUseTls = envVar.get('POHTTP_TLS_REQUIRED').default('true').asBool();
     try {
-      await deliverParcel(channel.peer.internetAddress, parcelSerialised, { useTls: isUseTls });
+      await deliverParcel(channel.peer.internetAddress, parcelSerialised, {
+        useTls: getPohttpTlsRequired(),
+      });
     } catch (err) {
       if (err instanceof PoHTTPInvalidParcelError) {
         parcelAwareLogger.info(

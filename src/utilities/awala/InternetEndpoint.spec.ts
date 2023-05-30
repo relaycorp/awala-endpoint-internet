@@ -241,13 +241,11 @@ describe('InternetEndpoint instance', () => {
     });
 
     test('Result of save private endpoint channel method should returned', async () => {
-      const spyOnSavePrivateEndpointChannel = jest.spyOn(endpoint, 'savePrivateEndpointChannel');
+      const result = await endpoint.saveChannel(peerConnectionParams, dbConnection);
 
-      const response = await endpoint.saveChannel(peerConnectionParams, dbConnection);
-
-      const savePrivateEndpointChannelResult = await spyOnSavePrivateEndpointChannel.mock.results[0]
-        .value;
-      expect(response).toStrictEqual(savePrivateEndpointChannelResult);
+      const peerId = await getIdFromIdentityKey(peerConnectionParams.identityKey);
+      expect(result.peer.id).toBe(peerId);
+      expect(result.node).toBe(endpoint);
     });
   });
 

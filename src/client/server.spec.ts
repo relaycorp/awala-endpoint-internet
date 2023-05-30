@@ -13,6 +13,7 @@ import {
   SessionKeyPair,
 } from '@relaycorp/relaynet-core';
 import { addDays, addSeconds, differenceInSeconds, formatISO, subSeconds } from 'date-fns';
+import envVar from 'env-var';
 
 import { HTTP_STATUS_CODES } from '../utilities/http.js';
 import { CE_ID, CE_SOURCE } from '../testUtils/eventing/stubs.js';
@@ -55,6 +56,7 @@ jest.unstable_mockModule('@relaycorp/relaynet-pohttp', () => ({
 }));
 
 const { setUpTestPohttpClient } = await import('../testUtils/pohttpClient.js');
+const { makePohttpClientPlugin } = await import('./server.js');
 
 describe('makePohttpClient', () => {
   const getTestServerFixture = setUpTestPohttpClient();
@@ -65,6 +67,36 @@ describe('makePohttpClient', () => {
 
   beforeEach(() => {
     ({ server, logs, dbConnection, envVarMocker } = getTestServerFixture());
+  });
+
+  describe('makePohttpClientPlugin', () => {
+    const mockFastify: FastifyInstance = {
+      addContentTypeParser: jest.fn(),
+      removeAllContentTypeParsers: jest.fn(),
+      get: jest.fn(),
+      post: jest.fn(),
+    } as any;
+    const mockDone = jest.fn();
+
+    test('Malformed POHTTP_TLS_REQUIRED should throw an error on launch', () => {
+      envVarMocker({
+        POHTTP_TLS_REQUIRED: 'INVALID_POHTTP_TLS_REQUIRED',
+      });
+
+      expect(() => {
+        makePohttpClientPlugin(mockFastify, {}, mockDone);
+      }).toThrowWithMessage(envVar.EnvVarError, /POHTTP_TLS_REQUIRED/u);
+    });
+
+    test('Missing POHTTP_TLS_REQUIRED should launch', () => {
+      envVarMocker({
+        POHTTP_TLS_REQUIRED: undefined,
+      });
+
+      expect(() => {
+        makePohttpClientPlugin(mockFastify, {}, mockDone);
+      }).not.toThrow();
+    });
   });
 
   describe('GET', () => {
@@ -116,7 +148,7 @@ describe('makePohttpClient', () => {
     });
 
     describe('parcelDelivery TLS', () => {
-      test('POHTTP_TLS_REQUIRED should be false if env variable is set to false', async () => {
+      test('Parcel delivery should be called with tls false if env variable is false', async () => {
         envVarMocker({ ...REQUIRED_ENV_VARS, POHTTP_TLS_REQUIRED: 'false' });
 
         await postEvent(event, server);
@@ -130,8 +162,22 @@ describe('makePohttpClient', () => {
         );
       });
 
-      test('POHTTP_TLS_REQUIRED should be true if env variable is set to true', async () => {
+      test('Parcel delivery should be called with tls true if env variable is true', async () => {
         envVarMocker({ ...REQUIRED_ENV_VARS, POHTTP_TLS_REQUIRED: 'true' });
+
+        await postEvent(event, server);
+
+        expect(mockDeliverParcel).toHaveBeenCalledOnceWith(
+          expect.anything(),
+          expect.anything(),
+          expect.objectContaining({
+            useTls: true,
+          }),
+        );
+      });
+
+      test('Parcel delivery should be called with tls true if env variable not set', async () => {
+        envVarMocker({ ...REQUIRED_ENV_VARS, POHTTP_TLS_REQUIRED: undefined });
 
         await postEvent(event, server);
 
@@ -354,25 +400,3 @@ describe('makePohttpClient', () => {
     });
   });
 });
-
-//  With this enabled most of the tests fail. NEED TO DEBUG
-// describe1('makePohttpClientPlugin', () => {
-//   const envVarMocker = configureMockEnvVars(REQUIRED_ENV_VARS);
-//   const mockFastify: FastifyInstance = {
-//     addContentTypeParser: jest.fn(),
-//     getDefaultJsonParser: jest.fn(),
-//     get: jest.fn(),
-//     post: jest.fn(),
-//   } as any;
-//   const mockDone = mockSpy(jest.fn());
-//
-//   test1('Malformed POHTTP_TLS_REQUIRED required should throw an error on launch', async () => {
-//     envVarMocker({
-//       POHTTP_TLS_REQUIRED: 'INVALID_POHTTP_TLS_REQUIRED'
-//     })
-//
-//     expect(() => {
-//       makePohttpClientPlugin(mockFastify, {}, mockDone);
-//     }).toThrowWithMessage(envVar.EnvVarError, /POHTTP_TLS_REQUIRED/u);
-//   });
-// })
