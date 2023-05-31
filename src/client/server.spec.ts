@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
-import { CloudEvent } from 'cloudevents';
+import { CloudEvent, HTTP } from 'cloudevents';
 import type { DeliveryOptions } from '@relaycorp/relaynet-pohttp/build/main/lib/client.js';
 import { getModelForClass } from '@typegoose/typegoose';
 import type { Connection } from 'mongoose';
@@ -29,7 +29,8 @@ import {
   SERVICE_MESSAGE_CONTENT,
   SERVICE_MESSAGE_CONTENT_TYPE,
 } from '../testUtils/awala/stubs.js';
-import { type EnvVarMocker, REQUIRED_ENV_VARS } from '../testUtils/envVars.js';
+import { type EnvVarMocker, POHTTPH_CLIENT_REQUIRED_ENV_VARS } from '../testUtils/envVars.js';
+import { OUTGOING_SERVICE_MESSAGE_TYPE } from '../events/outgoingServiceMessage.event.js';
 
 const mockDeliverParcel = mockSpy(
   jest.fn<
@@ -64,9 +65,10 @@ describe('makePohttpClient', () => {
   let logs: MockLogSet;
   let dbConnection: Connection;
   let envVarMocker: EnvVarMocker;
+  let recreateServer: () => Promise<FastifyInstance>;
 
   beforeEach(() => {
-    ({ server, logs, dbConnection, envVarMocker } = getTestServerFixture());
+    ({ server, logs, dbConnection, envVarMocker, recreateServer } = getTestServerFixture());
   });
 
   describe('makePohttpClientPlugin', () => {
@@ -113,7 +115,7 @@ describe('makePohttpClient', () => {
     const cloudEventData = {
       id: CE_ID,
       source: CE_SOURCE,
-      type: 'testType',
+      type: OUTGOING_SERVICE_MESSAGE_TYPE,
       subject: PEER_ID,
       datacontenttype: SERVICE_MESSAGE_CONTENT_TYPE,
       expiry: formatISO(expiry),
@@ -147,50 +149,6 @@ describe('makePohttpClient', () => {
       });
     });
 
-    describe('parcelDelivery TLS', () => {
-      test('Parcel delivery should be called with tls false if env variable is false', async () => {
-        envVarMocker({ ...REQUIRED_ENV_VARS, POHTTP_TLS_REQUIRED: 'false' });
-
-        await postEvent(event, server);
-
-        expect(mockDeliverParcel).toHaveBeenCalledOnceWith(
-          expect.anything(),
-          expect.anything(),
-          expect.objectContaining({
-            useTls: false,
-          }),
-        );
-      });
-
-      test('Parcel delivery should be called with tls true if env variable is true', async () => {
-        envVarMocker({ ...REQUIRED_ENV_VARS, POHTTP_TLS_REQUIRED: 'true' });
-
-        await postEvent(event, server);
-
-        expect(mockDeliverParcel).toHaveBeenCalledOnceWith(
-          expect.anything(),
-          expect.anything(),
-          expect.objectContaining({
-            useTls: true,
-          }),
-        );
-      });
-
-      test('Parcel delivery should be called with tls true if env variable not set', async () => {
-        envVarMocker({ ...REQUIRED_ENV_VARS, POHTTP_TLS_REQUIRED: undefined });
-
-        await postEvent(event, server);
-
-        expect(mockDeliverParcel).toHaveBeenCalledOnceWith(
-          expect.anything(),
-          expect.anything(),
-          expect.objectContaining({
-            useTls: true,
-          }),
-        );
-      });
-    });
-
     describe('Successful delivery', () => {
       let response: LightMyRequestResponse;
       let internetAddress: string;
@@ -210,7 +168,7 @@ describe('makePohttpClient', () => {
         ({ payload } = await parcel.unwrapPayload(peerSessionPrivateKey));
       });
 
-      test('Successful result should be log', () => {
+      test('Successful result should be logged', () => {
         expect(logs).toContainEqual(partialPinoLog('info', 'Parcel delivered'));
       });
 
@@ -218,11 +176,11 @@ describe('makePohttpClient', () => {
         expect(response.statusCode).toBe(HTTP_STATUS_CODES.NO_CONTENT);
       });
 
-      test('Parcel should have the correct id', () => {
+      test('Parcel should have id set from event id', () => {
         expect(parcel.id).toBe(cloudEventData.id);
       });
 
-      test('Parcel payload should be a valid message', () => {
+      test('Encapsulated service message should be event data', () => {
         const serviceMessage = new ServiceMessage(
           cloudEventData.datacontenttype,
           Buffer.from(cloudEventData.data),
@@ -233,16 +191,16 @@ describe('makePohttpClient', () => {
         ).toBeTrue();
       });
 
-      test('Parcel should be sent to a valid address', () => {
+      test('Parcel should be sent to the peer Internet address', () => {
         expect(internetAddress).toBe(PEER_ADDRESS);
       });
 
-      test('Should set a correct ttl', () => {
+      test('Parcel TTL should be seconds between event time and expiry', () => {
         expect(parcel.ttl).toBeGreaterThan(ttl - tenSecondsInMilliseconds);
         expect(parcel.ttl).toBeLessThan(ttl + tenSecondsInMilliseconds);
       });
 
-      test('Should set correct creation date', () => {
+      test('Parcel creation should be event time', () => {
         expect(parcel.creationDate).toBeBetween(
           subSeconds(new Date(time), 20),
           addSeconds(time, 20),
@@ -250,49 +208,89 @@ describe('makePohttpClient', () => {
       });
     });
 
-    test('Missing message body should resolve into bad request', async () => {
+    describe('TLS enablement', () => {
+      test('TLS should be disabled if POHTTP_TLS_REQUIRED is false', async () => {
+        envVarMocker({ ...POHTTPH_CLIENT_REQUIRED_ENV_VARS, POHTTP_TLS_REQUIRED: 'false' });
+        const fastifyServer = await recreateServer();
+
+        await postEvent(event, fastifyServer);
+
+        expect(mockDeliverParcel).toHaveBeenCalledOnceWith(
+          expect.anything(),
+          expect.anything(),
+          expect.objectContaining({
+            useTls: false,
+          }),
+        );
+      });
+
+      test('TLS should be enabled if POHTTP_TLS_REQUIRED is true', async () => {
+        envVarMocker({ ...POHTTPH_CLIENT_REQUIRED_ENV_VARS, POHTTP_TLS_REQUIRED: 'true' });
+        const fastifyServer = await recreateServer();
+
+        await postEvent(event, fastifyServer);
+
+        expect(mockDeliverParcel).toHaveBeenCalledOnceWith(
+          expect.anything(),
+          expect.anything(),
+          expect.objectContaining({
+            useTls: true,
+          }),
+        );
+      });
+
+      test('TLS should be disabled if POHTTP_TLS_REQUIRED is unset', async () => {
+        envVarMocker({ ...POHTTPH_CLIENT_REQUIRED_ENV_VARS, POHTTP_TLS_REQUIRED: undefined });
+        const fastifyServer = await recreateServer();
+
+        await postEvent(event, fastifyServer);
+
+        expect(mockDeliverParcel).toHaveBeenCalledOnceWith(
+          expect.anything(),
+          expect.anything(),
+          expect.objectContaining({
+            useTls: true,
+          }),
+        );
+      });
+    });
+
+    test('Failure in event data extraction should resolve into bad request', async () => {
+      const message = HTTP.binary({
+        ...event,
+        expiry: 'INVALID_EXPIRY',
+      });
+
       const response = await server.inject({
         method: 'POST',
         url: '/',
-
-        headers: {
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          'content-type': 'application/cloudevents+json',
-        },
+        headers: message.headers,
+        payload: message.body as string,
       });
 
-      expect(logs).toContainEqual(partialPinoLog('info', 'Refused missing data'));
+      expect(logs).toContainEqual(partialPinoLog('info', 'Refused malformed expiry'));
       expect(response.statusCode).toBe(HTTP_STATUS_CODES.BAD_REQUEST);
     });
 
-    test('Malformed message body should resolve into bad request', async () => {
+    test('Missing headers should resolve into bad request', async () => {
       const response = await server.inject({
         method: 'POST',
         url: '/',
-        payload: 'INVALID MESSAGE BODY',
-
-        headers: {
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          'content-type': 'application/cloudevents+json',
-        },
       });
 
-      expect(logs).toContainEqual(partialPinoLog('info', 'Refused missing data'));
       expect(response.statusCode).toBe(HTTP_STATUS_CODES.BAD_REQUEST);
     });
 
-    test('Non existing gateway in db entry should resolve into service unavailable', async () => {
+    test('Unknown peer should resolve into service unavailable', async () => {
       const cloudEvent = new CloudEvent(cloudEventData);
 
       const response = await postEvent(cloudEvent, server);
 
-      expect(logs).toContainEqual(
-        partialPinoLog('warn', `Could not find channel with peer ${PEER_ID}`),
-      );
+      expect(logs).toContainEqual(partialPinoLog('warn', 'Could not find channel with peer'));
       expect(response.statusCode).toBe(HTTP_STATUS_CODES.SERVICE_UNAVAILABLE);
     });
 
-    test('Problem constructing chanel should resolve into internal server error', async () => {
+    test('Failure to get channel should resolve into internal server error', async () => {
       const cloudEvent = new CloudEvent(cloudEventData);
       const privateEndpointModel = getModelForClass(PeerEndpoint, {
         existingConnection: dbConnection,
@@ -311,13 +309,13 @@ describe('makePohttpClient', () => {
     });
 
     describe('Parcel Delivery error handling', () => {
-      test('Invalid parcel error should be logged', async () => {
+      test('Invalid parcel error should resolve into no content status', async () => {
         const errorMessage = 'INVALID PARCEL ERROR';
         mockDeliverParcel.mockImplementationOnce(() => {
           throw new PoHTTPInvalidParcelError(errorMessage);
         });
 
-        await postEvent(event, server);
+        const response = await postEvent(event, server);
 
         expect(logs).toContainEqual(
           partialPinoLog('info', 'Gateway refused parcel as invalid', {
@@ -328,36 +326,7 @@ describe('makePohttpClient', () => {
             internetGatewayAddress: PEER_ADDRESS,
           }),
         );
-      });
-
-      test('Invalid parcel error should resolve into no content status', async () => {
-        const errorMessage = 'INVALID PARCEL ERROR';
-        mockDeliverParcel.mockImplementationOnce(() => {
-          throw new PoHTTPInvalidParcelError(errorMessage);
-        });
-
-        const response = await postEvent(event, server);
-
         expect(response.statusCode).toBe(HTTP_STATUS_CODES.NO_CONTENT);
-      });
-
-      test('Client binding error should be logged', async () => {
-        const errorMessage = 'CLIENT BINDING ERROR';
-        mockDeliverParcel.mockImplementationOnce(() => {
-          throw new PoHTTPClientBindingError(errorMessage);
-        });
-
-        await postEvent(event, server);
-
-        expect(logs).toContainEqual(
-          partialPinoLog('info', 'Gateway refused parcel delivery due to binding error', {
-            err: expect.objectContaining({
-              message: errorMessage,
-            }),
-
-            internetGatewayAddress: PEER_ADDRESS,
-          }),
-        );
       });
 
       test('Client binding error should resolve into no content status', async () => {
@@ -368,26 +337,25 @@ describe('makePohttpClient', () => {
 
         const response = await postEvent(event, server);
 
+        expect(logs).toContainEqual(
+          partialPinoLog('info', 'Gateway refused parcel delivery due to binding error', {
+            err: expect.objectContaining({
+              message: errorMessage,
+            }),
+
+            internetGatewayAddress: PEER_ADDRESS,
+          }),
+        );
         expect(response.statusCode).toBe(HTTP_STATUS_CODES.NO_CONTENT);
       });
 
       test('Unexpected error should resolve into bad gateway status', async () => {
-        mockDeliverParcel.mockImplementationOnce(() => {
-          throw new Error('ERROR');
-        });
-
-        const response = await postEvent(event, server);
-
-        expect(response.statusCode).toBe(HTTP_STATUS_CODES.BAD_GATEWAY);
-      });
-
-      test('Unexpected error should be logged', async () => {
         const errorMessage = 'UNEXPECTED ERROR ERROR';
         mockDeliverParcel.mockImplementationOnce(() => {
           throw new Error(errorMessage);
         });
 
-        await postEvent(event, server);
+        const response = await postEvent(event, server);
 
         expect(logs).toContainEqual(
           partialPinoLog('warn', 'Failed to deliver parcel', {
@@ -396,6 +364,7 @@ describe('makePohttpClient', () => {
             }),
           }),
         );
+        expect(response.statusCode).toBe(HTTP_STATUS_CODES.BAD_GATEWAY);
       });
     });
   });

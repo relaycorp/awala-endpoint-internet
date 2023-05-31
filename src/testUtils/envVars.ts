@@ -9,8 +9,12 @@ export interface EnvVarSet {
 
 export const REQUIRED_ENV_VARS = {
   ENDPOINT_VERSION: '1.0.0',
-  POHTTP_TLS_REQUIRED: 'true',
   MONGODB_URI,
+};
+
+export const POHTTPH_CLIENT_REQUIRED_ENV_VARS = {
+  ...REQUIRED_ENV_VARS,
+  POHTTP_TLS_REQUIRED: 'false',
 };
 
 export type EnvVarMocker = (envVars: EnvVarSet) => void;

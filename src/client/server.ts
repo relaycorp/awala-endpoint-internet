@@ -1,5 +1,5 @@
 import { type CloudEventV1, HTTP, type Message } from 'cloudevents';
-import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
+import type { FastifyBaseLogger, FastifyInstance, FastifyPluginOptions } from 'fastify';
 import type { BaseLogger } from 'pino';
 import { Parcel, ServiceMessage } from '@relaycorp/relaynet-core';
 import type { Connection } from 'mongoose';
@@ -28,18 +28,40 @@ async function getChannel(
   const channel = await activeEndpoint.getPeerChannel(eventData.peerId, dbConnection);
 
   if (!channel) {
-    logger.warn(
-      { eventId: eventData.parcelId },
-      `Could not find channel with peer ${eventData.peerId}`,
-    );
+    logger.warn('Could not find channel with peer');
     return null;
   }
 
   return channel;
 }
 
-function getPohttpTlsRequired() {
-  return envVar.get('POHTTP_TLS_REQUIRED').default('true').asBool();
+async function deliverParcelAndHandleErrors(
+  parcelSerialised: ArrayBuffer,
+  internetAddress: string,
+  shouldUseTls: boolean,
+  logger: FastifyBaseLogger,
+): Promise<(typeof HTTP_STATUS_CODES)[keyof typeof HTTP_STATUS_CODES] | null> {
+  try {
+    await deliverParcel(internetAddress, parcelSerialised, {
+      useTls: shouldUseTls,
+    });
+  } catch (err) {
+    if (err instanceof PoHTTPInvalidParcelError) {
+      logger.info(
+        { err, internetGatewayAddress: internetAddress },
+        'Gateway refused parcel as invalid',
+      );
+    } else if (err instanceof PoHTTPClientBindingError) {
+      logger.info(
+        { err, internetGatewayAddress: internetAddress },
+        'Gateway refused parcel delivery due to binding error',
+      );
+    } else {
+      logger.warn({ err }, 'Failed to deliver parcel');
+      return HTTP_STATUS_CODES.BAD_GATEWAY;
+    }
+  }
+  return null;
 }
 
 export function makePohttpClientPlugin(
@@ -47,7 +69,7 @@ export function makePohttpClientPlugin(
   _opts: FastifyPluginOptions,
   done: PluginDone,
 ): void {
-  getPohttpTlsRequired();
+  const shouldUseTls = envVar.get('POHTTP_TLS_REQUIRED').default('true').asBool();
   server.removeAllContentTypeParsers();
   server.addContentTypeParser('*', { parseAs: 'buffer' }, (_request, payload, next) => {
     next(null, payload);
@@ -59,11 +81,17 @@ export function makePohttpClientPlugin(
 
   server.post('/', async (request, reply) => {
     const message: Message = { headers: request.headers, body: request.body };
-    const event = HTTP.toEvent(message) as CloudEventV1<unknown>;
+    let event;
+    try {
+      event = HTTP.toEvent(message) as CloudEventV1<unknown>;
+    } catch {
+      return reply.status(HTTP_STATUS_CODES.BAD_REQUEST).send();
+    }
+
     const parcelAwareLogger = request.log.child({
       parcelId: event.id,
     });
-    const messageOptions = getOutgoingServiceMessageOptions(event, request.log);
+    const messageOptions = getOutgoingServiceMessageOptions(event, parcelAwareLogger);
     if (!messageOptions) {
       return reply.status(HTTP_STATUS_CODES.BAD_REQUEST).send();
     }
@@ -88,25 +116,15 @@ export function makePohttpClientPlugin(
       },
     );
 
-    try {
-      await deliverParcel(channel.peer.internetAddress, parcelSerialised, {
-        useTls: getPohttpTlsRequired(),
-      });
-    } catch (err) {
-      if (err instanceof PoHTTPInvalidParcelError) {
-        parcelAwareLogger.info(
-          { err, internetGatewayAddress: channel.peer.internetAddress },
-          'Gateway refused parcel as invalid',
-        );
-      } else if (err instanceof PoHTTPClientBindingError) {
-        parcelAwareLogger.info(
-          { err, internetGatewayAddress: channel.peer.internetAddress },
-          'Gateway refused parcel delivery due to binding error',
-        );
-      } else {
-        parcelAwareLogger.warn({ err }, 'Failed to deliver parcel');
-        return reply.status(HTTP_STATUS_CODES.BAD_GATEWAY).send();
-      }
+    const deliverParcelError = await deliverParcelAndHandleErrors(
+      parcelSerialised,
+      channel.peer.internetAddress,
+      shouldUseTls,
+      parcelAwareLogger,
+    );
+
+    if (deliverParcelError) {
+      return reply.status(deliverParcelError).send();
     }
 
     parcelAwareLogger.info('Parcel delivered');

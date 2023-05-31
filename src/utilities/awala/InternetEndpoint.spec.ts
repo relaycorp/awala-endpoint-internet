@@ -240,7 +240,7 @@ describe('InternetEndpoint instance', () => {
       expect(spyOnSavePrivateEndpointChannel).toHaveBeenCalledWith(peerConnectionParams);
     });
 
-    test('Result of save private endpoint channel method should returned', async () => {
+    test('Resulting channel should returned', async () => {
       const result = await endpoint.saveChannel(peerConnectionParams, dbConnection);
 
       const peerId = await getIdFromIdentityKey(peerConnectionParams.identityKey);
@@ -250,7 +250,7 @@ describe('InternetEndpoint instance', () => {
   });
 
   describe('getPeerChannel', () => {
-    test('Should get peer channel', async () => {
+    test('Channel should be returned if it exists', async () => {
       const certificatePath = await generatePDACertificationPath(KEY_PAIR_SET);
       const pdaPath = new CertificationPath(certificatePath.pdaGrantee, [
         certificatePath.privateEndpoint,
@@ -272,27 +272,27 @@ describe('InternetEndpoint instance', () => {
         internetGatewayAddress: PEER_ADDRESS,
       });
 
-      const chanel = await endpoint.getPeerChannel(privateEndpointChannel.peer.id, dbConnection);
+      const channel = await endpoint.getPeerChannel(privateEndpointChannel.peer.id, dbConnection);
 
-      expect(chanel?.peer.id).toBe(privateEndpointChannel.peer.id);
-      expect(chanel?.peer.internetAddress).toBe(PEER_ADDRESS);
+      expect(channel?.peer.id).toBe(privateEndpointChannel.peer.id);
+      expect(channel?.peer.internetAddress).toBe(PEER_ADDRESS);
       const checkPeerConnectionParams = new PrivateEndpointConnParams(
-        chanel!.peer.identityPublicKey,
-        chanel!.peer.internetAddress,
-        chanel!.deliveryAuthPath,
+        channel!.peer.identityPublicKey,
+        channel!.peer.internetAddress,
+        channel!.deliveryAuthPath,
       );
       expect(Buffer.from(await peerConnectionParams.serialize())).toStrictEqual(
         Buffer.from(await checkPeerConnectionParams.serialize()),
       );
     });
 
-    test('Non existing db entry should return null', async () => {
-      const chanel = await endpoint.getPeerChannel('Non existing ID', dbConnection);
+    test('Missing peer from DB should return null', async () => {
+      const channel = await endpoint.getPeerChannel('Non existing ID', dbConnection);
 
-      expect(chanel).toBeNull();
+      expect(channel).toBeNull();
     });
 
-    test('Non existing endpoint should throw error', async () => {
+    test('Missing peer from keystores should throw error', async () => {
       const testPeerId = 'TEST_PEER_ID';
       const privateEndpointModel = getModelForClass(PeerEndpoint, {
         existingConnection: dbConnection,

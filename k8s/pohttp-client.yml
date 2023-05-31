@@ -32,7 +32,7 @@ spec:
             - name: MONGODB_URI
               value: mongodb://$(MONGODB_USERNAME):$(MONGODB_PASSWORD)@mongodb
             - name: POHTTP_TLS_REQUIRED
-              value: "true"
+              value: "false"
             - name: KS_VAULT_TOKEN
               valueFrom:
                 secretKeyRef:

@@ -1,13 +1,14 @@
-import { type CloudEventV1, CloudEvent } from 'cloudevents';
+import { CloudEvent } from 'cloudevents';
 import { addDays, differenceInSeconds, formatISO, subDays } from 'date-fns';
 
-import { CE_CONTENT_TYPE, CE_DATA, CE_ID, CE_SOURCE } from '../testUtils/eventing/stubs.js';
+import { CE_CONTENT_TYPE, CE_DATA_BASE64, CE_ID, CE_SOURCE } from '../testUtils/eventing/stubs.js';
 import { makeMockLogging, partialPinoLog } from '../testUtils/logging.js';
 import { assertNotNull, assertNull } from '../testUtils/assertions.js';
 import { PEER_ID } from '../testUtils/awala/stubs.js';
 
 import {
   getOutgoingServiceMessageOptions,
+  OUTGOING_SERVICE_MESSAGE_TYPE,
   type OutgoingServiceMessageOptions,
 } from './outgoingServiceMessage.event.js';
 
@@ -15,17 +16,17 @@ describe('getOutgoingServiceMessageOptions', () => {
   const mockLogging = makeMockLogging();
   const creationDate = new Date();
   const expiry = addDays(creationDate, 5);
-  const cloudEventData: CloudEventV1<unknown> = new CloudEvent({
+  const cloudEventData = new CloudEvent({
     specversion: '1.0',
     id: CE_ID,
     source: CE_SOURCE,
-    type: 'testType',
+    type: OUTGOING_SERVICE_MESSAGE_TYPE,
     subject: PEER_ID,
     datacontenttype: CE_CONTENT_TYPE,
     expiry: formatISO(expiry),
     time: formatISO(creationDate),
     // eslint-disable-next-line @typescript-eslint/naming-convention,camelcase
-    data_base64: CE_DATA,
+    data_base64: CE_DATA_BASE64,
   });
 
   describe('Success', () => {
@@ -54,29 +55,55 @@ describe('getOutgoingServiceMessageOptions', () => {
       expect(contentType).toBe(cloudEventData.datacontenttype);
     });
 
-    test('content should be a buffer with the content of data_base64', () => {
+    test('Content should be a buffer with the content of data_base64', () => {
       const { content } = outgoingServiceMessageOptions;
 
-      expect(content).toStrictEqual(Buffer.from(CE_DATA, 'base64'));
+      expect(content).toStrictEqual(Buffer.from(CE_DATA_BASE64, 'base64'));
     });
 
-    test('Creation date should be correct', () => {
+    test('Missing data_base64 should be accepted', () => {
+      const event = new CloudEvent({
+        ...cloudEventData,
+        // eslint-disable-next-line @typescript-eslint/naming-convention,camelcase
+        data_base64: undefined,
+        data: undefined,
+      });
+
+      const result = getOutgoingServiceMessageOptions(event, mockLogging.logger);
+
+      expect(result?.content).toStrictEqual(Buffer.from('', 'base64'));
+    });
+
+    test('Creation date should be taken from event time', () => {
       const { creationDate: creation } = outgoingServiceMessageOptions;
 
       expect(creation).toStrictEqual(new Date(cloudEventData.time!));
     });
 
-    test('TTL should be correct', () => {
-      const difference = differenceInSeconds(expiry, creationDate);
-
+    test('TTL should be computed from event creation and expiry', () => {
       const { ttl } = outgoingServiceMessageOptions;
 
+      const difference = differenceInSeconds(expiry, creationDate);
       expect(ttl).toBe(difference);
     });
   });
 
   describe('Failure', () => {
-    test('Missing subject should return null', () => {
+    test('Invalid type should be refused', () => {
+      const event = new CloudEvent({
+        ...cloudEventData,
+        type: 'INVALID',
+      });
+
+      const result = getOutgoingServiceMessageOptions(event, mockLogging.logger);
+
+      assertNull(result);
+      expect(mockLogging.logs).toContainEqual(
+        partialPinoLog('error', 'Refused invalid type', { parcelId: event.id, type: event.type }),
+      );
+    });
+
+    test('Missing subject should be refused', () => {
       const event = new CloudEvent({
         ...cloudEventData,
         subject: undefined,
@@ -90,7 +117,7 @@ describe('getOutgoingServiceMessageOptions', () => {
       );
     });
 
-    test('Missing datacontenttype should throw an error', () => {
+    test('Missing datacontenttype should be refused', () => {
       const event = new CloudEvent({
         ...cloudEventData,
         datacontenttype: undefined,
@@ -104,7 +131,7 @@ describe('getOutgoingServiceMessageOptions', () => {
       );
     });
 
-    test('Missing expiry should return null', () => {
+    test('Missing expiry should be refused', () => {
       const { expiry: ignore, ...eventData } = cloudEventData;
       const event = new CloudEvent(eventData);
 
@@ -116,7 +143,7 @@ describe('getOutgoingServiceMessageOptions', () => {
       );
     });
 
-    test('Non string expiry should return null', () => {
+    test('Non string expiry should be refused', () => {
       const event = new CloudEvent({
         ...cloudEventData,
         expiry: {},
@@ -130,7 +157,7 @@ describe('getOutgoingServiceMessageOptions', () => {
       );
     });
 
-    test('Malformed expiry should return null', () => {
+    test('Malformed expiry should be refused', () => {
       const event = new CloudEvent({
         ...cloudEventData,
         expiry: 'INVALID DATE',
@@ -144,7 +171,7 @@ describe('getOutgoingServiceMessageOptions', () => {
       );
     });
 
-    test('Expiry less than time should return null', () => {
+    test('Expiry less than time should be refused', () => {
       const time = new Date();
       const past = subDays(time, 10);
       const event = new CloudEvent({
@@ -160,7 +187,7 @@ describe('getOutgoingServiceMessageOptions', () => {
       );
     });
 
-    test('Missing data should return null', () => {
+    test('Missing data should be refused', () => {
       const event = new CloudEvent({
         ...cloudEventData,
         // eslint-disable-next-line @typescript-eslint/naming-convention,camelcase
@@ -168,11 +195,14 @@ describe('getOutgoingServiceMessageOptions', () => {
         data: undefined,
       });
 
-      const result = getOutgoingServiceMessageOptions(event, mockLogging.logger);
+      const result = getOutgoingServiceMessageOptions(
+        { ...event, data: Buffer.from('') },
+        mockLogging.logger,
+      );
 
       assertNull(result);
       expect(mockLogging.logs).toContainEqual(
-        partialPinoLog('info', 'Refused missing data', { parcelId: event.id }),
+        partialPinoLog('info', 'Got textual data instead of binary', { parcelId: event.id }),
       );
     });
   });
