@@ -31,7 +31,8 @@ spec:
                   key: mongodb_password
             - name: MONGODB_URI
               value: mongodb://$(MONGODB_USERNAME):$(MONGODB_PASSWORD)@mongodb
-
+            - name: POHTTP_TLS_REQUIRED
+              value: "false"
             - name: KS_VAULT_TOKEN
               valueFrom:
                 secretKeyRef:

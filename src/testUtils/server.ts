@@ -15,6 +15,10 @@ export interface TestServerFixture {
   readonly logs: MockLogSet;
   readonly envVarMocker: EnvVarMocker;
   readonly endpoint: InternetEndpoint;
+
+  // This method is implemented to be used only in test cases,
+  // to recreate the server after changing the ENV variables
+  readonly recreateServer: () => Promise<FastifyInstance>;
 }
 
 export function makeTestServer(
@@ -41,5 +45,12 @@ export function makeTestServer(
     logs: mockLogging.logs,
     envVarMocker,
     endpoint: getEndpoint(),
+
+    recreateServer: async () => {
+      await server.close();
+      // eslint-disable-next-line require-atomic-updates
+      server = await serverMaker(mockLogging.logger);
+      return server;
+    },
   });
 }

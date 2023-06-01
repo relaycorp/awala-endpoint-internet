@@ -2,7 +2,9 @@
   "name": "awala-endpoint",
   "version": "1.0.0",
   "type": "module",
-  "files": ["build"],
+  "files": [
+    "build"
+  ],
   "bin": {
     "pohttp-server": "./build/bin/server.js",
     "pohttp-client": "./build/bin/client.js",
@@ -28,6 +30,7 @@
     "@relaycorp/awala-keystore-cloud": "^2.1.5",
     "@relaycorp/pino-cloud": "^1.0.28",
     "@relaycorp/relaynet-core": "^1.86.1",
+    "@relaycorp/relaynet-pohttp": "^1.7.57",
     "@relaycorp/relaynet-testing": "^2.2.28",
     "@relaycorp/webcrypto-kms": "^1.5.12",
     "@typegoose/typegoose": "^11.2.0",
