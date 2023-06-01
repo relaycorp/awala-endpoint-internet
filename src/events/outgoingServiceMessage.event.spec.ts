@@ -16,7 +16,7 @@ describe('getOutgoingServiceMessageOptions', () => {
   const mockLogging = makeMockLogging();
   const creationDate = new Date();
   const expiry = addDays(creationDate, 5);
-  const cloudEventData = new CloudEvent({
+  const cloudEvent = new CloudEvent({
     specversion: '1.0',
     id: CE_ID,
     source: CE_SOURCE,
@@ -32,7 +32,7 @@ describe('getOutgoingServiceMessageOptions', () => {
   describe('Success', () => {
     let outgoingServiceMessageOptions: OutgoingServiceMessageOptions;
     beforeEach(() => {
-      const result = getOutgoingServiceMessageOptions(cloudEventData, mockLogging.logger);
+      const result = getOutgoingServiceMessageOptions(cloudEvent, mockLogging.logger);
       assertNotNull(result);
       outgoingServiceMessageOptions = result;
     });
@@ -40,19 +40,19 @@ describe('getOutgoingServiceMessageOptions', () => {
     test('Parcel id should be the same as event id', () => {
       const { parcelId } = outgoingServiceMessageOptions;
 
-      expect(parcelId).toBe(cloudEventData.id);
+      expect(parcelId).toBe(cloudEvent.id);
     });
 
     test('Peer id should be the same as subject', () => {
       const { peerId } = outgoingServiceMessageOptions;
 
-      expect(peerId).toBe(cloudEventData.subject);
+      expect(peerId).toBe(cloudEvent.subject);
     });
 
     test('Content type should be the same as datacontenttype', () => {
       const { contentType } = outgoingServiceMessageOptions;
 
-      expect(contentType).toBe(cloudEventData.datacontenttype);
+      expect(contentType).toBe(cloudEvent.datacontenttype);
     });
 
     test('Content should be a buffer with the content of data_base64', () => {
@@ -63,7 +63,7 @@ describe('getOutgoingServiceMessageOptions', () => {
 
     test('Missing data_base64 should be accepted', () => {
       const event = new CloudEvent({
-        ...cloudEventData,
+        ...cloudEvent,
         // eslint-disable-next-line @typescript-eslint/naming-convention,camelcase
         data_base64: undefined,
         data: undefined,
@@ -77,7 +77,7 @@ describe('getOutgoingServiceMessageOptions', () => {
     test('Creation date should be taken from event time', () => {
       const { creationDate: creation } = outgoingServiceMessageOptions;
 
-      expect(creation).toStrictEqual(new Date(cloudEventData.time!));
+      expect(creation).toStrictEqual(new Date(cloudEvent.time!));
     });
 
     test('TTL should be computed from event creation and expiry', () => {
@@ -91,7 +91,7 @@ describe('getOutgoingServiceMessageOptions', () => {
   describe('Failure', () => {
     test('Invalid type should be refused', () => {
       const event = new CloudEvent({
-        ...cloudEventData,
+        ...cloudEvent,
         type: 'INVALID',
       });
 
@@ -105,7 +105,7 @@ describe('getOutgoingServiceMessageOptions', () => {
 
     test('Missing subject should be refused', () => {
       const event = new CloudEvent({
-        ...cloudEventData,
+        ...cloudEvent,
         subject: undefined,
       });
 
@@ -119,7 +119,7 @@ describe('getOutgoingServiceMessageOptions', () => {
 
     test('Missing datacontenttype should be refused', () => {
       const event = new CloudEvent({
-        ...cloudEventData,
+        ...cloudEvent,
         datacontenttype: undefined,
       });
 
@@ -132,7 +132,7 @@ describe('getOutgoingServiceMessageOptions', () => {
     });
 
     test('Missing expiry should be refused', () => {
-      const { expiry: ignore, ...eventData } = cloudEventData;
+      const { expiry: ignore, ...eventData } = cloudEvent;
       const event = new CloudEvent(eventData);
 
       const result = getOutgoingServiceMessageOptions(event, mockLogging.logger);
@@ -145,7 +145,7 @@ describe('getOutgoingServiceMessageOptions', () => {
 
     test('Non string expiry should be refused', () => {
       const event = new CloudEvent({
-        ...cloudEventData,
+        ...cloudEvent,
         expiry: {},
       });
 
@@ -159,7 +159,7 @@ describe('getOutgoingServiceMessageOptions', () => {
 
     test('Malformed expiry should be refused', () => {
       const event = new CloudEvent({
-        ...cloudEventData,
+        ...cloudEvent,
         expiry: 'INVALID DATE',
       });
 
@@ -175,7 +175,7 @@ describe('getOutgoingServiceMessageOptions', () => {
       const time = new Date();
       const past = subDays(time, 10);
       const event = new CloudEvent({
-        ...cloudEventData,
+        ...cloudEvent,
         expiry: past.toISOString(),
       });
 
@@ -189,7 +189,7 @@ describe('getOutgoingServiceMessageOptions', () => {
 
     test('Missing data should be refused', () => {
       const event = new CloudEvent({
-        ...cloudEventData,
+        ...cloudEvent,
         // eslint-disable-next-line @typescript-eslint/naming-convention,camelcase
         data_base64: undefined,
         data: undefined,

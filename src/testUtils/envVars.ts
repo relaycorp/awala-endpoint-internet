@@ -12,11 +12,6 @@ export const REQUIRED_ENV_VARS = {
   MONGODB_URI,
 };
 
-export const POHTTPH_CLIENT_REQUIRED_ENV_VARS = {
-  ...REQUIRED_ENV_VARS,
-  POHTTP_TLS_REQUIRED: 'false',
-};
-
 export type EnvVarMocker = (envVars: EnvVarSet) => void;
 
 export function configureMockEnvVars(envVars: EnvVarSet = {}): EnvVarMocker {

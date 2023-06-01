@@ -29,7 +29,7 @@ import {
   SERVICE_MESSAGE_CONTENT,
   SERVICE_MESSAGE_CONTENT_TYPE,
 } from '../testUtils/awala/stubs.js';
-import { type EnvVarMocker, POHTTPH_CLIENT_REQUIRED_ENV_VARS } from '../testUtils/envVars.js';
+import type { EnvVarMocker } from '../testUtils/envVars.js';
 import { OUTGOING_SERVICE_MESSAGE_TYPE } from '../events/outgoingServiceMessage.event.js';
 
 const mockDeliverParcel = mockSpy(
@@ -56,7 +56,9 @@ jest.unstable_mockModule('@relaycorp/relaynet-pohttp', () => ({
   PoHTTPClientBindingError,
 }));
 
-const { setUpTestPohttpClient } = await import('../testUtils/pohttpClient.js');
+const { setUpTestPohttpClient, POHTTP_CLIENT_REQUIRED_ENV_VARS } = await import(
+  '../testUtils/pohttpClient.js'
+);
 const { makePohttpClientPlugin } = await import('./server.js');
 
 describe('makePohttpClient', () => {
@@ -210,7 +212,7 @@ describe('makePohttpClient', () => {
 
     describe('TLS enablement', () => {
       test('TLS should be disabled if POHTTP_TLS_REQUIRED is false', async () => {
-        envVarMocker({ ...POHTTPH_CLIENT_REQUIRED_ENV_VARS, POHTTP_TLS_REQUIRED: 'false' });
+        envVarMocker({ ...POHTTP_CLIENT_REQUIRED_ENV_VARS, POHTTP_TLS_REQUIRED: 'false' });
         const fastifyServer = await recreateServer();
 
         await postEvent(event, fastifyServer);
@@ -225,7 +227,7 @@ describe('makePohttpClient', () => {
       });
 
       test('TLS should be enabled if POHTTP_TLS_REQUIRED is true', async () => {
-        envVarMocker({ ...POHTTPH_CLIENT_REQUIRED_ENV_VARS, POHTTP_TLS_REQUIRED: 'true' });
+        envVarMocker({ ...POHTTP_CLIENT_REQUIRED_ENV_VARS, POHTTP_TLS_REQUIRED: 'true' });
         const fastifyServer = await recreateServer();
 
         await postEvent(event, fastifyServer);
@@ -240,7 +242,7 @@ describe('makePohttpClient', () => {
       });
 
       test('TLS should be disabled if POHTTP_TLS_REQUIRED is unset', async () => {
-        envVarMocker({ ...POHTTPH_CLIENT_REQUIRED_ENV_VARS, POHTTP_TLS_REQUIRED: undefined });
+        envVarMocker({ ...POHTTP_CLIENT_REQUIRED_ENV_VARS, POHTTP_TLS_REQUIRED: undefined });
         const fastifyServer = await recreateServer();
 
         await postEvent(event, fastifyServer);

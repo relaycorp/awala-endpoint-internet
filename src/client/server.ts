@@ -116,15 +116,15 @@ export function makePohttpClientPlugin(
       },
     );
 
-    const deliverParcelError = await deliverParcelAndHandleErrors(
+    const failureStatusCode = await deliverParcelAndHandleErrors(
       parcelSerialised,
       channel.peer.internetAddress,
       shouldUseTls,
       parcelAwareLogger,
     );
 
-    if (deliverParcelError) {
-      return reply.status(deliverParcelError).send();
+    if (failureStatusCode) {
+      return reply.status(failureStatusCode).send();
     }
 
     parcelAwareLogger.info('Parcel delivered');
