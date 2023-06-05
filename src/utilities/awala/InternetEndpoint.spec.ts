@@ -8,9 +8,7 @@ import {
   generateRSAKeyPair,
   InvalidMessageError,
   issueEndpointCertificate,
-  MockCertificateStore,
   MockKeyStoreSet,
-  MockPublicKeyStore,
   NodeConnectionParams,
   Parcel,
   type PrivateKeyStore,
@@ -19,6 +17,7 @@ import {
   PrivateEndpointConnParams,
   getIdFromIdentityKey,
 } from '@relaycorp/relaynet-core';
+import { MongoCertificateStore, MongoPublicKeyStore } from '@relaycorp/awala-keystore-mongodb';
 import { addMinutes, subSeconds } from 'date-fns';
 import envVar from 'env-var';
 import type { Connection } from 'mongoose';
@@ -130,18 +129,18 @@ describe('getActive', () => {
   });
 
   describe('Key stores', () => {
-    test('Certificate key store should temporarily be mocked', async () => {
+    test('Certificate key store should be MongoDB one', async () => {
       const {
         keyStores: { certificateStore },
       } = await InternetEndpoint.getActive(dbConnection);
 
-      expect(certificateStore).toBeInstanceOf(MockCertificateStore);
+      expect(certificateStore).toBeInstanceOf(MongoCertificateStore);
     });
 
-    test('Public key store should temporarily be mocked', async () => {
+    test('Public key store should be MongoDB one', async () => {
       const manager = await InternetEndpoint.getActive(dbConnection);
 
-      expect(manager.keyStores.publicKeyStore).toBeInstanceOf(MockPublicKeyStore);
+      expect(manager.keyStores.publicKeyStore).toBeInstanceOf(MongoPublicKeyStore);
     });
 
     test('Private key store should be the cloud-based one', async () => {

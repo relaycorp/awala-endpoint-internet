@@ -6,8 +6,6 @@ import {
   getIdFromIdentityKey,
   InvalidMessageError,
   type KeyStoreSet,
-  MockCertificateStore,
-  MockPublicKeyStore,
   NodeConnectionParams,
   type Parcel,
   type PrivateEndpointConnParams,
@@ -17,6 +15,7 @@ import {
 import envVar from 'env-var';
 import type { Connection } from 'mongoose';
 import { initPrivateKeystoreFromEnv } from '@relaycorp/awala-keystore-cloud';
+import { MongoCertificateStore, MongoPublicKeyStore } from '@relaycorp/awala-keystore-mongodb';
 import { getModelForClass } from '@typegoose/typegoose';
 
 import { Config, ConfigKey } from '../config.js';
@@ -29,8 +28,8 @@ function initKeyStoreSet(dbConnection: Connection): KeyStoreSet {
   const privateKeyStoreAdapter = envVar.get('PRIVATE_KEY_STORE_ADAPTER').required().asString();
   const privateKeyStore = initPrivateKeystoreFromEnv(privateKeyStoreAdapter, dbConnection);
   return {
-    certificateStore: new MockCertificateStore(),
-    publicKeyStore: new MockPublicKeyStore(),
+    certificateStore: new MongoCertificateStore(dbConnection),
+    publicKeyStore: new MongoPublicKeyStore(dbConnection),
     privateKeyStore,
   };
 }
