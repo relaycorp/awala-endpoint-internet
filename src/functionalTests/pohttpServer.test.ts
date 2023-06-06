@@ -10,7 +10,6 @@ describe('PoHTTP server', () => {
   test('Expired parcel should be refused', async () => {
     const privateEndpoint = await PrivateEndpoint.generate();
     const channel = await privateEndpoint.saveInternetEndpointChannel();
-
     const expiredParcel = await channel.makeMessage(new ArrayBuffer(0), Parcel, {
       creationDate: subSeconds(new Date(), 2),
       ttl: 1,
@@ -21,9 +20,13 @@ describe('PoHTTP server', () => {
     expect(response.status).toBe(HTTP_STATUS_CODES.FORBIDDEN);
   });
 
-  test.todo('Invalid PDA should be refused');
+  test('Valid parcel should be accepted', async () => {
+    const privateEndpoint = await PrivateEndpoint.generate();
+    const channel = await privateEndpoint.saveInternetEndpointChannel();
+    const parcel = await channel.makeMessage(new ArrayBuffer(0), Parcel);
 
-  test.todo('Valid PDA should be accepted');
+    const response = await postParcel(parcel);
 
-  test.todo('Valid service message should be accepted');
+    expect(response.status).toBe(HTTP_STATUS_CODES.ACCEPTED);
+  });
 });
