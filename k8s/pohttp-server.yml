@@ -65,7 +65,7 @@ spec:
   subject:
     apiVersion: serving.knative.dev/v1
     kind: Service
-    name: awala-endpoint
+    name: awala-endpoint-pohttp-server
   sink:
     ref:
       apiVersion: eventing.knative.dev/v1
