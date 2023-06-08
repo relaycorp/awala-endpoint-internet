@@ -1,6 +1,5 @@
 import {
   CertificationPath,
-  type Channel,
   Endpoint,
   generateRSAKeyPair,
   getIdFromIdentityKey,
@@ -8,7 +7,6 @@ import {
   type KeyStoreSet,
   MockKeyStoreSet,
   type NodeCryptoOptions,
-  type ServiceMessage,
 } from '@relaycorp/relaynet-core';
 import { addMinutes } from 'date-fns';
 
@@ -45,7 +43,7 @@ export class PrivateEndpoint extends Endpoint {
     super(id, identityKeyPair, keyStores, cryptoOptions);
   }
 
-  public async saveInternetEndpointChannel(): Promise<Channel<ServiceMessage, string>> {
+  public async saveInternetEndpointChannel(): Promise<PrivateInternetEndpointChannel> {
     const peerId = await getIdFromIdentityKey(CONNECTION_PARAMS.identityKey);
 
     await this.keyStores.publicKeyStore.saveIdentityKey(CONNECTION_PARAMS.identityKey);
