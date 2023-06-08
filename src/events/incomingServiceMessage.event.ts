@@ -1,6 +1,6 @@
 import { CloudEvent } from 'cloudevents';
 
-const INCOMING_SERVICE_MESSAGE_TYPE =
+export const INCOMING_SERVICE_MESSAGE_TYPE =
   'com.relaycorp.awala.endpoint-internet.incoming-service-message';
 
 export interface IncomingServiceMessageOptions {

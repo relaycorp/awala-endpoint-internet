@@ -12,9 +12,8 @@ import {
 } from '@relaycorp/relaynet-core';
 import { addMinutes } from 'date-fns';
 
-import { EndpointChannel } from '../../../utilities/awala/EndpointChannel.js';
-
 import { getConnectionParams } from './pohttp.js';
+import { PrivateInternetEndpointChannel } from './PrivateInternetEndpointChannel.js';
 
 const CONNECTION_PARAMS = await getConnectionParams();
 
@@ -34,7 +33,7 @@ export class PrivateEndpoint extends Endpoint {
     return new PrivateEndpoint(id, identityKeyPair, pda, keyStores, {});
   }
 
-  public channelConstructor = EndpointChannel;
+  public channelConstructor = PrivateInternetEndpointChannel;
 
   private constructor(
     id: string,

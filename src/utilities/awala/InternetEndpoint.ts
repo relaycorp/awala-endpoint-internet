@@ -22,7 +22,7 @@ import { Config, ConfigKey } from '../config.js';
 import { Kms } from '../kms/Kms.js';
 import { PeerEndpoint } from '../../models/PeerEndpoint.model.js';
 
-import { EndpointChannel } from './EndpointChannel.js';
+import { InternetPrivateEndpointChannel } from './InternetPrivateEndpointChannel.js';
 
 function initKeyStoreSet(dbConnection: Connection): KeyStoreSet {
   const privateKeyStoreAdapter = envVar.get('PRIVATE_KEY_STORE_ADAPTER').required().asString();
@@ -67,7 +67,7 @@ export class InternetEndpoint extends Endpoint {
     );
   }
 
-  protected readonly channelConstructor = EndpointChannel;
+  protected readonly channelConstructor = InternetPrivateEndpointChannel;
 
   public constructor(
     id: string,
@@ -82,7 +82,7 @@ export class InternetEndpoint extends Endpoint {
   public async saveChannel(
     connectionParams: PrivateEndpointConnParams,
     dbConnection: Connection,
-  ): Promise<EndpointChannel> {
+  ): Promise<InternetPrivateEndpointChannel> {
     const channel = await this.savePrivateEndpointChannel(connectionParams);
     const peerId = channel.peer.id;
     const { internetGatewayAddress } = connectionParams;
@@ -108,7 +108,7 @@ export class InternetEndpoint extends Endpoint {
   public async getPeerChannel(
     peerId: string,
     dbConnection: Connection,
-  ): Promise<EndpointChannel | null> {
+  ): Promise<InternetPrivateEndpointChannel | null> {
     const privateEndpointModel = getModelForClass(PeerEndpoint, {
       existingConnection: dbConnection,
     });
