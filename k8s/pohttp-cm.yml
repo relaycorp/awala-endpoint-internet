@@ -7,7 +7,7 @@ data:
 
   INTERNET_ADDRESS: example.com
 
-  ACTIVE_ID_KEY_REF: arn:aws:kms:eu-west-2:111122223333:key/800d5768-3fd7-4edd-a4b8-4c81c3e4c147"
+  ACTIVE_ID_KEY_REF: arn:aws:kms:eu-west-2:111122223333:key/800d5768-3fd7-4edd-a4b8-4c81c3e4c147
   ACTIVE_ID_PUBLIC_KEY: MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAhdIVqKxn+Fce40n08bsZdZXDKtp7IoFwyFmuJ3CM3BoXgkaR1o9cIqC84NSed8S0nG9+rRWy2/iQl/c3qaPLQUxxy4eFMJsztbwyTa+vA+PwRYfhfPxsveXWckir2k2p/ePjsiRw2Cawsrx93wHYIoY0w5Iaa0lQkjx0w7lrIRn9Uavh0xO2OQy/B6EQNrzIF763P+A7hX3abnIBsvvColTpLRFbYd9UBclfl1FYukjoVd9ybm5+CqrtZkThrMaKMUz/9ynEV1Rfw+s+8NhhwxXOqFW2cLkyPVaH2pjfEfVUuvr/ViqNPz0eUB96jv9pCtgJHkWbwDQr4N2s6VEY6QIDAQAB
 
   # Mock AWS KMS (used by WebCrypto KMS)
