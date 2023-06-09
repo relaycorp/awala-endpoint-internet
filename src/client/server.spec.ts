@@ -121,7 +121,9 @@ describe('makePohttpClient', () => {
       subject: PEER_ID,
       datacontenttype: SERVICE_MESSAGE_CONTENT_TYPE,
       expiry: formatISO(expiry),
-      data: SERVICE_MESSAGE_CONTENT.toString('base64'),
+
+      // eslint-disable-next-line @typescript-eslint/naming-convention,camelcase
+      data_base64: SERVICE_MESSAGE_CONTENT.toString('base64'),
     };
     let peerSessionPrivateKey: CryptoKey;
     const tenSecondsInMilliseconds: number = 10 * 1000;
@@ -185,12 +187,12 @@ describe('makePohttpClient', () => {
       test('Encapsulated service message should be event data', () => {
         const serviceMessage = new ServiceMessage(
           cloudEventData.datacontenttype,
-          Buffer.from(cloudEventData.data),
+          Buffer.from(cloudEventData.data_base64, 'base64'),
         );
 
-        expect(
-          Buffer.from(payload.serialize()).equals(Buffer.from(serviceMessage.serialize())),
-        ).toBeTrue();
+        expect(Buffer.from(payload.serialize())).toMatchObject(
+          Buffer.from(serviceMessage.serialize()),
+        );
       });
 
       test('Parcel should be sent to the peer Internet address', () => {
