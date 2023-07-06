@@ -21,7 +21,7 @@ export class Emitter<Payload> {
   public async emit(event: CloudEvent<Payload>): Promise<void> {
     if (this.emitterFunction === undefined) {
       const transport = envVar.get('CE_TRANSPORT').default(DEFAULT_TRANSPORT).asString();
-      this.emitterFunction = makeEmitter(transport);
+      this.emitterFunction = await makeEmitter(transport);
     }
     await this.emitterFunction(event);
   }
