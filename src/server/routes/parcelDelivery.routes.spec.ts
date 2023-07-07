@@ -24,11 +24,11 @@ import {
 import { generateParcel } from '../../testUtils/awala/parcel.js';
 import { mockEmitter } from '../../testUtils/eventing/mockEmitter.js';
 
+const getEmittedEvents = mockEmitter();
 configureMockEnvVars(REQUIRED_ENV_VARS);
 
 describe('Parcel delivery route', () => {
   const getTestServerFixture = makeTestPohttpServer();
-  const getEmittedEvents = mockEmitter();
   const validRequestOptions: InjectOptions = {
     headers: {
       // eslint-disable-next-line @typescript-eslint/naming-convention

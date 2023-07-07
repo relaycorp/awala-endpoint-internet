@@ -80,26 +80,32 @@ describe('makePohttpClient', () => {
       get: jest.fn(),
       post: jest.fn(),
     } as any;
-    const mockDone = jest.fn();
 
-    test('Malformed POHTTP_TLS_REQUIRED should throw an error on launch', () => {
+    test('Malformed POHTTP_TLS_REQUIRED should be refused', async () => {
       envVarMocker({
         POHTTP_TLS_REQUIRED: 'INVALID_POHTTP_TLS_REQUIRED',
       });
 
-      expect(() => {
-        makePohttpClientPlugin(mockFastify, {}, mockDone);
-      }).toThrowWithMessage(envVar.EnvVarError, /POHTTP_TLS_REQUIRED/u);
+      await expect(makePohttpClientPlugin(mockFastify)).rejects.toThrowWithMessage(
+        envVar.EnvVarError,
+        /POHTTP_TLS_REQUIRED/u,
+      );
     });
 
-    test('Missing POHTTP_TLS_REQUIRED should launch', () => {
+    test('Missing POHTTP_TLS_REQUIRED should be allowed', async () => {
       envVarMocker({
         POHTTP_TLS_REQUIRED: undefined,
       });
 
-      expect(() => {
-        makePohttpClientPlugin(mockFastify, {}, mockDone);
-      }).not.toThrow();
+      await expect(makePohttpClientPlugin(mockFastify)).toResolve();
+    });
+
+    test('Missing CE_TRANSPORT should be allowed', async () => {
+      envVarMocker({
+        CE_TRANSPORT: undefined,
+      });
+
+      await expect(makePohttpClientPlugin(mockFastify)).toResolve();
     });
   });
 
