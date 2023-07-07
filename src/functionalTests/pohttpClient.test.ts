@@ -20,9 +20,7 @@ describe('PoHTTP client', () => {
       type: OUTGOING_SERVICE_MESSAGE_TYPE,
       subject: PEER_ID,
       datacontenttype: SERVICE_MESSAGE_CONTENT_TYPE,
-
-      // eslint-disable-next-line @typescript-eslint/naming-convention,camelcase
-      data_base64: SERVICE_MESSAGE_CONTENT.toString('base64'),
+      data: SERVICE_MESSAGE_CONTENT,
     });
 
     const response = await postEventToPohttpClient(incompleteEvent);

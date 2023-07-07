@@ -165,15 +165,14 @@ describe('Parcel delivery route', () => {
     const events = getEmittedEvents();
     expect(events).toHaveLength(1);
     const [event] = events;
-    expect(event).toMatchObject<Partial<CloudEvent>>({
+    expect(event).toMatchObject<Partial<CloudEvent<Buffer>>>({
       time: parcel.creationDate.toISOString(),
       expiry: parcel.expiryDate.toISOString(),
       id: parcel.id,
       source: await parcel.senderCertificate.calculateSubjectId(),
       subject: parcel.recipient.id,
       datacontenttype: SERVICE_MESSAGE_CONTENT_TYPE,
-      // eslint-disable-next-line @typescript-eslint/naming-convention,camelcase
-      data_base64: SERVICE_MESSAGE_CONTENT.toString('base64'),
+      data: SERVICE_MESSAGE_CONTENT,
     });
   });
 
