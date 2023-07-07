@@ -2,7 +2,7 @@ import type { CloudEvent, EmitterFunction } from 'cloudevents';
 import { makeEmitter } from '@relaycorp/cloudevents-transport';
 import envVar from 'env-var';
 
-const DEFAULT_TRANSPORT = 'ce-http-binary';
+import { DEFAULT_TRANSPORT } from './transport.js';
 
 /**
  * Wrapper around CloudEvents Emitter.

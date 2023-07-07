@@ -1,23 +1,23 @@
-import { type CloudEventV1, HTTP, type Message } from 'cloudevents';
-import type { FastifyBaseLogger, FastifyInstance, FastifyPluginOptions } from 'fastify';
-import type { BaseLogger } from 'pino';
+import { makeReceiver } from '@relaycorp/cloudevents-transport';
 import { Parcel, ServiceMessage } from '@relaycorp/relaynet-core';
-import type { Connection } from 'mongoose';
-import envVar from 'env-var';
 import {
   deliverParcel,
   PoHTTPClientBindingError,
   PoHTTPInvalidParcelError,
 } from '@relaycorp/relaynet-pohttp';
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify';
+import type { BaseLogger } from 'pino';
+import type { Connection } from 'mongoose';
+import envVar from 'env-var';
 
 import { makeFastify } from '../utilities/fastify/server.js';
 import { HTTP_STATUS_CODES } from '../utilities/http.js';
-import type { PluginDone } from '../utilities/fastify/PluginDone.js';
 import type { InternetEndpoint } from '../utilities/awala/InternetEndpoint.js';
 import {
   getOutgoingServiceMessageOptions,
   type OutgoingServiceMessageOptions,
 } from '../events/outgoingServiceMessage.event.js';
+import { DEFAULT_TRANSPORT } from '../utilities/eventing/transport.js';
 
 async function getChannel(
   eventData: OutgoingServiceMessageOptions,
@@ -64,11 +64,7 @@ async function deliverParcelAndHandleErrors(
   return null;
 }
 
-export function makePohttpClientPlugin(
-  server: FastifyInstance,
-  _opts: FastifyPluginOptions,
-  done: PluginDone,
-): void {
+export async function makePohttpClientPlugin(server: FastifyInstance): Promise<void> {
   const shouldUseTls = envVar.get('POHTTP_TLS_REQUIRED').default('true').asBool();
   server.removeAllContentTypeParsers();
   server.addContentTypeParser('*', { parseAs: 'buffer' }, (_request, payload, next) => {
@@ -79,11 +75,13 @@ export function makePohttpClientPlugin(
     await reply.status(HTTP_STATUS_CODES.OK).send('It works');
   });
 
+  const transport = envVar.get('CE_TRANSPORT').default(DEFAULT_TRANSPORT).asString();
+  const convertMessageToEvent = await makeReceiver(transport);
+
   server.post('/', async (request, reply) => {
-    const message: Message = { headers: request.headers, body: request.body };
     let event;
     try {
-      event = HTTP.toEvent(message) as CloudEventV1<unknown>;
+      event = convertMessageToEvent(request.headers, request.body as Buffer);
     } catch {
       return reply.status(HTTP_STATUS_CODES.BAD_REQUEST).send();
     }
@@ -130,7 +128,6 @@ export function makePohttpClientPlugin(
     parcelAwareLogger.info('Parcel delivered');
     return reply.status(HTTP_STATUS_CODES.NO_CONTENT).send();
   });
-  done();
 }
 
 export async function makePohttpClient(logger?: BaseLogger): Promise<FastifyInstance> {
