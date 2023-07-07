@@ -9,7 +9,11 @@ import type { InternetEndpoint } from '../../utilities/awala/InternetEndpoint.js
 import { makeIncomingServiceMessageEvent } from '../../events/incomingServiceMessage.event.js';
 import { Emitter } from '../../utilities/eventing/Emitter.js';
 
-async function publishIncomingServiceMessage(parcel: Parcel, serviceMessage: ServiceMessage) {
+async function publishIncomingServiceMessage(
+  parcel: Parcel,
+  serviceMessage: ServiceMessage,
+  emitter: Emitter<Buffer>,
+) {
   const event = makeIncomingServiceMessageEvent({
     creationDate: parcel.creationDate,
     expiryDate: parcel.expiryDate,
@@ -19,7 +23,6 @@ async function publishIncomingServiceMessage(parcel: Parcel, serviceMessage: Ser
     contentType: serviceMessage.type,
     content: serviceMessage.content,
   });
-  const emitter = Emitter.init();
   await emitter.emit(event);
 }
 
@@ -100,6 +103,8 @@ export default function registerRoutes(
     },
   );
 
+  const emitter = Emitter.init();
+
   fastify.route<{
     // eslint-disable-next-line @typescript-eslint/naming-convention
     readonly Body: Buffer;
@@ -140,7 +145,7 @@ export default function registerRoutes(
         return reply.code(HTTP_STATUS_CODES.ACCEPTED).send();
       }
 
-      await publishIncomingServiceMessage(parcel, serviceMessage);
+      await publishIncomingServiceMessage(parcel, serviceMessage, emitter);
 
       parcelAwareLogger.info('Parcel is valid and has been queued');
       return reply.code(HTTP_STATUS_CODES.ACCEPTED).send();

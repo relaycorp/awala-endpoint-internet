@@ -15,6 +15,8 @@ const { makeEmitter } = await import('@relaycorp/cloudevents-transport');
 
 describe('Emitter', () => {
   describe('init', () => {
+    const mockEnvVars = configureMockEnvVars({ CE_TRANSPORT });
+
     test('Emitter function should not be initialised', () => {
       Emitter.init();
 
@@ -26,26 +28,24 @@ describe('Emitter', () => {
 
       expect(emitter).toBeInstanceOf(Emitter);
     });
+
+    test('Transport should be CE binary mode if CE_TRANSPORT unset', () => {
+      mockEnvVars({ CE_TRANSPORT: undefined });
+
+      const emitter = Emitter.init();
+
+      expect(emitter.transport).toBe('ce-http-binary');
+    });
+
+    test('Transport name should be taken from CE_TRANSPORT', () => {
+      const emitter = Emitter.init();
+
+      expect(emitter.transport).toBe(CE_TRANSPORT);
+    });
   });
 
   describe('emit', () => {
-    const mockEnvVars = configureMockEnvVars({ CE_TRANSPORT });
-
     const event = new CloudEvent({ id: CE_ID, source: CE_SOURCE, type: 'type' });
-
-    test('Transport should be CE binary mode if CE_TRANSPORT unset', async () => {
-      mockEnvVars({ CE_TRANSPORT: undefined });
-
-      await Emitter.init().emit(event);
-
-      expect(makeEmitter).toHaveBeenCalledWith('ce-http-binary');
-    });
-
-    test('Transport name should be taken from CE_TRANSPORT', async () => {
-      await Emitter.init().emit(event);
-
-      expect(makeEmitter).toHaveBeenCalledWith(CE_TRANSPORT);
-    });
 
     test('Emitter function should be cached', async () => {
       const emitter = Emitter.init();
@@ -54,6 +54,14 @@ describe('Emitter', () => {
       await emitter.emit(event);
 
       expect(makeEmitter).toHaveBeenCalledTimes(1);
+    });
+
+    test('Specified transport should be used', async () => {
+      const emitter = new Emitter(CE_TRANSPORT);
+
+      await emitter.emit(event);
+
+      expect(makeEmitter).toHaveBeenCalledWith(CE_TRANSPORT);
     });
   });
 });

@@ -12,16 +12,17 @@ const DEFAULT_TRANSPORT = 'ce-http-binary';
  */
 export class Emitter<Payload> {
   public static init(): Emitter<unknown> {
-    // No processing needed, but this is implemented as a static method to facilitate unit testing
-    return new Emitter();
+    const transport = envVar.get('CE_TRANSPORT').default(DEFAULT_TRANSPORT).asString();
+    return new Emitter(transport);
   }
 
   protected emitterFunction: EmitterFunction | undefined;
 
+  public constructor(public readonly transport: string) {}
+
   public async emit(event: CloudEvent<Payload>): Promise<void> {
     if (this.emitterFunction === undefined) {
-      const transport = envVar.get('CE_TRANSPORT').default(DEFAULT_TRANSPORT).asString();
-      this.emitterFunction = await makeEmitter(transport);
+      this.emitterFunction = await makeEmitter(this.transport);
     }
     await this.emitterFunction(event);
   }
