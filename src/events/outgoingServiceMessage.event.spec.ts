@@ -1,7 +1,7 @@
 import { CloudEvent } from 'cloudevents';
 import { addDays, differenceInSeconds, formatISO, subDays } from 'date-fns';
 
-import { CE_CONTENT_TYPE, CE_DATA_BASE64, CE_ID, CE_SOURCE } from '../testUtils/eventing/stubs.js';
+import { CE_CONTENT_TYPE, CE_DATA, CE_ID, CE_SOURCE } from '../testUtils/eventing/stubs.js';
 import { makeMockLogging, partialPinoLog } from '../testUtils/logging.js';
 import { assertNotNull, assertNull } from '../testUtils/assertions.js';
 import { PEER_ID } from '../testUtils/awala/stubs.js';
@@ -25,8 +25,7 @@ describe('getOutgoingServiceMessageOptions', () => {
     datacontenttype: CE_CONTENT_TYPE,
     expiry: formatISO(expiry),
     time: formatISO(creationDate),
-    // eslint-disable-next-line @typescript-eslint/naming-convention,camelcase
-    data_base64: CE_DATA_BASE64,
+    data: CE_DATA,
   });
 
   describe('Success', () => {
@@ -55,15 +54,14 @@ describe('getOutgoingServiceMessageOptions', () => {
       expect(contentType).toBe(cloudEvent.datacontenttype);
     });
 
-    test('Content should be a buffer with the content of data_base64', () => {
+    test('Content should be a buffer with the content of data', () => {
       const { content } = outgoingServiceMessageOptions;
 
-      expect(content).toStrictEqual(Buffer.from(CE_DATA_BASE64, 'base64'));
+      expect(content).toStrictEqual(CE_DATA);
     });
 
-    test('Missing data_base64 should be accepted', () => {
-      const event = new CloudEvent({
-        ...cloudEvent,
+    test('Empty data should be accepted', () => {
+      const event = cloudEvent.cloneWith({
         // eslint-disable-next-line @typescript-eslint/naming-convention,camelcase
         data_base64: undefined,
         data: undefined,
@@ -71,7 +69,7 @@ describe('getOutgoingServiceMessageOptions', () => {
 
       const result = getOutgoingServiceMessageOptions(event, mockLogging.logger);
 
-      expect(result?.content).toStrictEqual(Buffer.from('', 'base64'));
+      expect(result?.content).toStrictEqual(Buffer.from(''));
     });
 
     test('Creation date should be taken from event time', () => {
@@ -187,22 +185,16 @@ describe('getOutgoingServiceMessageOptions', () => {
       );
     });
 
-    test('Missing data should be refused', () => {
-      const event = new CloudEvent({
-        ...cloudEvent,
-        // eslint-disable-next-line @typescript-eslint/naming-convention,camelcase
-        data_base64: undefined,
-        data: undefined,
-      });
+    test('Non-buffer data should be refused', () => {
+      const event = cloudEvent.cloneWith({ data: { foo: 'bar' } });
 
-      const result = getOutgoingServiceMessageOptions(
-        { ...event, data: Buffer.from('') },
-        mockLogging.logger,
-      );
+      const result = getOutgoingServiceMessageOptions(event, mockLogging.logger);
 
       assertNull(result);
       expect(mockLogging.logs).toContainEqual(
-        partialPinoLog('info', 'Got textual data instead of binary', { parcelId: event.id }),
+        partialPinoLog('info', 'Refused non-buffer service message content', {
+          parcelId: event.id,
+        }),
       );
     });
   });
