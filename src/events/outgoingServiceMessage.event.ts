@@ -56,11 +56,6 @@ export function getOutgoingServiceMessageOptions(
     return null;
   }
 
-  if (event.data_base64 === undefined && event.data !== undefined) {
-    parcelAwareLogger.info('Got textual data instead of binary');
-    return null;
-  }
-
   if (event.subject === undefined) {
     parcelAwareLogger.info('Refused missing subject');
     return null;
@@ -68,6 +63,12 @@ export function getOutgoingServiceMessageOptions(
 
   if (event.datacontenttype === undefined) {
     parcelAwareLogger.info('Refused missing data content type');
+    return null;
+  }
+
+  const content = event.data ?? Buffer.from('');
+  if (!(content instanceof Buffer)) {
+    parcelAwareLogger.info('Refused non-buffer service message content');
     return null;
   }
 
@@ -82,7 +83,7 @@ export function getOutgoingServiceMessageOptions(
     parcelId: event.id,
     peerId: event.subject,
     contentType: event.datacontenttype,
-    content: Buffer.from(event.data_base64 ?? '', 'base64'),
+    content,
     ttl,
     creationDate,
   };
