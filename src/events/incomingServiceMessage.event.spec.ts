@@ -40,7 +40,7 @@ describe('makeIncomingServiceMessageEvent', () => {
   test('Event type should be incoming-service-message', () => {
     const { type } = makeIncomingServiceMessageEvent(options);
 
-    expect(type).toBe('com.relaycorp.awala.endpoint-internet.incoming-service-message');
+    expect(type).toBe('tech.relaycorp.awala.endpoint-internet.incoming-service-message');
   });
 
   test('Event source should be the sender id', () => {

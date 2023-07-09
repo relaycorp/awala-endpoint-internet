@@ -41,7 +41,7 @@ export interface OutgoingServiceMessageOptions {
 }
 
 export const OUTGOING_SERVICE_MESSAGE_TYPE =
-  'com.relaycorp.awala.endpoint-internet.outgoing-service-message';
+  'tech.relaycorp.awala.endpoint-internet.outgoing-service-message';
 
 export function getOutgoingServiceMessageOptions(
   event: CloudEventV1<unknown>,

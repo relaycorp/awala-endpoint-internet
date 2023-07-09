@@ -13,7 +13,7 @@ Every outgoing service message MUST be sent as a CloudEvent with the following a
 
 - `specversion`: `1.0`
 - `id`: The parcel id.
-- `type`: `com.relaycorp.awala.endpoint-internet.outgoing-service-message`
+- `type`: `tech.relaycorp.awala.endpoint-internet.outgoing-service-message`
 - `source`: The parcel sender's id, or the constant `https://relaycorp.tech/awala-endpoint-internet`.
 - `subject`: The parcel recipient's id.
 - `datacontenttype`: The content type of the service message.
@@ -27,7 +27,7 @@ Every incoming service message is received as a CloudEvent with the following at
 
 - `specversion`: `1.0`
 - `id`: The parcel id.
-- `type`: `com.relaycorp.awala.endpoint-internet.incoming-service-message`
+- `type`: `tech.relaycorp.awala.endpoint-internet.incoming-service-message`
 - `source`: The parcel sender's id.
 - `subject`: The parcel recipient's id.
 - `datacontenttype`: The content type of the service message.
