@@ -19,7 +19,7 @@ Every outgoing service message MUST be sent as a CloudEvent with the following a
 - `datacontenttype`: The content type of the service message.
 - `data`: The service message.
 - `time`: The creation time of the parcel.
-- `expiry` (`Timestamp`, custom attribute): The time at which the parcel expires.
+- `expiry` (`Timestamp`, custom attribute): The time at which the parcel expires. If unset, will default to 6 months after the creation time.
 
 ## Receiving messages from gateways
 

@@ -16,7 +16,7 @@ describe('getOutgoingServiceMessageOptions', () => {
   const mockLogging = makeMockLogging();
   const creationDate = new Date();
   const expiry = addDays(creationDate, 5);
-  const cloudEvent = new CloudEvent({
+  const cloudEventAttributes = {
     specversion: '1.0',
     id: CE_ID,
     source: CE_SOURCE,
@@ -26,7 +26,8 @@ describe('getOutgoingServiceMessageOptions', () => {
     expiry: formatISO(expiry),
     time: formatISO(creationDate),
     data: CE_DATA,
-  });
+  };
+  const cloudEvent = new CloudEvent(cloudEventAttributes);
 
   describe('Success', () => {
     let outgoingServiceMessageOptions: OutgoingServiceMessageOptions;
@@ -78,11 +79,25 @@ describe('getOutgoingServiceMessageOptions', () => {
       expect(creation).toStrictEqual(new Date(cloudEvent.time!));
     });
 
-    test('TTL should be computed from event creation and expiry', () => {
-      const { ttl } = outgoingServiceMessageOptions;
+    describe('TTL', () => {
+      test('TTL should be computed from event creation and expiry', () => {
+        const { ttl } = outgoingServiceMessageOptions;
 
-      const difference = differenceInSeconds(expiry, creationDate);
-      expect(ttl).toBe(difference);
+        const difference = differenceInSeconds(expiry, creationDate);
+        expect(ttl).toBe(difference);
+      });
+
+      test('TTL should default to 6 months', () => {
+        const attrs = Object.fromEntries(
+          Object.entries(cloudEventAttributes).filter(([key]) => key !== 'expiry'),
+        );
+        const event = new CloudEvent(attrs);
+
+        const result = getOutgoingServiceMessageOptions(event, mockLogging.logger);
+
+        const secondsInMonths = 2_629_746;
+        expect(result?.ttl).toBe(secondsInMonths * 6);
+      });
     });
   });
 
@@ -126,18 +141,6 @@ describe('getOutgoingServiceMessageOptions', () => {
       assertNull(result);
       expect(mockLogging.logs).toContainEqual(
         partialPinoLog('info', 'Refused missing data content type', { parcelId: event.id }),
-      );
-    });
-
-    test('Missing expiry should be refused', () => {
-      const { expiry: ignore, ...eventData } = cloudEvent;
-      const event = new CloudEvent(eventData);
-
-      const result = getOutgoingServiceMessageOptions(event, mockLogging.logger);
-
-      assertNull(result);
-      expect(mockLogging.logs).toContainEqual(
-        partialPinoLog('info', 'Refused missing expiry', { parcelId: event.id }),
       );
     });
 

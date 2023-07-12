@@ -3,10 +3,13 @@ import { differenceInSeconds, isValid, parseISO } from 'date-fns';
 import type { BaseLogger } from 'pino';
 import type { FastifyBaseLogger } from 'fastify';
 
+const secondsInMonths = 2_629_746;
+const DEFAULT_TTL_MONTHS = 6;
+const DEFAULT_TTL_SECONDS = secondsInMonths * DEFAULT_TTL_MONTHS;
+
 function getTtl(expiry: unknown, creationDate: Date, logger: BaseLogger) {
   if (expiry === undefined) {
-    logger.info('Refused missing expiry');
-    return null;
+    return DEFAULT_TTL_SECONDS;
   }
 
   if (typeof expiry !== 'string') {
