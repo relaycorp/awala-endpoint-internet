@@ -133,6 +133,8 @@ describe('makePohttpClient', () => {
     const tenSecondsInMilliseconds: number = 10 * 1000;
     let event: CloudEvent<string>;
 
+    const parcelDeliveryLog = partialPinoLog('info', 'Parcel delivered');
+
     beforeEach(async () => {
       const certificatePath = await generatePDACertificationPath(KEY_PAIR_SET);
       const pdaPath = new CertificationPath(certificatePath.pdaGrantee, [
@@ -177,7 +179,7 @@ describe('makePohttpClient', () => {
       });
 
       test('Successful result should be logged', () => {
-        expect(logs).toContainEqual(partialPinoLog('info', 'Parcel delivered'));
+        expect(logs).toContainEqual(parcelDeliveryLog);
       });
 
       test('Should resolve into no content status', () => {
@@ -334,6 +336,7 @@ describe('makePohttpClient', () => {
             internetGatewayAddress: PEER_ADDRESS,
           }),
         );
+        expect(logs).toContainEqual(parcelDeliveryLog);
         expect(response.statusCode).toBe(HTTP_STATUS_CODES.NO_CONTENT);
       });
 
@@ -367,11 +370,11 @@ describe('makePohttpClient', () => {
 
         expect(logs).toContainEqual(
           partialPinoLog('warn', 'Failed to deliver parcel', {
-            err: expect.objectContaining({
-              message: errorMessage,
-            }),
+            err: expect.objectContaining({ message: errorMessage }),
+            internetGatewayAddress: PEER_ADDRESS,
           }),
         );
+        expect(logs).not.toContainEqual(parcelDeliveryLog);
         expect(response.statusCode).toBe(HTTP_STATUS_CODES.BAD_GATEWAY);
       });
     });

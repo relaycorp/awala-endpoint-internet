@@ -40,28 +40,24 @@ async function deliverParcelAndHandleErrors(
   internetAddress: string,
   shouldUseTls: boolean,
   logger: FastifyBaseLogger,
-): Promise<(typeof HTTP_STATUS_CODES)[keyof typeof HTTP_STATUS_CODES] | null> {
+): Promise<boolean> {
+  const gatewayAwareLogger = logger.child({ internetGatewayAddress: internetAddress });
   try {
     await deliverParcel(internetAddress, parcelSerialised, {
       useTls: shouldUseTls,
     });
   } catch (err) {
     if (err instanceof PoHTTPInvalidParcelError) {
-      logger.info(
-        { err, internetGatewayAddress: internetAddress },
-        'Gateway refused parcel as invalid',
-      );
+      gatewayAwareLogger.info({ err }, 'Gateway refused parcel as invalid');
     } else if (err instanceof PoHTTPClientBindingError) {
-      logger.info(
-        { err, internetGatewayAddress: internetAddress },
-        'Gateway refused parcel delivery due to binding error',
-      );
+      gatewayAwareLogger.info({ err }, 'Gateway refused parcel delivery due to binding error');
     } else {
-      logger.warn({ err }, 'Failed to deliver parcel');
-      return HTTP_STATUS_CODES.BAD_GATEWAY;
+      // Let's try again later
+      gatewayAwareLogger.warn({ err }, 'Failed to deliver parcel');
+      return false;
     }
   }
-  return null;
+  return true;
 }
 
 export async function makePohttpClientPlugin(server: FastifyInstance): Promise<void> {
@@ -114,19 +110,19 @@ export async function makePohttpClientPlugin(server: FastifyInstance): Promise<v
       },
     );
 
-    const failureStatusCode = await deliverParcelAndHandleErrors(
+    const wasFulfilled = await deliverParcelAndHandleErrors(
       parcelSerialised,
       channel.peer.internetAddress,
       shouldUseTls,
       parcelAwareLogger,
     );
 
-    if (failureStatusCode) {
-      return reply.status(failureStatusCode).send();
+    if (wasFulfilled) {
+      parcelAwareLogger.info('Parcel delivered');
+      return reply.status(HTTP_STATUS_CODES.NO_CONTENT).send();
     }
 
-    parcelAwareLogger.info('Parcel delivered');
-    return reply.status(HTTP_STATUS_CODES.NO_CONTENT).send();
+    return reply.status(HTTP_STATUS_CODES.BAD_GATEWAY).send();
   });
 }
 
