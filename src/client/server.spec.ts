@@ -336,7 +336,7 @@ describe('makePohttpClient', () => {
             internetGatewayAddress: PEER_ADDRESS,
           }),
         );
-        expect(logs).not.toContainEqual(parcelDeliveryLog);
+        expect(logs).toContainEqual(parcelDeliveryLog);
         expect(response.statusCode).toBe(HTTP_STATUS_CODES.NO_CONTENT);
       });
 
@@ -357,7 +357,6 @@ describe('makePohttpClient', () => {
             internetGatewayAddress: PEER_ADDRESS,
           }),
         );
-        expect(logs).not.toContainEqual(parcelDeliveryLog);
         expect(response.statusCode).toBe(HTTP_STATUS_CODES.NO_CONTENT);
       });
 

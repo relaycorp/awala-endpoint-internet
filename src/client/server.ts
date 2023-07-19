@@ -43,8 +43,9 @@ async function deliverParcelAndHandleErrors(
 ): Promise<boolean> {
   const gatewayAwareLogger = logger.child({ internetGatewayAddress: internetAddress });
   try {
-    await deliverParcel(internetAddress, parcelSerialised, { useTls: shouldUseTls });
-    gatewayAwareLogger.info('Parcel delivered');
+    await deliverParcel(internetAddress, parcelSerialised, {
+      useTls: shouldUseTls,
+    });
   } catch (err) {
     if (err instanceof PoHTTPInvalidParcelError) {
       gatewayAwareLogger.info({ err }, 'Gateway refused parcel as invalid');
@@ -115,7 +116,9 @@ export async function makePohttpClientPlugin(server: FastifyInstance): Promise<v
       shouldUseTls,
       parcelAwareLogger,
     );
+
     if (wasFulfilled) {
+      parcelAwareLogger.info('Parcel delivered');
       return reply.status(HTTP_STATUS_CODES.NO_CONTENT).send();
     }
 
