@@ -83,6 +83,7 @@ export async function makePohttpClientPlugin(server: FastifyInstance): Promise<v
 
     const parcelAwareLogger = request.log.child({
       parcelId: event.id,
+      peerId: event.subject,
     });
     const messageOptions = getOutgoingServiceMessageOptions(event, parcelAwareLogger);
     if (!messageOptions) {
