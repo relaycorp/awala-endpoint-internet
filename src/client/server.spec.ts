@@ -296,7 +296,11 @@ describe('makePohttpClient', () => {
 
       const response = await postEvent(cloudEvent, server);
 
-      expect(logs).toContainEqual(partialPinoLog('warn', 'Could not find channel with peer'));
+      expect(logs).toContainEqual(
+        partialPinoLog('warn', 'Could not find channel with peer', {
+          peerId: cloudEventData.subject,
+        }),
+      );
       expect(response.statusCode).toBe(HTTP_STATUS_CODES.SERVICE_UNAVAILABLE);
     });
 

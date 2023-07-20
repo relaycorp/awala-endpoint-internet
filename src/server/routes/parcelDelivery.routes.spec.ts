@@ -75,7 +75,8 @@ describe('Parcel delivery route', () => {
       partialPinoLog('info', 'Parcel is valid and has been queued', {
         parcelId: parcel.id,
         recipient: parcel.recipient,
-        senderId: await parcel.senderCertificate.calculateSubjectId(),
+        peerId: await parcel.senderCertificate.calculateSubjectId(),
+        contentType: SERVICE_MESSAGE_CONTENT_TYPE,
       }),
     );
   });
@@ -109,7 +110,7 @@ describe('Parcel delivery route', () => {
   });
 
   test('Parcel should be refused if it is well-formed but invalid', async () => {
-    const { parcelSerialized } = await generateParcel(
+    const { parcelSerialized, parcel } = await generateParcel(
       parcelRecipient,
       KEY_PAIR_SET,
       subDays(new Date(), 1),
@@ -128,11 +129,17 @@ describe('Parcel delivery route', () => {
       'message',
       'Parcel is well-formed but invalid',
     );
-    expect(logs).toContainEqual(partialPinoLog('info', 'Refusing invalid parcel'));
+    expect(logs).toContainEqual(
+      partialPinoLog('info', 'Refusing invalid parcel', {
+        peerId: await parcel.senderCertificate.calculateSubjectId(),
+        recipient: parcelRecipient,
+        parcelId: parcel.id,
+      }),
+    );
   });
 
   test('Invalid service message should be ignored', async () => {
-    const { parcelSerialized } = await generateParcel(
+    const { parcelSerialized, parcel } = await generateParcel(
       parcelRecipient,
       KEY_PAIR_SET,
       new Date(),
@@ -147,7 +154,13 @@ describe('Parcel delivery route', () => {
     });
 
     expect(response).toHaveProperty('statusCode', HTTP_STATUS_CODES.ACCEPTED);
-    expect(logs).toContainEqual(partialPinoLog('info', 'Ignoring invalid service message'));
+    expect(logs).toContainEqual(
+      partialPinoLog('info', 'Ignoring invalid service message', {
+        parcelId: parcel.id,
+        recipient: parcelRecipient,
+        peerId: await parcel.senderCertificate.calculateSubjectId(),
+      }),
+    );
   });
 
   test('Non-PDA service message should be published as a CloudEvent', async () => {
