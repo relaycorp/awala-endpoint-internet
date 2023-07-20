@@ -41,11 +41,7 @@ All the processes use the following variables:
 
 - `ENDPOINT_VERSION` (required): The version of the image being used. This value is used when reporting errors.
 - `INTERNET_ADDRESS` (required): The Awala Internet address of the endpoint (e.g., `ping.awala.services`).
-- DB connection variables:
-  - `MONGODB_URI` (required): The URI to connect to MongoDB (e.g., `mongodb://localhost:27017/awala-endpoint`).
-  - `MONGODB_DB` (optional): The name of the MongoDB database (e.g., `awala-endpoint`).
-  - `MONGODB_USER` (optional): The username to connect to MongoDB (e.g., `alice`).
-  - `MONGODB_PASSWORD` (optional): The password to connect to MongoDB (e.g., `s3cr3t`).
+- `MONGODB_URI`: The URI to connect to MongoDB (e.g., `mongodb://localhost:27017/awala-endpoint`).
 - `ACTIVE_ID_KEY_REF` (required): The [`@relaycorp/webcrypto-kms`](https://www.npmjs.com/package/@relaycorp/webcrypto-kms) reference for the endpoint's identity key pair (e.g., `arn:aws:kms:eu-west-2:<AWS-ACCOUNT>:key/<KEY-ID>`).
 - `KMS_ADAPTER` (required): The [`@relaycorp/webcrypto-kms`](https://www.npmjs.com/package/@relaycorp/webcrypto-kms) adapter (e.g., `AWS`).
 - `PRIVATE_KEY_STORE_ADAPTER` (required): The [`@relaycorp/awala-keystore-cloud`](https://www.npmjs.com/package/@relaycorp/awala-keystore-cloud) adapter (e.g., `VAULT`).
