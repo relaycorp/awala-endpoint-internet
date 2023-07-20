@@ -43,6 +43,7 @@ All the processes use the following variables:
 - `INTERNET_ADDRESS` (required): The Awala Internet address of the endpoint (e.g., `ping.awala.services`).
 - `MONGODB_URI`: The URI to connect to MongoDB (e.g., `mongodb://localhost:27017/awala-endpoint`).
 - `ACTIVE_ID_KEY_REF` (required): The [`@relaycorp/webcrypto-kms`](https://www.npmjs.com/package/@relaycorp/webcrypto-kms) reference for the endpoint's identity key pair (e.g., `arn:aws:kms:eu-west-2:<AWS-ACCOUNT>:key/<KEY-ID>`).
+- `ACTIVE_ID_PUBLIC_KEY` (required): The PEM-encoded public key of the endpoint's active identity key pair. It MUST correspond to the key referenced by `ACTIVE_ID_KEY_REF`.
 - `KMS_ADAPTER` (required): The [`@relaycorp/webcrypto-kms`](https://www.npmjs.com/package/@relaycorp/webcrypto-kms) adapter (e.g., `AWS`).
 - `PRIVATE_KEY_STORE_ADAPTER` (required): The [`@relaycorp/awala-keystore-cloud`](https://www.npmjs.com/package/@relaycorp/awala-keystore-cloud) adapter (e.g., `VAULT`).
 - `CE_TRANSPORT` (default: `ce-http-binary`): The [`@relaycorp/cloudevents-transport`](https://www.npmjs.com/package/@relaycorp/cloudevents-transport) transport to use. Each transport has its own set of environment variables.
