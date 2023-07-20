@@ -54,19 +54,20 @@ describe('createMongooseConnectionFromEnv', () => {
     );
   });
 
-  test.each([['dbName', 'MONGODB_DB']])(
-    '%s should be undefined if %s is unspecified',
-    (optionName, envVarName) => {
-      mockEnvVars({ ...MONGO_ENV_VARS, [envVarName]: undefined });
+  test.each([
+    ['dbName', 'MONGODB_DB'],
+    ['user', 'MONGODB_USER'],
+    ['pass', 'MONGODB_PASSWORD'],
+  ])('%s should be undefined if %s is unspecified', (optionName, envVarName) => {
+    mockEnvVars({ ...MONGO_ENV_VARS, [envVarName]: undefined });
 
-      createMongooseConnectionFromEnv();
+    createMongooseConnectionFromEnv();
 
-      expect(MOCK_MONGOOSE_CREATE_CONNECTION).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining<ConnectOptions>({ [optionName]: undefined }),
-      );
-    },
-  );
+    expect(MOCK_MONGOOSE_CREATE_CONNECTION).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining<ConnectOptions>({ [optionName]: undefined }),
+    );
+  });
 
   test('Mongoose connection should be returned', () => {
     const connection = createMongooseConnectionFromEnv();
