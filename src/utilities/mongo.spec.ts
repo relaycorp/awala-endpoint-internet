@@ -35,7 +35,7 @@ describe('createMongooseConnectionFromEnv', () => {
 
     expect(MOCK_MONGOOSE_CREATE_CONNECTION).toHaveBeenCalledWith(
       MONGO_ENV_VARS.MONGODB_URI,
-      expect.anything(),
+      undefined,
     );
   });
 
