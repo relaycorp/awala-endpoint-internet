@@ -33,7 +33,7 @@ The middleware requires the uses backing services:
 
 - [**MongoDB**](https://www.mongodb.com) 6 or newer.
 - A **Key Management Service (KMS)** supported by [`@relaycorp/webcrypto-kms`](https://www.npmjs.com/package/@relaycorp/webcrypto-kms).
-- A [CloudEvents](https://cloudevents.io)-compliant broker (e.g., [Google Eventarc](https://cloud.google.com/eventarc/docs/overview), RabbitMQ).
+- A [CloudEvents](https://cloudevents.io)-compliant broker or Google PubSub.
 
 ## Environment variables
 
