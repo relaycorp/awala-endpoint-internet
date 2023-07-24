@@ -12,11 +12,6 @@ spec:
     spec:
       restartPolicy: OnFailure
 
-      initContainers:
-        - name: startup-delay
-          image: busybox
-          command: ["sleep", "10s"]
-
       containers:
         - name: vault-config
           image: vault:1.13.2
