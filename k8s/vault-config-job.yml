@@ -15,7 +15,7 @@ spec:
       initContainers:
         - name: startup-delay
           image: busybox
-          command: ["sleep", "20s"]
+          command: ["sleep", "40s"]
 
       containers:
         - name: vault-config
