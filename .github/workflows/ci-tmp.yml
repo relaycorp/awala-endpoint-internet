@@ -186,6 +186,11 @@ jobs:
             kubectl logs $pod --prefix -n knative-eventing --all-containers=true --timestamps=true
           done
 
+          print_header "kube-system logs"
+          for pod in $(kubectl get pods -o name -n knative); do
+            kubectl logs $pod --prefix -n kube-system --all-containers=true --timestamps=true
+          done
+
           print_header "Minikube tunnel logs"
           cat /tmp/minikube-tunnel.logs
 
