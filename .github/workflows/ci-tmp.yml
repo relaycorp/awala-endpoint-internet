@@ -1,0 +1,182 @@
+name: CI
+on:
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: buildjet-4vcpu-ubuntu-2204
+    steps:
+      - uses: actions/checkout@v3
+        timeout-minutes: 2
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ inputs.nodejs_version }}
+        timeout-minutes: 2
+      - name: Get npm cache directory
+        id: npm-cache
+        shell: bash
+        run: echo "dir=$(npm config get cache)" >> ${GITHUB_OUTPUT}
+        timeout-minutes: 5
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.npm-cache.outputs.dir }}
+          key: ${{ runner.os }}-${{ inputs.nodejs_version }}-${{ hashFiles('**/package-lock.json') }}
+        timeout-minutes: 5
+      - name: Install dependencies
+        run: npm ci
+        timeout-minutes: 5
+      - run: npm run static-checks
+        timeout-minutes: 3
+      - run: npm test
+        timeout-minutes: 5
+
+      # Functional tests
+      - name: Create cluster
+        uses: medyagh/setup-minikube@v0.0.13
+        with:
+          minikube-version: '1.30.1'
+          kubernetes-version: "v${{ inputs.kubernetes_version }}"
+        timeout-minutes: 5
+      - name: Setup Knative
+        run: |-
+          set -o nounset
+          set -o errexit
+          set -o pipefail
+
+          echo "Installing kn..."
+          curl -L \
+            -o /usr/local/bin/kn \
+            https://github.com/knative/client/releases/download/knative-v${KN_VERSION}/kn-linux-amd64
+          chmod +x /usr/local/bin/kn
+
+          echo "Installing kn-quickstart..."
+          curl -L \
+            -o /usr/local/bin/kn-quickstart \
+            https://github.com/knative-sandbox/kn-plugin-quickstart/releases/download/knative-v${KN_VERSION}/kn-quickstart-linux-amd64
+          chmod +x /usr/local/bin/kn-quickstart
+
+          kn quickstart minikube \
+            --kubernetes-version=${KUBERNETES_VERSION} \
+            --install-serving \
+            --install-eventing
+
+          echo "Work around https://github.com/knative-sandbox/kn-plugin-quickstart/issues/104"
+          kubectl patch deployment/3scale-kourier-gateway \
+            --namespace kourier-system \
+            --type json \
+            -p='[{"op": "remove", "path": "/spec/template/spec/containers/0/resources"}]'
+
+          minikube tunnel -p knative >>/tmp/minikube-tunnel.logs 2>&1 &
+        env:
+          KN_VERSION: ${{ inputs.knative_version }}
+          KUBERNETES_VERSION: ${{ inputs.kubernetes_version }}
+        timeout-minutes: 5
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+        timeout-minutes: 2
+      - name: Install Skaffold
+        run: |-
+          set -o nounset
+          set -o errexit
+          set -o pipefail
+
+          curl -L \
+            -o /usr/local/bin/skaffold \
+            "https://storage.googleapis.com/skaffold/releases/v${SKAFFOLD_VERSION}/skaffold-linux-amd64"
+
+          chmod +x /usr/local/bin/skaffold
+        env:
+          SKAFFOLD_VERSION: "2.6.1"
+        timeout-minutes: 2
+      - name: Run Skaffold pipeline
+        run: |-
+          set -o nounset
+          set -o errexit
+          set -o pipefail
+
+          skaffold --verbosity=debug run
+        timeout-minutes: 5
+      - name: Functional tests
+        timeout-minutes: 3
+        run: |-
+          set -o nounset
+          set -o errexit
+          set -o pipefail
+
+          # Wait for backing services (e.g., MongoDB) and app to be ready
+          sleep 30s
+          npm run test:functional
+
+      # Export Docker image so it can be published
+      - name: Export Docker image
+        run: |-
+          set -o nounset
+          set -o errexit
+          set -o pipefail
+
+          eval $(minikube docker-env -p knative)
+
+          DOCKER_IMAGE_TAG="$(docker images "dev.local/awala-endpoint" --format '{{.Tag}}' | tail -1)"
+          docker tag "dev.local/awala-endpoint:${DOCKER_IMAGE_TAG}" "${GITHUB_REPOSITORY}:ci"
+          docker save -o /tmp/docker-image "${GITHUB_REPOSITORY}:ci"
+        timeout-minutes: 3
+      - name: Upload Docker image
+        uses: actions/upload-artifact@v3
+        with:
+          name: docker-image
+          path: /tmp/docker-image
+        timeout-minutes: 5
+
+      - name: Output diagnostic information upon failure
+        if: failure()
+        run: |-
+          set -o nounset
+          set -o errexit
+          set -o pipefail
+
+          # Functions
+
+          print_header() {
+            local title="$1"
+
+            echo
+            printf '#%.0s' {1..50}
+            echo " ${title}"
+          }
+
+          # Main
+
+          print_header "Local Docker images"
+          docker images
+
+          print_header "Minikube Docker mages"
+          eval $(minikube docker-env -p knative)
+          docker images
+          eval $(minikube docker-env -p knative --unset)
+
+          print_header "Knative services"
+          kn service list
+
+          print_header "Kubernetes resources"
+          kubectl get all --all-namespaces
+
+          print_header "App pods"
+          kubectl describe pod -l "app.kubernetes.io/name=${KUBERNETES_APP_NAME}"
+
+          print_header "App logs"
+          kubectl logs --prefix --all-containers=true -l "app.kubernetes.io/name=${KUBERNETES_APP_NAME}"
+
+          print_header "Minikube tunnel logs"
+          cat /tmp/minikube-tunnel.logs
+
+          print_header "System resources"
+          free -h
+          df -h
+        env:
+          KUBERNETES_APP_NAME: awala-endpoint
+        timeout-minutes: 2
