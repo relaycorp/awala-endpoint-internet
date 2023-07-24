@@ -166,7 +166,7 @@ jobs:
           eval $(minikube docker-env -p knative --unset)
 
           print_header "Knative services"
-          kn service list
+          kn service list || true
 
           print_header "Kubernetes resources"
           kubectl get all --all-namespaces
