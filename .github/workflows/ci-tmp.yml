@@ -37,7 +37,7 @@ jobs:
         uses: medyagh/setup-minikube@v0.0.13
         with:
           minikube-version: '1.31.1'
-          kubernetes-version: "v1.25.3"
+          kubernetes-version: "v1.27.3"
           cpus: max
           memory: 5000m
         timeout-minutes: 5
