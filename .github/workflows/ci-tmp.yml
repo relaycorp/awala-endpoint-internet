@@ -32,6 +32,9 @@ jobs:
 #      - run: npm test
 #        timeout-minutes: 5
 
+      - name: "Workaround minikube#11513 bug"
+        run: "sudo sysctl net/netfilter/nf_conntrack_max=524288"
+
       # Functional tests
       - name: Create cluster
         uses: medyagh/setup-minikube@v0.0.13
