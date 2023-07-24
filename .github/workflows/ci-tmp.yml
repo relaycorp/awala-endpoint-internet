@@ -101,7 +101,9 @@ jobs:
           set -o errexit
           set -o pipefail
 
-          skaffold --verbosity=debug run
+          skaffold run
+
+          kubectl wait --for=condition=complete --timeout=60s job/vault-config
         timeout-minutes: 5
       - name: Functional tests
         timeout-minutes: 3
