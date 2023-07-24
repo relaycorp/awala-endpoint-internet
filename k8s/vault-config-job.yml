@@ -3,7 +3,7 @@ kind: Job
 metadata:
   name: vault-config
 spec:
-  ttlSecondsAfterFinished: 15
+  ttlSecondsAfterFinished: 120
   template:
     metadata:
       name: "vault-config"
