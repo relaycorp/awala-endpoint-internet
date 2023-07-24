@@ -165,11 +165,11 @@ jobs:
           print_header "Kubernetes resources"
           kubectl get all --all-namespaces
 
-          print_header "App pods"
-          kubectl describe pod -l "app.kubernetes.io/name=${KUBERNETES_APP_NAME}"
+          print_header "All pods"
+          kubectl describe pod
 
-          print_header "App logs"
-          kubectl logs --prefix --all-containers=true -l "app.kubernetes.io/name=${KUBERNETES_APP_NAME}"
+          print_header "All logs"
+          kubectl logs --prefix --all-containers=true
 
           print_header "Minikube tunnel logs"
           cat /tmp/minikube-tunnel.logs
