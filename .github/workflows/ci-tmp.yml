@@ -11,7 +11,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v3
         with:
-          node-version: ${{ inputs.nodejs_version }}
+          node-version: 18
         timeout-minutes: 2
       - name: Get npm cache directory
         id: npm-cache
@@ -22,7 +22,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ steps.npm-cache.outputs.dir }}
-          key: ${{ runner.os }}-${{ inputs.nodejs_version }}-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-18-${{ hashFiles('**/package-lock.json') }}
         timeout-minutes: 5
       - name: Install dependencies
         run: npm ci
@@ -37,7 +37,7 @@ jobs:
         uses: medyagh/setup-minikube@v0.0.13
         with:
           minikube-version: '1.30.1'
-          kubernetes-version: "v2.6.1"
+          kubernetes-version: "v1.25.3"
         timeout-minutes: 5
       - name: Setup Knative
         run: |-
@@ -70,8 +70,8 @@ jobs:
 
           minikube tunnel -p knative >>/tmp/minikube-tunnel.logs 2>&1 &
         env:
-          KN_VERSION: ${{ inputs.knative_version }}
-          KUBERNETES_VERSION: "2.6.1"
+          KN_VERSION: "1.9.0"
+          KUBERNETES_VERSION: "1.25.3"
         timeout-minutes: 5
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
