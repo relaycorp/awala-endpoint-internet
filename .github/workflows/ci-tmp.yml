@@ -102,18 +102,17 @@ jobs:
           set -o pipefail
 
           skaffold run
-
-          kubectl wait --for=condition=complete --timeout=60s job/vault-config
         timeout-minutes: 5
       - name: Functional tests
-        timeout-minutes: 3
+        timeout-minutes: 5
         run: |-
           set -o nounset
           set -o errexit
           set -o pipefail
 
           # Wait for backing services (e.g., MongoDB) and app to be ready
-          sleep 60s
+          kubectl wait --for=condition=complete --timeout=60s job/vault-config
+          sleep 30s
           npm run test:functional
 
       # Export Docker image so it can be published
