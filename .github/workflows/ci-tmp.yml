@@ -114,7 +114,7 @@ jobs:
           set -o pipefail
 
           # Wait for backing services (e.g., MongoDB) and app to be ready
-          kubectl wait --for=condition=complete --timeout=60s job/vault-config
+          kubectl wait --for=condition=complete --timeout=120s job/vault-config
           sleep 30s
           npm run test:functional
 
