@@ -51,7 +51,7 @@ All the processes use the following variables:
 - `PRIVATE_KEY_STORE_ADAPTER` (required): The [`@relaycorp/awala-keystore-cloud`](https://www.npmjs.com/package/@relaycorp/awala-keystore-cloud) adapter (e.g., `VAULT`).
 - `CE_TRANSPORT` (default: `ce-http-binary`): The [`@relaycorp/cloudevents-transport`](https://www.npmjs.com/package/@relaycorp/cloudevents-transport) transport to use. Each transport has its own set of environment variables.
 - `LOG_TARGET` (optional): The [`@relaycorp/pino-cloud`](https://www.npmjs.com/package/@relaycorp/pino-cloud) target (e.g., `gcp`).
-- `LOG_LEVEL` (default: `info`): The [pino](https://www.npmjs.com/package/pino) log level.
+- `LOG_LEVEL` (default: `info`): The [`pino` log level](https://github.com/pinojs/pino/blob/master/docs/api.md#levels).
 
 `@relaycorp/webcrypto-kms` and `@relaycorp/awala-keystore-cloud` require additional variables which are specific to the adapter.
 

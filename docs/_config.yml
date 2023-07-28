@@ -12,6 +12,10 @@ color_scheme: dark
 
 search_enabled: false
 
+aux_links:
+  "GitHub project":
+    - "https://github.com/relaycorp/awala-endpoint-internet"
+
 exclude:
   - Gemfile
   - Gemfile.lock
