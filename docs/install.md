@@ -7,7 +7,7 @@ nav_order: 1
 
 The app comprises two HTTP servers and a bootstrapping script that should be run on each deployment. They're all distributed in the same Docker image: [`ghcr.io/relaycorp/awala-endpoint`](https://github.com/relaycorp/awala-endpoint-internet/pkgs/container/awala-endpoint).
 
-If you're deploying the app to Google Cloud Platform, you should use the official module [`relaycorp/awala-endpoint/google`](https://registry.terraform.io/modules/relaycorp/awala-endpoint/google/latest).
+If you're deploying the app to Google Cloud Platform, you should use the official module [`relaycorp/awala-endpoint/google`](https://registry.terraform.io/modules/relaycorp/awala-endpoint/google/latest) and skip the rest of this document.
 
 ## Containers
 
