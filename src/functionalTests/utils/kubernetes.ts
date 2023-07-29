@@ -33,21 +33,28 @@ export async function connectToClusterService(
       reject(new Error(`Failed to start port-forward ${serviceName}: ${error.message}\n${stderr}`));
     });
 
+    let commandError: Error | undefined;
+
     kubectlPortForward.once('close', (exitCode) => {
       console.log(new Date(), `BADGER port-forward ${serviceName}, close ${exitCode!}`);
       if (exitCode !== null && 0 < exitCode) {
         reject(
           new Error(`Port forwarder for ${serviceName} exited with code ${exitCode}:\n${stderr}`),
         );
+      } else if (commandError === undefined) {
+        resolve();
+      } else {
+        reject(commandError);
       }
     });
 
     kubectlPortForward.once('spawn', () => {
       console.log(new Date(), `BADGER port-forward ${serviceName}, spawn`);
-      // eslint-disable-next-line promise/catch-or-return
       command(localPort)
         // eslint-disable-next-line promise/prefer-await-to-then
-        .then(resolve, reject)
+        .catch((error: unknown) => {
+          commandError = error as Error;
+        })
         // eslint-disable-next-line promise/prefer-await-to-then
         .finally(() => {
           kubectlPortForward.kill();
