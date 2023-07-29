@@ -200,6 +200,10 @@ jobs:
           print_header "System resources"
           free -h
           df -h
+
+          print_header "Minikube system resources"
+          minikube -p knative ssh -- free -h
+          minikube -p knative ssh -- df -h
         env:
           KUBERNETES_APP_NAME: awala-endpoint
         timeout-minutes: 2
