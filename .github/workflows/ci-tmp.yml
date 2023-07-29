@@ -67,11 +67,11 @@ jobs:
             --install-serving \
             --install-eventing
 
-          echo "Work around https://github.com/knative-sandbox/kn-plugin-quickstart/issues/104"
-          kubectl patch deployment/3scale-kourier-gateway \
-            --namespace kourier-system \
-            --type json \
-            -p='[{"op": "remove", "path": "/spec/template/spec/containers/0/resources"}]'
+#          echo "Work around https://github.com/knative-sandbox/kn-plugin-quickstart/issues/104"
+#          kubectl patch deployment/3scale-kourier-gateway \
+#            --namespace kourier-system \
+#            --type json \
+#            -p='[{"op": "remove", "path": "/spec/template/spec/containers/0/resources"}]'
 
           minikube tunnel -p knative >>/tmp/minikube-tunnel.logs 2>&1 &
         env:
