@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { spawn } from 'node:child_process';
 
 import getPort from 'get-port';
@@ -18,6 +19,7 @@ export async function connectToClusterService(
 
   // eslint-disable-next-line promise/avoid-new
   return new Promise<void>((resolve, reject) => {
+    console.log(new Date(), `BADGER port-forward ${serviceName}, starting`);
     const kubectlPortForward = spawn('kubectl', kubectlArgs, {
       signal: abortController.signal,
       timeout: COMMAND_TIMEOUT_SECONDS,
@@ -25,6 +27,7 @@ export async function connectToClusterService(
 
     let stderr = '';
     kubectlPortForward.stderr.on('data', (data: Buffer) => {
+      console.log(new Date(), `BADGER port-forward ${serviceName}`);
       stderr += data.toString();
     });
 
@@ -33,6 +36,7 @@ export async function connectToClusterService(
     });
 
     kubectlPortForward.once('close', (exitCode) => {
+      console.log(new Date(), `BADGER port-forward ${serviceName}, close ${exitCode!}`);
       if (exitCode !== null && 0 < exitCode) {
         reject(
           new Error(`Port forwarder for ${serviceName} exited with code ${exitCode}:\n${stderr}`),
@@ -43,6 +47,7 @@ export async function connectToClusterService(
     });
 
     kubectlPortForward.once('spawn', () => {
+      console.log(new Date(), `BADGER port-forward ${serviceName}, spawn`);
       // eslint-disable-next-line promise/catch-or-return
       command(localPort)
         // eslint-disable-next-line promise/prefer-await-to-then

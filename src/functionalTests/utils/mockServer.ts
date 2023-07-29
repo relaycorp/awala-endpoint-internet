@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { mockServerClient, type Expectation, type HttpResponse } from 'mockserver-client';
 import type { MockServerClient } from 'mockserver-client/mockServerClient.js';
 
@@ -15,10 +16,14 @@ async function connectToMockServer(serviceName: string, command: Command): Promi
   const revision = await getServiceActiveRevision(serviceName);
   const privateServiceName = `${revision}-private`;
   await connectToClusterService(privateServiceName, SERVICE_PORT, async (localPort) => {
+    console.log(new Date(), `BADGER mock server ${serviceName}, forwarding`);
     await sleep(PORT_FORWARDING_DELAY_MS);
 
+    console.log(new Date(), `BADGER mock server ${serviceName}, slept`);
     const client = mockServerClient('127.0.0.1', localPort);
+    console.log(new Date(), `BADGER mock server ${serviceName}, client created`);
     await command(client);
+    console.log(new Date(), `BADGER mock server ${serviceName}, command execurted`);
   });
 }
 

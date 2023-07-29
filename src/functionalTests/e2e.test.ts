@@ -32,11 +32,8 @@ async function postPda(channel: PrivateInternetEndpointChannel) {
 
 describe('E2E', () => {
   test('Incoming service message should be sent to app', async () => {
-    console.log(new Date(), 'BADGER, test start');
     const privateEndpoint = await PrivateEndpoint.generate();
-    console.log(new Date(), 'BADGER, generated private endpoint');
     const channel = await privateEndpoint.saveInternetEndpointChannel();
-    console.log(new Date(), 'BADGER, saved channel');
     const serviceMessage = new ServiceMessage(
       SERVICE_MESSAGE_CONTENT_TYPE,
       SERVICE_MESSAGE_CONTENT,
