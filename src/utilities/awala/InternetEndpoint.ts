@@ -40,9 +40,17 @@ async function retrieveIdentityPrivateKeyRef(): Promise<CryptoKey> {
   return kms.retrievePrivateKeyByRef(Buffer.from(activeIdKeyRef));
 }
 
+function convertPemToDer(pem: string): Buffer {
+  const pemLines = pem.split('\n');
+  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+  const pemBody = pemLines.length === 1 ? pemLines[0] : pemLines.slice(1, -1).join('');
+  return Buffer.from(pemBody, 'base64');
+}
+
 async function getIdentityPublicKey() {
-  const activeIdPublicKeyBase64 = envVar.get('ACTIVE_ID_PUBLIC_KEY').required().asString();
-  return derDeserializeRSAPublicKey(Buffer.from(activeIdPublicKeyBase64, 'base64'));
+  const keyPem = envVar.get('ACTIVE_ID_PUBLIC_KEY').required().asString();
+  const keyDer = convertPemToDer(keyPem);
+  return derDeserializeRSAPublicKey(keyDer);
 }
 
 async function getEcdhPublicKeyFromPrivateKey(privateKey: CryptoKey): Promise<CryptoKey> {

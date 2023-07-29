@@ -112,20 +112,39 @@ describe('getActive', () => {
     );
   });
 
-  test('Public key should be loaded from env var', async () => {
-    const {
-      identityKeyPair: { publicKey },
-    } = await InternetEndpoint.getActive(dbConnection);
-
-    await expect(derSerializePublicKey(publicKey)).resolves.toMatchObject(
-      ENDPOINT_ID_PUBLIC_KEY_DER,
-    );
-  });
-
   test('Id should be derived from public key', async () => {
     const { id } = await InternetEndpoint.getActive(dbConnection);
 
     expect(id).toBe(ENDPOINT_ID);
+  });
+
+  describe('Identity public key', () => {
+    test('Key should be base64-decoded if ACTIVE_ID_PUBLIC_KEY is in DER format', async () => {
+      const {
+        identityKeyPair: { publicKey },
+      } = await InternetEndpoint.getActive(dbConnection);
+
+      await expect(derSerializePublicKey(publicKey)).resolves.toMatchObject(
+        ENDPOINT_ID_PUBLIC_KEY_DER,
+      );
+    });
+
+    test('Key should be converted to DER if ACTIVE_ID_PUBLIC_KEY is in PEM format', async () => {
+      const publicKeyPem = [
+        '-----BEGIN PUBLIC KEY-----',
+        ENDPOINT_ID_PUBLIC_KEY_DER.toString('base64'),
+        '-----END PUBLIC KEY-----',
+      ].join('\n');
+      mockEnvVars({ ...REQUIRED_ENV_VARS, ACTIVE_ID_PUBLIC_KEY: publicKeyPem });
+
+      const {
+        identityKeyPair: { publicKey },
+      } = await InternetEndpoint.getActive(dbConnection);
+
+      await expect(derSerializePublicKey(publicKey)).resolves.toMatchObject(
+        ENDPOINT_ID_PUBLIC_KEY_DER,
+      );
+    });
   });
 
   describe('Key stores', () => {
