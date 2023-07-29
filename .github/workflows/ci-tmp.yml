@@ -106,7 +106,7 @@ jobs:
 
           skaffold run
 
-          kubectl wait job --for=condition=complete --timeout=2m --all
+          kubectl wait job --for=condition=complete --timeout=3m --all
           kubectl rollout status deployments --timeout=2m
         timeout-minutes: 7
       - name: Functional tests
