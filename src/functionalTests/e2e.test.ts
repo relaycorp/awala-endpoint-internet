@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { Parcel, ServiceMessage } from '@relaycorp/relaynet-core';
 import { CloudEvent } from 'cloudevents';
 import { addSeconds, formatISO } from 'date-fns';
@@ -31,23 +32,31 @@ async function postPda(channel: PrivateInternetEndpointChannel) {
 
 describe('E2E', () => {
   test('Incoming service message should be sent to app', async () => {
+    console.log(new Date(), 'BADGER, test start');
     const privateEndpoint = await PrivateEndpoint.generate();
+    console.log(new Date(), 'BADGER, generated private endpoint');
     const channel = await privateEndpoint.saveInternetEndpointChannel();
+    console.log(new Date(), 'BADGER, saved channel');
     const serviceMessage = new ServiceMessage(
       SERVICE_MESSAGE_CONTENT_TYPE,
       SERVICE_MESSAGE_CONTENT,
     );
     const parcel = await channel.makeMessage(serviceMessage, Parcel);
+    console.log(new Date(), 'BADGER, made message');
     await setMockServerExpectation('mock-app', {
       httpResponse: {
         statusCode: HTTP_STATUS_CODES.ACCEPTED,
       },
     });
+    console.log(new Date(), 'BADGER, set expectation');
 
     await postParcel(parcel);
+    console.log(new Date(), 'BADGER, posted parcel');
 
     await sleep(1000);
+    console.log(new Date(), 'BADGER, slept after posting parcel');
     const requests = await getMockServerRequests('mock-app');
+    console.log(new Date(), 'BADGER, got mock requests');
     expect(requests).toHaveLength(1);
     const [request] = requests;
     expect(request.headers).toHaveProperty('Ce-Type', [INCOMING_SERVICE_MESSAGE_TYPE]);
