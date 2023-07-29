@@ -7,7 +7,11 @@ nav_order: 2
 
 The app sitting behind this middleware may be written in any language and run on any platform. The only requirement is that it can send and receive the CloudEvents described below, and transmit them in binary mode.
 
-## Sending messages to gateways
+## CloudEvents
+
+If your app is written in JavaScript, you may want to use the library [`@relaycorp/awala-endpoint-internet`](https://www.npmjs.com/package/@relaycorp/awala-endpoint-internet) to convert between the following CloudEvents and higher-level JS objects.
+
+### Outgoing service messages
 
 Every outgoing service message MUST be sent as a CloudEvent with the following attributes:
 
@@ -21,7 +25,7 @@ Every outgoing service message MUST be sent as a CloudEvent with the following a
 - `time`: The creation time of the parcel.
 - `expiry` (`Timestamp`, custom attribute): The time at which the parcel expires. If unset, will default to 6 months after the creation time.
 
-## Receiving messages from gateways
+### Incoming service messages
 
 Every incoming service message is received as a CloudEvent with the following attributes:
 
