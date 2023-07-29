@@ -7,6 +7,8 @@ nav_order: 1
 
 The app comprises two HTTP servers and a bootstrapping script that should be run on each deployment. They're all distributed in the same Docker image: [`ghcr.io/relaycorp/awala-endpoint`](https://github.com/relaycorp/awala-endpoint-internet/pkgs/container/awala-endpoint).
 
+If you're deploying the app to Google Cloud Platform, you should use the official module [`relaycorp/awala-endpoint/google`](https://registry.terraform.io/modules/relaycorp/awala-endpoint/google/latest) and skip the rest of this document.
+
 ## Containers
 
 ### PoHTTP server
@@ -52,6 +54,7 @@ All the processes use the following variables:
 - `PRIVATE_KEY_STORE_ADAPTER` (required): The [`@relaycorp/awala-keystore-cloud`](https://www.npmjs.com/package/@relaycorp/awala-keystore-cloud) adapter (e.g., `VAULT`).
 - `CE_TRANSPORT` (default: `ce-http-binary`): The [`@relaycorp/cloudevents-transport`](https://www.npmjs.com/package/@relaycorp/cloudevents-transport) transport to use. Each transport has its own set of environment variables.
 - `LOG_TARGET` (optional): The [`@relaycorp/pino-cloud`](https://www.npmjs.com/package/@relaycorp/pino-cloud) target (e.g., `gcp`).
+- `LOG_LEVEL` (default: `info`): The [`pino` log level](https://github.com/pinojs/pino/blob/master/docs/api.md#levels).
 
 `@relaycorp/webcrypto-kms` and `@relaycorp/awala-keystore-cloud` require additional variables which are specific to the adapter.
 

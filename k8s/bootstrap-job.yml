@@ -22,7 +22,7 @@ spec:
           imagePullPolicy: IfNotPresent
           args: [pohttp-bootstrap]
           env:
-            - name: MONGODB_USERNAME
+            - name: MONGODB_USER
               valueFrom:
                 configMapKeyRef:
                   name: credentials
@@ -33,7 +33,7 @@ spec:
                   name: credentials
                   key: mongodb_password
             - name: MONGODB_URI
-              value: mongodb://$(MONGODB_USERNAME):$(MONGODB_PASSWORD)@mongodb
+              value: mongodb://mongodb
 
             - name: KS_VAULT_TOKEN
               valueFrom:
