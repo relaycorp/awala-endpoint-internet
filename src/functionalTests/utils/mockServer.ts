@@ -22,7 +22,13 @@ async function connectToMockServer(serviceName: string, command: Command): Promi
     console.log(new Date(), `BADGER mock server ${serviceName}, slept`);
     const client = mockServerClient('127.0.0.1', localPort);
     console.log(new Date(), `BADGER mock server ${serviceName}, client created`);
-    await command(client);
+    try {
+      await command(client);
+    } catch (err: any) {
+      // The "mockserver-client" library can throw errors with cryptic messages and no stack trace.
+      const errMessage = (err as Error).message;
+      throw new Error(`Failed to execute command on mock server ${serviceName}: ${errMessage}`);
+    }
     console.log(new Date(), `BADGER mock server ${serviceName}, command execurted`);
   });
 }
