@@ -192,9 +192,6 @@ jobs:
           print_header "System resources"
           free -h
           df -h
-
-          print_header "Proxy env vars"
-          env | grep -i proxy
         env:
           KUBERNETES_APP_NAME: awala-endpoint
         timeout-minutes: 2
