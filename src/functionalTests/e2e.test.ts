@@ -5,7 +5,7 @@ import { addSeconds, formatISO } from 'date-fns';
 import { SERVICE_MESSAGE_CONTENT, SERVICE_MESSAGE_CONTENT_TYPE } from '../testUtils/awala/stubs.js';
 import { HTTP_STATUS_CODES } from '../utilities/http.js';
 import { INCOMING_SERVICE_MESSAGE_TYPE } from '../events/incomingServiceMessage.event.js';
-import { CE_CONTENT_TYPE, CE_DATA, CE_ID, CE_SOURCE } from '../testUtils/eventing/stubs.js';
+import { CE_CONTENT_TYPE, CE_DATA, CE_ID } from '../testUtils/eventing/stubs.js';
 import { OUTGOING_SERVICE_MESSAGE_TYPE } from '../events/outgoingServiceMessage.event.js';
 
 import { PrivateEndpoint } from './utils/awala/PrivateEndpoint.js';
@@ -64,7 +64,7 @@ describe('E2E', () => {
     const now = new Date();
     const outgoingServiceMessageEvent = new CloudEvent({
       id: CE_ID,
-      source: CE_SOURCE,
+      source: channel.peer.id,
       type: OUTGOING_SERVICE_MESSAGE_TYPE,
       subject: privateEndpoint.id,
       datacontenttype: CE_CONTENT_TYPE,

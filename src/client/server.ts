@@ -19,13 +19,21 @@ import {
 } from '../events/outgoingServiceMessage.event.js';
 import { DEFAULT_TRANSPORT } from '../utilities/eventing/transport.js';
 
+const DEFAULT_SENDER_ID_KEYWORD = 'default';
+
 async function getChannel(
   eventData: OutgoingServiceMessageOptions,
   activeEndpoint: InternetEndpoint,
   logger: BaseLogger,
   dbConnection: Connection,
 ) {
-  const channel = await activeEndpoint.getPeerChannel(eventData.peerId, dbConnection);
+  let channel;
+  try {
+    channel = await activeEndpoint.getPeerChannel(eventData.peerId, dbConnection);
+  } catch (err) {
+    logger.error({ err }, 'Failed to get channel with peer');
+    return null;
+  }
 
   if (!channel) {
     logger.warn('Could not find channel with peer');
@@ -80,11 +88,16 @@ export async function makePohttpClientPlugin(server: FastifyInstance): Promise<v
     } catch {
       return reply.status(HTTP_STATUS_CODES.BAD_REQUEST).send();
     }
-
     const parcelAwareLogger = request.log.child({
       parcelId: event.id,
       peerId: event.subject,
     });
+
+    if (event.source !== server.activeEndpoint.id && event.source !== DEFAULT_SENDER_ID_KEYWORD) {
+      parcelAwareLogger.warn({ senderId: event.source }, 'Unknown sender endpoint id');
+      return reply.status(HTTP_STATUS_CODES.BAD_REQUEST).send();
+    }
+
     const messageOptions = getOutgoingServiceMessageOptions(event, parcelAwareLogger);
     if (!messageOptions) {
       return reply.status(HTTP_STATUS_CODES.BAD_REQUEST).send();
