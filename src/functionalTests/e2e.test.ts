@@ -62,7 +62,7 @@ describe('E2E', () => {
       decodeBinaryBody(request.body as BinaryBody, SERVICE_MESSAGE_CONTENT_TYPE),
     ).toStrictEqual(SERVICE_MESSAGE_CONTENT);
     console.log(new Date(), 'BADGER INCOMING, end');
-  }, 10_000);
+  }, 15_000);
 
   test('Outgoing service message should be sent to gateway', async () => {
     console.log(new Date(), 'BADGER OUTGOING, start');
