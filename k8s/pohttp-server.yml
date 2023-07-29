@@ -19,7 +19,7 @@ spec:
               path: /
             initialDelaySeconds: 1
           env:
-            - name: MONGODB_USERNAME
+            - name: MONGODB_USER
               valueFrom:
                 configMapKeyRef:
                   name: credentials
@@ -30,7 +30,7 @@ spec:
                   name: credentials
                   key: mongodb_password
             - name: MONGODB_URI
-              value: mongodb://$(MONGODB_USERNAME):$(MONGODB_PASSWORD)@mongodb.default
+              value: mongodb://mongodb.default
 
             - name: KS_VAULT_TOKEN
               valueFrom:
