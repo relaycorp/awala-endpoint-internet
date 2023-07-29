@@ -14,14 +14,12 @@ export async function connectToClusterService(
 ): Promise<unknown> {
   const localPort = await getPort();
 
-  const abortController = new AbortController();
   const kubectlArgs = ['port-forward', `svc/${serviceName}`, `${localPort}:${servicePort}`];
 
   // eslint-disable-next-line promise/avoid-new
   return new Promise<void>((resolve, reject) => {
     console.log(new Date(), `BADGER port-forward ${serviceName}, starting`);
     const kubectlPortForward = spawn('kubectl', kubectlArgs, {
-      signal: abortController.signal,
       timeout: COMMAND_TIMEOUT_SECONDS,
     });
 
@@ -41,8 +39,6 @@ export async function connectToClusterService(
         reject(
           new Error(`Port forwarder for ${serviceName} exited with code ${exitCode}:\n${stderr}`),
         );
-      } else {
-        resolve();
       }
     });
 
@@ -54,7 +50,7 @@ export async function connectToClusterService(
         .then(resolve, reject)
         // eslint-disable-next-line promise/prefer-await-to-then
         .finally(() => {
-          abortController.abort();
+          kubectlPortForward.kill();
         });
     });
   });
