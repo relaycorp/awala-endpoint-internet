@@ -99,19 +99,21 @@ jobs:
           SKAFFOLD_VERSION: "2.6.1"
         timeout-minutes: 2
       - name: Run Skaffold pipeline
+        run: skaffold run
+        timeout-minutes: 5
+      - name: Wait for Kubernetes resources
         run: |-
           set -o nounset
           set -o errexit
           set -o pipefail
-
-          skaffold run
+          set -x
 
           if kubectl get job --ignore-not-found | grep -q .; then
             kubectl wait job --for=condition=complete --timeout=3m --all
           fi
           kubectl rollout status deployments --timeout=2m
           kubectl wait service.serving.knative.dev --for=condition=ready --timeout=2m --all
-        timeout-minutes: 7
+        timeout-minutes: 5
       - name: Functional tests
         timeout-minutes: 5
         run: npm run test:functional
