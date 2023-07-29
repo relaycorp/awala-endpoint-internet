@@ -182,13 +182,19 @@ jobs:
           print_header "Minikube tunnel logs"
           cat /tmp/minikube-tunnel.logs
 
-          print_header "System resources"
-          free -h
-          df -h
+          print_header "Minikube logs"
+          minikube logs -p knative
 
           print_header "Minikube system resources"
           minikube -p knative ssh -- free -h
           minikube -p knative ssh -- df -h
+
+          print_header "System resources"
+          free -h
+          df -h
+
+          print_header "Proxy env vars"
+          env | grep -i proxy
         env:
           KUBERNETES_APP_NAME: awala-endpoint
         timeout-minutes: 2
