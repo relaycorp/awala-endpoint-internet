@@ -51,7 +51,7 @@ describe('E2E', () => {
     await postParcel(parcel);
     console.log(new Date(), 'BADGER, posted parcel');
 
-    await sleep(1000);
+    await sleep(1500);
     console.log(new Date(), 'BADGER, slept after posting parcel');
     const requests = await getMockServerRequests('mock-app');
     console.log(new Date(), 'BADGER, got mock requests');
