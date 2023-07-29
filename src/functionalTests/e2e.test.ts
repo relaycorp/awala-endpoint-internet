@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { Parcel, ServiceMessage } from '@relaycorp/relaynet-core';
 import { CloudEvent } from 'cloudevents';
 import { addSeconds, formatISO } from 'date-fns';
@@ -31,6 +32,7 @@ async function postPda(channel: PrivateInternetEndpointChannel) {
 
 describe('E2E', () => {
   test('Incoming service message should be sent to app', async () => {
+    console.log(new Date(), 'BADGER INCOMING, start');
     const privateEndpoint = await PrivateEndpoint.generate();
     const channel = await privateEndpoint.saveInternetEndpointChannel();
     const serviceMessage = new ServiceMessage(
@@ -38,25 +40,32 @@ describe('E2E', () => {
       SERVICE_MESSAGE_CONTENT,
     );
     const parcel = await channel.makeMessage(serviceMessage, Parcel);
+    console.log(new Date(), 'BADGER, made message');
     await setMockServerExpectation('mock-app', {
       httpResponse: {
         statusCode: HTTP_STATUS_CODES.ACCEPTED,
       },
     });
+    console.log(new Date(), 'BADGER, set expectation');
 
     await postParcel(parcel);
+    console.log(new Date(), 'BADGER, posted parcel');
 
     await sleep(1000);
+    console.log(new Date(), 'BADGER, slept after posting parcel');
     const requests = await getMockServerRequests('mock-app');
+    console.log(new Date(), 'BADGER, got mock requests');
     expect(requests).toHaveLength(1);
     const [request] = requests;
     expect(request.headers).toHaveProperty('Ce-Type', [INCOMING_SERVICE_MESSAGE_TYPE]);
     expect(
       decodeBinaryBody(request.body as BinaryBody, SERVICE_MESSAGE_CONTENT_TYPE),
     ).toStrictEqual(SERVICE_MESSAGE_CONTENT);
+    console.log(new Date(), 'BADGER INCOMING, end');
   }, 10_000);
 
   test('Outgoing service message should be sent to gateway', async () => {
+    console.log(new Date(), 'BADGER OUTGOING, start');
     const privateEndpoint = await PrivateEndpoint.generate();
     const channel = await privateEndpoint.saveInternetEndpointChannel();
     await postPda(channel);
@@ -82,5 +91,6 @@ describe('E2E', () => {
     expect(requests).toHaveLength(1);
     const [request] = requests;
     expect(request.headers).toHaveProperty('Content-Type', ['application/vnd.awala.parcel']);
+    console.log(new Date(), 'BADGER OUTGOING, end');
   }, 10_000);
 });
