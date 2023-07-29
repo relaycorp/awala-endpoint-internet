@@ -1,11 +1,11 @@
 import { jest } from '@jest/globals';
-import { CloudEvent } from 'cloudevents';
+import { CloudEvent, type EmitterFunction } from 'cloudevents';
 
-import { mockSpy } from '../../testUtils/jest.js';
+import { getPromiseRejection, mockSpy } from '../../testUtils/jest.js';
 import { CE_ID, CE_SOURCE, CE_TRANSPORT } from '../../testUtils/eventing/stubs.js';
 import { configureMockEnvVars } from '../../testUtils/envVars.js';
 
-const mockEmitterFunction = mockSpy(jest.fn());
+const mockEmitterFunction = mockSpy(jest.fn<EmitterFunction>());
 jest.unstable_mockModule('@relaycorp/cloudevents-transport', () => ({
   makeEmitter: jest.fn<any>().mockReturnValue(mockEmitterFunction),
 }));
@@ -62,6 +62,17 @@ describe('Emitter', () => {
       await emitter.emit(event);
 
       expect(makeEmitter).toHaveBeenCalledWith(CE_TRANSPORT);
+    });
+
+    test('Errors thrown by the emitter should be wrapped', async () => {
+      const emitter = Emitter.init();
+      const originalError = new Error('test');
+      mockEmitterFunction.mockRejectedValueOnce(originalError);
+
+      const error = await getPromiseRejection(async () => emitter.emit(event), Error);
+
+      expect(error.message).toBe('Failed to emit event');
+      expect(error.cause).toBe(originalError);
     });
   });
 });
