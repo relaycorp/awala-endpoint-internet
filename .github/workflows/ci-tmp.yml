@@ -185,9 +185,8 @@ jobs:
           print_header "Minikube logs"
           minikube logs -p knative
 
-          print_header "Minikube system resources"
-          minikube -p knative ssh -- free -h
-          minikube -p knative ssh -- df -h
+          print_header "Minikube status"
+          minikube status -p knative
 
           print_header "System resources"
           free -h
