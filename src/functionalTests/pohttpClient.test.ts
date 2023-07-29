@@ -1,7 +1,7 @@
 import { CloudEvent } from 'cloudevents';
 
 import { HTTP_STATUS_CODES } from '../utilities/http.js';
-import { CE_ID, CE_SOURCE } from '../testUtils/eventing/stubs.js';
+import { CE_ID } from '../testUtils/eventing/stubs.js';
 import { OUTGOING_SERVICE_MESSAGE_TYPE } from '../events/outgoingServiceMessage.event.js';
 import {
   PEER_ID,
@@ -16,7 +16,7 @@ describe('PoHTTP client', () => {
     // An event with an invalid expiry
     const incompleteEvent = new CloudEvent({
       id: CE_ID,
-      source: CE_SOURCE,
+      source: 'default',
       type: OUTGOING_SERVICE_MESSAGE_TYPE,
       expiry: 'invalid',
       subject: PEER_ID,
