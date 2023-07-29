@@ -32,6 +32,7 @@ async function postPda(channel: PrivateInternetEndpointChannel) {
 
 describe('E2E', () => {
   test('Incoming service message should be sent to app', async () => {
+    console.log(new Date(), 'BADGER INCOMING, start');
     const privateEndpoint = await PrivateEndpoint.generate();
     const channel = await privateEndpoint.saveInternetEndpointChannel();
     const serviceMessage = new ServiceMessage(
@@ -60,9 +61,11 @@ describe('E2E', () => {
     expect(
       decodeBinaryBody(request.body as BinaryBody, SERVICE_MESSAGE_CONTENT_TYPE),
     ).toStrictEqual(SERVICE_MESSAGE_CONTENT);
+    console.log(new Date(), 'BADGER INCOMING, end');
   }, 10_000);
 
   test('Outgoing service message should be sent to gateway', async () => {
+    console.log(new Date(), 'BADGER OUTGOING, start');
     const privateEndpoint = await PrivateEndpoint.generate();
     const channel = await privateEndpoint.saveInternetEndpointChannel();
     await postPda(channel);
@@ -88,5 +91,6 @@ describe('E2E', () => {
     expect(requests).toHaveLength(1);
     const [request] = requests;
     expect(request.headers).toHaveProperty('Content-Type', ['application/vnd.awala.parcel']);
+    console.log(new Date(), 'BADGER OUTGOING, end');
   }, 10_000);
 });
