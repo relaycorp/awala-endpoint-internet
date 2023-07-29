@@ -1,7 +1,7 @@
 import envVar from 'env-var';
 
 const isCi = envVar.get('CI').default('false').asBool();
-const CI_WAIT_FACTOR = 2;
+const CI_WAIT_FACTOR = 3;
 
 export async function sleep(milliseconds: number): Promise<void> {
   const waitMilliseconds = isCi ? milliseconds * CI_WAIT_FACTOR : milliseconds;
