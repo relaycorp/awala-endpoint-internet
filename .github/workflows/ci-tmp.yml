@@ -113,6 +113,7 @@ jobs:
           fi
           kubectl wait service.serving.knative.dev --for=condition=ready --timeout=3m --all
           kubectl wait broker.eventing.knative.dev --for=condition=ready --timeout=3m --all
+          kubectl wait trigger.eventing.knative.dev --for=condition=ready --timeout=3m --all
         timeout-minutes: 5
       - name: Functional tests
         timeout-minutes: 5
