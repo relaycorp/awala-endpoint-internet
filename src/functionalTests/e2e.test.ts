@@ -46,7 +46,7 @@ describe('E2E', () => {
 
     await postParcel(parcel);
 
-    await sleep(1500);
+    await sleep(1000);
     const requests = await getMockServerRequests('mock-app');
     expect(requests).toHaveLength(1);
     const [request] = requests;
@@ -54,7 +54,7 @@ describe('E2E', () => {
     expect(
       decodeBinaryBody(request.body as BinaryBody, SERVICE_MESSAGE_CONTENT_TYPE),
     ).toStrictEqual(SERVICE_MESSAGE_CONTENT);
-  }, 15_000);
+  }, 10_000);
 
   test('Outgoing service message should be sent to gateway', async () => {
     const privateEndpoint = await PrivateEndpoint.generate();
