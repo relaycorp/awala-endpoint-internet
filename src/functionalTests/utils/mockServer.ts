@@ -45,7 +45,7 @@ export async function setMockServerExpectation(
 
 export async function getMockServerRequests(
   serviceName: string,
-  retriesIfNoRequests = 2,
+  retriesIfNoRequests = 3,
 ): Promise<HttpResponse[]> {
   await sleep(1);
 
