@@ -10,6 +10,7 @@ jobs:
       docker_image_local_name: dev.local/awala-endpoint
       dockerhub_username: ${{ vars.DOCKERHUB_USERNAME }}
       kubernetes_app_name: awala-endpoint
+      skaffold_version: 2.6.1
     secrets:
       dockerhub_password: ${{ secrets.DOCKERHUB_PASSWORD }}
 

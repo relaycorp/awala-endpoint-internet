@@ -16,7 +16,6 @@ import {
   decodeBinaryBody,
   setMockServerExpectation,
 } from './utils/mockServer.js';
-import { sleep } from './utils/time.js';
 // eslint-disable-next-line max-len
 import type { PrivateInternetEndpointChannel } from './utils/awala/PrivateInternetEndpointChannel.js';
 
@@ -46,7 +45,6 @@ describe('E2E', () => {
 
     await postParcel(parcel);
 
-    await sleep(1000);
     const requests = await getMockServerRequests('mock-app');
     expect(requests).toHaveLength(1);
     const [request] = requests;
@@ -54,7 +52,7 @@ describe('E2E', () => {
     expect(
       decodeBinaryBody(request.body as BinaryBody, SERVICE_MESSAGE_CONTENT_TYPE),
     ).toStrictEqual(SERVICE_MESSAGE_CONTENT);
-  });
+  }, 10_000);
 
   test('Outgoing service message should be sent to gateway', async () => {
     const privateEndpoint = await PrivateEndpoint.generate();
@@ -77,10 +75,9 @@ describe('E2E', () => {
     });
     await postEventToPohttpClient(outgoingServiceMessageEvent);
 
-    await sleep(1000);
     const requests = await getMockServerRequests('mock-gateway');
     expect(requests).toHaveLength(1);
     const [request] = requests;
     expect(request.headers).toHaveProperty('Content-Type', ['application/vnd.awala.parcel']);
-  });
+  }, 10_000);
 });

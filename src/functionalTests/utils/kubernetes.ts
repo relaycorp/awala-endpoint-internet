@@ -13,13 +13,11 @@ export async function connectToClusterService(
 ): Promise<unknown> {
   const localPort = await getPort();
 
-  const abortController = new AbortController();
   const kubectlArgs = ['port-forward', `svc/${serviceName}`, `${localPort}:${servicePort}`];
 
   // eslint-disable-next-line promise/avoid-new
   return new Promise<void>((resolve, reject) => {
     const kubectlPortForward = spawn('kubectl', kubectlArgs, {
-      signal: abortController.signal,
       timeout: COMMAND_TIMEOUT_SECONDS,
     });
 
@@ -32,24 +30,29 @@ export async function connectToClusterService(
       reject(new Error(`Failed to start port-forward ${serviceName}: ${error.message}\n${stderr}`));
     });
 
+    let commandError: Error | undefined;
+
     kubectlPortForward.once('close', (exitCode) => {
       if (exitCode !== null && 0 < exitCode) {
         reject(
           new Error(`Port forwarder for ${serviceName} exited with code ${exitCode}:\n${stderr}`),
         );
-      } else {
+      } else if (commandError === undefined) {
         resolve();
+      } else {
+        reject(commandError);
       }
     });
 
     kubectlPortForward.once('spawn', () => {
-      // eslint-disable-next-line promise/catch-or-return
       command(localPort)
         // eslint-disable-next-line promise/prefer-await-to-then
-        .then(resolve, reject)
+        .catch((error: unknown) => {
+          commandError = error as Error;
+        })
         // eslint-disable-next-line promise/prefer-await-to-then
         .finally(() => {
-          abortController.abort();
+          kubectlPortForward.kill();
         });
     });
   });

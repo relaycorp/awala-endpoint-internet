@@ -24,3 +24,9 @@ spec:
                   key: vault_token
             - name: VAULT_DEV_LISTEN_ADDRESS
               value: "0.0.0.0:8080"
+          livenessProbe:
+            httpGet:
+              path: /v1/sys/health
+              port: 8080
+            initialDelaySeconds: 10
+            timeoutSeconds: 3

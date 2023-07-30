@@ -24,6 +24,11 @@ export class Emitter<Payload> {
     if (this.emitterFunction === undefined) {
       this.emitterFunction = await makeEmitter(this.transport);
     }
-    await this.emitterFunction(event);
+    try {
+      await this.emitterFunction(event);
+    } catch (err) {
+      // CloudEvents errors can be utterly unhelpful
+      throw new Error('Failed to emit event', { cause: err });
+    }
   }
 }
