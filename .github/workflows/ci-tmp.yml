@@ -118,11 +118,11 @@ jobs:
             fi
           }
 
-          kubectl-wait-if-present job 4m
+          kubectl-wait-if-present job 5m
           kubectl-wait-if-present broker.eventing.knative.dev 2m
           kubectl-wait-if-present trigger.eventing.knative.dev 2m
           kubectl-wait service.serving.knative.dev 2m
-        timeout-minutes: 5
+        timeout-minutes: 7
       - name: Functional tests
         timeout-minutes: 5
         run: npm run test:functional
