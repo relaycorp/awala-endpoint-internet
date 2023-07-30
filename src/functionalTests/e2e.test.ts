@@ -48,8 +48,6 @@ describe('E2E', () => {
 
     await sleep(1500);
     const requests = await getMockServerRequests('mock-app');
-    // eslint-disable-next-line no-console
-    console.log(new Date(), 'BADGER, got mock requests');
     expect(requests).toHaveLength(1);
     const [request] = requests;
     expect(request.headers).toHaveProperty('Ce-Type', [INCOMING_SERVICE_MESSAGE_TYPE]);
