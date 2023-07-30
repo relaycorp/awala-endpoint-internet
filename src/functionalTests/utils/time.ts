@@ -1,7 +1,7 @@
 import envVar from 'env-var';
 
 const isCi = envVar.get('CI').default('false').asBool();
-const CI_WAIT_FACTOR = 3;
+const CI_WAIT_FACTOR = 2;
 
 const MILLISECONDS_IN_SECOND = 1000;
 

@@ -7,7 +7,7 @@ import { getServiceActiveRevision } from './knative.js';
 
 const SERVICE_PORT = 80;
 
-const PORT_FORWARDING_DELAY_SECONDS = 0.4;
+const PORT_FORWARDING_DELAY_SECONDS = 0.5;
 
 type Command = (client: MockServerClient) => Promise<unknown>;
 
@@ -45,7 +45,7 @@ export async function setMockServerExpectation(
 
 export async function getMockServerRequests(
   serviceName: string,
-  retriesIfNoRequests = 1,
+  retriesIfNoRequests = 2,
 ): Promise<HttpResponse[]> {
   await sleep(1);
 
