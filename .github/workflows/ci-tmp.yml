@@ -107,19 +107,21 @@ jobs:
 
           function kubectl-wait() {
             local resource="$1"
-            kubectl wait "$resource" --for=condition=ready --timeout=3m --all
+            local timeout="$2"
+            kubectl wait "$resource" --for=condition=ready "--timeout=$timeout" --all
           }
           function kubectl-wait-if-present() {
             local resource="$1"
+            local timeout="$2"
             if kubectl get "$resource" --ignore-not-found | grep -q .; then
-              kubectl-wait "$resource"
+              kubectl-wait "$resource" "$timeout"
             fi
           }
 
-          kubectl-wait-if-present job
-          kubectl-wait-if-present broker.eventing.knative.dev
-          kubectl-wait-if-present trigger.eventing.knative.dev
-          kubectl-wait service.serving.knative.dev
+          kubectl-wait-if-present job 4m
+          kubectl-wait-if-present broker.eventing.knative.dev 2m
+          kubectl-wait-if-present trigger.eventing.knative.dev 2m
+          kubectl-wait service.serving.knative.dev 2m
         timeout-minutes: 5
       - name: Functional tests
         timeout-minutes: 5
