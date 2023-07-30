@@ -41,7 +41,7 @@
     "env-var": "^7.3.0",
     "fastify": "^4.19.2",
     "fastify-plugin": "^4.5.0",
-    "mongoose": "^7.3.1",
+    "mongoose": "^7.3.4",
     "pino": "^8.11.0"
   },
   "devDependencies": {
