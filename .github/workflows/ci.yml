@@ -9,7 +9,6 @@ jobs:
     with:
       docker_image_local_name: dev.local/awala-endpoint
       dockerhub_username: ${{ vars.DOCKERHUB_USERNAME }}
-      kubernetes_app_name: awala-endpoint
       skaffold_version: 2.6.1
     secrets:
       dockerhub_password: ${{ secrets.DOCKERHUB_PASSWORD }}
@@ -17,3 +16,7 @@ jobs:
   release:
     needs: ci
     uses: relaycorp/shared-workflows/.github/workflows/nodejs-knative-release.yml@main
+    with:
+      dockerhub_username: ${{ vars.DOCKERHUB_USERNAME }}
+    secrets:
+      dockerhub_password: ${{ secrets.DOCKERHUB_PUSH_PASSWORD }}

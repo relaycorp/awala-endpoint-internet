@@ -4,9 +4,6 @@ metadata:
   name: pohttp-bootstrap
 spec:
   template:
-    metadata:
-      labels:
-        app.kubernetes.io/name: awala-endpoint
     spec:
       restartPolicy: OnFailure
 
