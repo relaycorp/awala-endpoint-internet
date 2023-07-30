@@ -108,12 +108,21 @@ jobs:
           set -o pipefail
           set -x
 
-          if kubectl get job --ignore-not-found | grep -q .; then
-            kubectl wait job --for=condition=complete --timeout=3m --all
-          fi
-          kubectl wait service.serving.knative.dev --for=condition=ready --timeout=3m --all
-          kubectl wait broker.eventing.knative.dev --for=condition=ready --timeout=3m --all
-          kubectl wait trigger.eventing.knative.dev --for=condition=ready --timeout=3m --all
+          function kubectl-wait() {
+            local resource="$1"
+            kubectl wait "$resource" --for=condition=ready --timeout=3m --all
+          }
+          function kubectl-wait-if-present() {
+            local resource="$1"
+            if kubectl get "$resource" --ignore-not-found | grep -q .; then
+              kubectl-wait "$resource"
+            fi
+          }
+
+          kubectl-wait-if-present job
+          kubectl-wait-if-present broker.eventing.knative.dev
+          kubectl-wait-if-present trigger.eventing.knative.dev
+          kubectl-wait service.serving.knative.dev
         timeout-minutes: 5
       - name: Functional tests
         timeout-minutes: 5
