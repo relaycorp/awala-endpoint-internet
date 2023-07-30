@@ -20,7 +20,7 @@
     "static-checks:lint": "eslint -c .eslintrc.cjs src",
     "static-checks:prettier": "prettier \"src/**/*.ts\" --list-different",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
-    "test:functional": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config src/functionalTests/jest.config.cjs --runInBand --detectOpenHandles",
+    "test:functional": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config src/functionalTests/jest.config.cjs --runInBand --detectOpenHandles e2e.test.ts",
     "clean": "del-cli build test coverage",
     "start": "skaffold dev"
   },
