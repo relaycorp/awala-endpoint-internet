@@ -3,7 +3,6 @@ kind: Job
 metadata:
   name: pohttp-bootstrap
 spec:
-  ttlSecondsAfterFinished: 180
   template:
     metadata:
       labels:
