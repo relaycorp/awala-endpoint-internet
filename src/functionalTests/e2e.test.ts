@@ -30,8 +30,7 @@ async function postPda(channel: PrivateInternetEndpointChannel) {
 }
 
 describe('E2E', () => {
-  // eslint-disable-next-line jest/no-focused-tests
-  test.only('Incoming service message should be sent to app', async () => {
+  test('Incoming service message should be sent to app', async () => {
     const privateEndpoint = await PrivateEndpoint.generate();
     const channel = await privateEndpoint.saveInternetEndpointChannel();
     const serviceMessage = new ServiceMessage(
