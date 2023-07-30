@@ -9,7 +9,11 @@ import type { InternetEndpoint } from '../../utilities/awala/InternetEndpoint.js
 import { makeIncomingServiceMessageEvent } from '../../events/incomingServiceMessage.event.js';
 import { Emitter } from '../../utilities/eventing/Emitter.js';
 
-async function publishIncomingServiceMessage(parcel: Parcel, serviceMessage: ServiceMessage) {
+async function publishIncomingServiceMessage(
+  parcel: Parcel,
+  serviceMessage: ServiceMessage,
+  emitter: Emitter<Buffer>,
+) {
   const event = makeIncomingServiceMessageEvent({
     creationDate: parcel.creationDate,
     expiryDate: parcel.expiryDate,
@@ -19,7 +23,6 @@ async function publishIncomingServiceMessage(parcel: Parcel, serviceMessage: Ser
     contentType: serviceMessage.type,
     content: serviceMessage.content,
   });
-  const emitter = Emitter.init();
   await emitter.emit(event);
 }
 
@@ -100,6 +103,8 @@ export default function registerRoutes(
     },
   );
 
+  const emitter = Emitter.init();
+
   fastify.route<{
     // eslint-disable-next-line @typescript-eslint/naming-convention
     readonly Body: Buffer;
@@ -118,31 +123,40 @@ export default function registerRoutes(
       const parcelAwareLogger = request.log.child({
         parcelId: parcel.id,
         recipient: parcel.recipient,
-        senderId: await parcel.senderCertificate.calculateSubjectId(),
+        peerId: await parcel.senderCertificate.calculateSubjectId(),
       });
 
-      const { mongoose, log, activeEndpoint } = fastify;
-
-      const isValid = await isMessageValid(parcel, activeEndpoint, log);
+      const isValid = await isMessageValid(parcel, fastify.activeEndpoint, parcelAwareLogger);
       if (!isValid) {
         return reply
           .code(HTTP_STATUS_CODES.FORBIDDEN)
           .send({ message: 'Parcel is well-formed but invalid' });
       }
 
-      const serviceMessage = await getDecryptedParcel(parcel, activeEndpoint, log);
+      const serviceMessage = await getDecryptedParcel(
+        parcel,
+        fastify.activeEndpoint,
+        parcelAwareLogger,
+      );
       if (!serviceMessage) {
         return reply.code(HTTP_STATUS_CODES.ACCEPTED).send();
       }
 
       if (serviceMessage.type === 'application/vnd+relaycorp.awala.pda-path') {
-        await createOrUpdateChannel(serviceMessage.content, activeEndpoint, log, mongoose);
+        await createOrUpdateChannel(
+          serviceMessage.content,
+          fastify.activeEndpoint,
+          parcelAwareLogger,
+          fastify.mongoose,
+        );
         return reply.code(HTTP_STATUS_CODES.ACCEPTED).send();
       }
 
-      await publishIncomingServiceMessage(parcel, serviceMessage);
-
-      parcelAwareLogger.info('Parcel is valid and has been queued');
+      await publishIncomingServiceMessage(parcel, serviceMessage, emitter);
+      parcelAwareLogger.info(
+        { contentType: serviceMessage.type },
+        'Parcel is valid and has been queued',
+      );
       return reply.code(HTTP_STATUS_CODES.ACCEPTED).send();
     },
   });

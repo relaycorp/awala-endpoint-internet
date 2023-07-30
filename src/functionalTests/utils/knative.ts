@@ -8,8 +8,13 @@ const execFileAsync = promisify(execFile);
  * @throws {Error} if the service is not found or `kn` is not installed.
  */
 async function getServiceOutput(serviceName: string, output: string) {
-  const { stdout } = await execFileAsync('kn', ['service', 'describe', serviceName, '-o', output]);
-  return stdout.trim();
+  const args = ['service', 'describe', serviceName, '-o', output];
+  const { stdout } = await execFileAsync('kn', args);
+  const stdoutSanitised = stdout.trim();
+  if (stdoutSanitised === '') {
+    throw new Error(`Could not get output "${output}" for Knative service ${serviceName}`);
+  }
+  return stdoutSanitised;
 }
 
 export async function getServiceActiveRevision(serviceName: string): Promise<string> {

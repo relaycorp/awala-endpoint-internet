@@ -1,7 +1,7 @@
 import { CloudEvent } from 'cloudevents';
 import { addDays, differenceInSeconds, formatISO, subDays } from 'date-fns';
 
-import { CE_CONTENT_TYPE, CE_DATA_BASE64, CE_ID, CE_SOURCE } from '../testUtils/eventing/stubs.js';
+import { CE_CONTENT_TYPE, CE_DATA, CE_ID, CE_SOURCE } from '../testUtils/eventing/stubs.js';
 import { makeMockLogging, partialPinoLog } from '../testUtils/logging.js';
 import { assertNotNull, assertNull } from '../testUtils/assertions.js';
 import { PEER_ID } from '../testUtils/awala/stubs.js';
@@ -16,7 +16,7 @@ describe('getOutgoingServiceMessageOptions', () => {
   const mockLogging = makeMockLogging();
   const creationDate = new Date();
   const expiry = addDays(creationDate, 5);
-  const cloudEvent = new CloudEvent({
+  const cloudEventAttributes = {
     specversion: '1.0',
     id: CE_ID,
     source: CE_SOURCE,
@@ -25,9 +25,9 @@ describe('getOutgoingServiceMessageOptions', () => {
     datacontenttype: CE_CONTENT_TYPE,
     expiry: formatISO(expiry),
     time: formatISO(creationDate),
-    // eslint-disable-next-line @typescript-eslint/naming-convention,camelcase
-    data_base64: CE_DATA_BASE64,
-  });
+    data: CE_DATA,
+  };
+  const cloudEvent = new CloudEvent(cloudEventAttributes);
 
   describe('Success', () => {
     let outgoingServiceMessageOptions: OutgoingServiceMessageOptions;
@@ -55,15 +55,14 @@ describe('getOutgoingServiceMessageOptions', () => {
       expect(contentType).toBe(cloudEvent.datacontenttype);
     });
 
-    test('Content should be a buffer with the content of data_base64', () => {
+    test('Content should be a buffer with the content of data', () => {
       const { content } = outgoingServiceMessageOptions;
 
-      expect(content).toStrictEqual(Buffer.from(CE_DATA_BASE64, 'base64'));
+      expect(content).toStrictEqual(CE_DATA);
     });
 
-    test('Missing data_base64 should be accepted', () => {
-      const event = new CloudEvent({
-        ...cloudEvent,
+    test('Empty data should be accepted', () => {
+      const event = cloudEvent.cloneWith({
         // eslint-disable-next-line @typescript-eslint/naming-convention,camelcase
         data_base64: undefined,
         data: undefined,
@@ -71,7 +70,7 @@ describe('getOutgoingServiceMessageOptions', () => {
 
       const result = getOutgoingServiceMessageOptions(event, mockLogging.logger);
 
-      expect(result?.content).toStrictEqual(Buffer.from('', 'base64'));
+      expect(result?.content).toStrictEqual(Buffer.from(''));
     });
 
     test('Creation date should be taken from event time', () => {
@@ -80,11 +79,25 @@ describe('getOutgoingServiceMessageOptions', () => {
       expect(creation).toStrictEqual(new Date(cloudEvent.time!));
     });
 
-    test('TTL should be computed from event creation and expiry', () => {
-      const { ttl } = outgoingServiceMessageOptions;
+    describe('TTL', () => {
+      test('TTL should be computed from event creation and expiry', () => {
+        const { ttl } = outgoingServiceMessageOptions;
 
-      const difference = differenceInSeconds(expiry, creationDate);
-      expect(ttl).toBe(difference);
+        const difference = differenceInSeconds(expiry, creationDate);
+        expect(ttl).toBe(difference);
+      });
+
+      test('TTL should default to 6 months', () => {
+        const attrs = Object.fromEntries(
+          Object.entries(cloudEventAttributes).filter(([key]) => key !== 'expiry'),
+        );
+        const event = new CloudEvent(attrs);
+
+        const result = getOutgoingServiceMessageOptions(event, mockLogging.logger);
+
+        const secondsInMonths = 2_629_746;
+        expect(result?.ttl).toBe(secondsInMonths * 6);
+      });
     });
   });
 
@@ -128,18 +141,6 @@ describe('getOutgoingServiceMessageOptions', () => {
       assertNull(result);
       expect(mockLogging.logs).toContainEqual(
         partialPinoLog('info', 'Refused missing data content type', { parcelId: event.id }),
-      );
-    });
-
-    test('Missing expiry should be refused', () => {
-      const { expiry: ignore, ...eventData } = cloudEvent;
-      const event = new CloudEvent(eventData);
-
-      const result = getOutgoingServiceMessageOptions(event, mockLogging.logger);
-
-      assertNull(result);
-      expect(mockLogging.logs).toContainEqual(
-        partialPinoLog('info', 'Refused missing expiry', { parcelId: event.id }),
       );
     });
 
@@ -187,22 +188,16 @@ describe('getOutgoingServiceMessageOptions', () => {
       );
     });
 
-    test('Missing data should be refused', () => {
-      const event = new CloudEvent({
-        ...cloudEvent,
-        // eslint-disable-next-line @typescript-eslint/naming-convention,camelcase
-        data_base64: undefined,
-        data: undefined,
-      });
+    test('Non-buffer data should be refused', () => {
+      const event = cloudEvent.cloneWith({ data: { foo: 'bar' } });
 
-      const result = getOutgoingServiceMessageOptions(
-        { ...event, data: Buffer.from('') },
-        mockLogging.logger,
-      );
+      const result = getOutgoingServiceMessageOptions(event, mockLogging.logger);
 
       assertNull(result);
       expect(mockLogging.logs).toContainEqual(
-        partialPinoLog('info', 'Got textual data instead of binary', { parcelId: event.id }),
+        partialPinoLog('info', 'Refused non-buffer service message content', {
+          parcelId: event.id,
+        }),
       );
     });
   });

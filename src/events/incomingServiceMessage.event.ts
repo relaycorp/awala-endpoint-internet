@@ -1,7 +1,7 @@
 import { CloudEvent } from 'cloudevents';
 
 export const INCOMING_SERVICE_MESSAGE_TYPE =
-  'com.relaycorp.awala.endpoint-internet.incoming-service-message';
+  'tech.relaycorp.awala.endpoint-internet.incoming-service-message';
 
 export interface IncomingServiceMessageOptions {
   readonly creationDate: Date;
@@ -15,15 +15,14 @@ export interface IncomingServiceMessageOptions {
 
 export function makeIncomingServiceMessageEvent(
   options: IncomingServiceMessageOptions,
-): CloudEvent {
+): CloudEvent<Buffer> {
   return new CloudEvent({
     type: INCOMING_SERVICE_MESSAGE_TYPE,
     id: options.parcelId,
     source: options.senderId,
     subject: options.recipientId,
     datacontenttype: options.contentType,
-    // eslint-disable-next-line @typescript-eslint/naming-convention,camelcase
-    data_base64: options.content.toString('base64'),
+    data: options.content,
     time: options.creationDate.toISOString(),
     expiry: options.expiryDate.toISOString(),
   });

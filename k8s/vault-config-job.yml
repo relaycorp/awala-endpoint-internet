@@ -3,12 +3,9 @@ kind: Job
 metadata:
   name: vault-config
 spec:
-  ttlSecondsAfterFinished: 15
   template:
     metadata:
       name: "vault-config"
-      labels:
-        app.kubernetes.io/name: awala-endpoint
     spec:
       restartPolicy: OnFailure
 

@@ -1,7 +1,7 @@
 import { CloudEvent } from 'cloudevents';
 
 import { HTTP_STATUS_CODES } from '../utilities/http.js';
-import { CE_ID, CE_SOURCE } from '../testUtils/eventing/stubs.js';
+import { CE_ID } from '../testUtils/eventing/stubs.js';
 import { OUTGOING_SERVICE_MESSAGE_TYPE } from '../events/outgoingServiceMessage.event.js';
 import {
   PEER_ID,
@@ -13,16 +13,15 @@ import { postEventToPohttpClient } from './utils/awala/pohttp.js';
 
 describe('PoHTTP client', () => {
   test('Invalid outgoing service message event should be refused', async () => {
-    // An event without expiry
+    // An event with an invalid expiry
     const incompleteEvent = new CloudEvent({
       id: CE_ID,
-      source: CE_SOURCE,
+      source: 'default',
       type: OUTGOING_SERVICE_MESSAGE_TYPE,
+      expiry: 'invalid',
       subject: PEER_ID,
       datacontenttype: SERVICE_MESSAGE_CONTENT_TYPE,
-
-      // eslint-disable-next-line @typescript-eslint/naming-convention,camelcase
-      data_base64: SERVICE_MESSAGE_CONTENT.toString('base64'),
+      data: SERVICE_MESSAGE_CONTENT,
     });
 
     const response = await postEventToPohttpClient(incompleteEvent);

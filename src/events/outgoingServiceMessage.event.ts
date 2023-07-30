@@ -3,10 +3,13 @@ import { differenceInSeconds, isValid, parseISO } from 'date-fns';
 import type { BaseLogger } from 'pino';
 import type { FastifyBaseLogger } from 'fastify';
 
+const secondsInMonths = 2_629_746;
+const DEFAULT_TTL_MONTHS = 6;
+const DEFAULT_TTL_SECONDS = secondsInMonths * DEFAULT_TTL_MONTHS;
+
 function getTtl(expiry: unknown, creationDate: Date, logger: BaseLogger) {
   if (expiry === undefined) {
-    logger.info('Refused missing expiry');
-    return null;
+    return DEFAULT_TTL_SECONDS;
   }
 
   if (typeof expiry !== 'string') {
@@ -41,7 +44,7 @@ export interface OutgoingServiceMessageOptions {
 }
 
 export const OUTGOING_SERVICE_MESSAGE_TYPE =
-  'com.relaycorp.awala.endpoint-internet.outgoing-service-message';
+  'tech.relaycorp.awala.endpoint-internet.outgoing-service-message';
 
 export function getOutgoingServiceMessageOptions(
   event: CloudEventV1<unknown>,
@@ -56,11 +59,6 @@ export function getOutgoingServiceMessageOptions(
     return null;
   }
 
-  if (event.data_base64 === undefined && event.data !== undefined) {
-    parcelAwareLogger.info('Got textual data instead of binary');
-    return null;
-  }
-
   if (event.subject === undefined) {
     parcelAwareLogger.info('Refused missing subject');
     return null;
@@ -68,6 +66,12 @@ export function getOutgoingServiceMessageOptions(
 
   if (event.datacontenttype === undefined) {
     parcelAwareLogger.info('Refused missing data content type');
+    return null;
+  }
+
+  const content = event.data ?? Buffer.from('');
+  if (!(content instanceof Buffer)) {
+    parcelAwareLogger.info('Refused non-buffer service message content');
     return null;
   }
 
@@ -82,7 +86,7 @@ export function getOutgoingServiceMessageOptions(
     parcelId: event.id,
     peerId: event.subject,
     contentType: event.datacontenttype,
-    content: Buffer.from(event.data_base64 ?? '', 'base64'),
+    content,
     ttl,
     creationDate,
   };

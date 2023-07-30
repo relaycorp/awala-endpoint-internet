@@ -11,6 +11,6 @@ export async function postEvent(
     method: 'POST',
     url: '/',
     headers: message.headers,
-    payload: message.body as string,
+    payload: message.body as Buffer,
   });
 }

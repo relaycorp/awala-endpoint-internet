@@ -40,7 +40,7 @@ describe('makeIncomingServiceMessageEvent', () => {
   test('Event type should be incoming-service-message', () => {
     const { type } = makeIncomingServiceMessageEvent(options);
 
-    expect(type).toBe('com.relaycorp.awala.endpoint-internet.incoming-service-message');
+    expect(type).toBe('tech.relaycorp.awala.endpoint-internet.incoming-service-message');
   });
 
   test('Event source should be the sender id', () => {
@@ -61,10 +61,10 @@ describe('makeIncomingServiceMessageEvent', () => {
     expect(contentType).toBe(options.contentType);
   });
 
-  test('Event data should be the service message content, base64-encoded', () => {
-    const { data_base64: dataBase64 } = makeIncomingServiceMessageEvent(options);
+  test('Event data should be the service message content', () => {
+    const { data } = makeIncomingServiceMessageEvent(options);
 
-    expect(dataBase64).toBe(options.content.toString('base64'));
+    expect(data).toMatchObject(options.content);
   });
 
   test('Event time should be parcel creation time', () => {

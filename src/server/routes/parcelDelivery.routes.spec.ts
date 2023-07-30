@@ -24,11 +24,11 @@ import {
 import { generateParcel } from '../../testUtils/awala/parcel.js';
 import { mockEmitter } from '../../testUtils/eventing/mockEmitter.js';
 
+const getEmittedEvents = mockEmitter();
 configureMockEnvVars(REQUIRED_ENV_VARS);
 
 describe('Parcel delivery route', () => {
   const getTestServerFixture = makeTestPohttpServer();
-  const getEmittedEvents = mockEmitter();
   const validRequestOptions: InjectOptions = {
     headers: {
       // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -75,7 +75,8 @@ describe('Parcel delivery route', () => {
       partialPinoLog('info', 'Parcel is valid and has been queued', {
         parcelId: parcel.id,
         recipient: parcel.recipient,
-        senderId: await parcel.senderCertificate.calculateSubjectId(),
+        peerId: await parcel.senderCertificate.calculateSubjectId(),
+        contentType: SERVICE_MESSAGE_CONTENT_TYPE,
       }),
     );
   });
@@ -109,7 +110,7 @@ describe('Parcel delivery route', () => {
   });
 
   test('Parcel should be refused if it is well-formed but invalid', async () => {
-    const { parcelSerialized } = await generateParcel(
+    const { parcelSerialized, parcel } = await generateParcel(
       parcelRecipient,
       KEY_PAIR_SET,
       subDays(new Date(), 1),
@@ -128,11 +129,17 @@ describe('Parcel delivery route', () => {
       'message',
       'Parcel is well-formed but invalid',
     );
-    expect(logs).toContainEqual(partialPinoLog('info', 'Refusing invalid parcel'));
+    expect(logs).toContainEqual(
+      partialPinoLog('info', 'Refusing invalid parcel', {
+        peerId: await parcel.senderCertificate.calculateSubjectId(),
+        recipient: parcelRecipient,
+        parcelId: parcel.id,
+      }),
+    );
   });
 
   test('Invalid service message should be ignored', async () => {
-    const { parcelSerialized } = await generateParcel(
+    const { parcelSerialized, parcel } = await generateParcel(
       parcelRecipient,
       KEY_PAIR_SET,
       new Date(),
@@ -147,7 +154,13 @@ describe('Parcel delivery route', () => {
     });
 
     expect(response).toHaveProperty('statusCode', HTTP_STATUS_CODES.ACCEPTED);
-    expect(logs).toContainEqual(partialPinoLog('info', 'Ignoring invalid service message'));
+    expect(logs).toContainEqual(
+      partialPinoLog('info', 'Ignoring invalid service message', {
+        parcelId: parcel.id,
+        recipient: parcelRecipient,
+        peerId: await parcel.senderCertificate.calculateSubjectId(),
+      }),
+    );
   });
 
   test('Non-PDA service message should be published as a CloudEvent', async () => {
@@ -165,15 +178,14 @@ describe('Parcel delivery route', () => {
     const events = getEmittedEvents();
     expect(events).toHaveLength(1);
     const [event] = events;
-    expect(event).toMatchObject<Partial<CloudEvent>>({
+    expect(event).toMatchObject<Partial<CloudEvent<Buffer>>>({
       time: parcel.creationDate.toISOString(),
       expiry: parcel.expiryDate.toISOString(),
       id: parcel.id,
       source: await parcel.senderCertificate.calculateSubjectId(),
       subject: parcel.recipient.id,
       datacontenttype: SERVICE_MESSAGE_CONTENT_TYPE,
-      // eslint-disable-next-line @typescript-eslint/naming-convention,camelcase
-      data_base64: SERVICE_MESSAGE_CONTENT.toString('base64'),
+      data: SERVICE_MESSAGE_CONTENT,
     });
   });
 

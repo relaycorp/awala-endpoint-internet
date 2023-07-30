@@ -5,7 +5,7 @@ import { addSeconds, formatISO } from 'date-fns';
 import { SERVICE_MESSAGE_CONTENT, SERVICE_MESSAGE_CONTENT_TYPE } from '../testUtils/awala/stubs.js';
 import { HTTP_STATUS_CODES } from '../utilities/http.js';
 import { INCOMING_SERVICE_MESSAGE_TYPE } from '../events/incomingServiceMessage.event.js';
-import { CE_CONTENT_TYPE, CE_DATA_BASE64, CE_ID, CE_SOURCE } from '../testUtils/eventing/stubs.js';
+import { CE_CONTENT_TYPE, CE_DATA, CE_ID } from '../testUtils/eventing/stubs.js';
 import { OUTGOING_SERVICE_MESSAGE_TYPE } from '../events/outgoingServiceMessage.event.js';
 
 import { PrivateEndpoint } from './utils/awala/PrivateEndpoint.js';
@@ -16,7 +16,6 @@ import {
   decodeBinaryBody,
   setMockServerExpectation,
 } from './utils/mockServer.js';
-import { sleep } from './utils/time.js';
 // eslint-disable-next-line max-len
 import type { PrivateInternetEndpointChannel } from './utils/awala/PrivateInternetEndpointChannel.js';
 
@@ -46,7 +45,6 @@ describe('E2E', () => {
 
     await postParcel(parcel);
 
-    await sleep(1000);
     const requests = await getMockServerRequests('mock-app');
     expect(requests).toHaveLength(1);
     const [request] = requests;
@@ -54,7 +52,7 @@ describe('E2E', () => {
     expect(
       decodeBinaryBody(request.body as BinaryBody, SERVICE_MESSAGE_CONTENT_TYPE),
     ).toStrictEqual(SERVICE_MESSAGE_CONTENT);
-  });
+  }, 15_000);
 
   test('Outgoing service message should be sent to gateway', async () => {
     const privateEndpoint = await PrivateEndpoint.generate();
@@ -64,24 +62,22 @@ describe('E2E', () => {
     const now = new Date();
     const outgoingServiceMessageEvent = new CloudEvent({
       id: CE_ID,
-      source: CE_SOURCE,
+      source: channel.peer.id,
       type: OUTGOING_SERVICE_MESSAGE_TYPE,
       subject: privateEndpoint.id,
       datacontenttype: CE_CONTENT_TYPE,
       expiry: formatISO(addSeconds(now, 60)),
       time: formatISO(now),
-      // eslint-disable-next-line @typescript-eslint/naming-convention,camelcase
-      data_base64: CE_DATA_BASE64,
+      data: CE_DATA,
     });
     await setMockServerExpectation('mock-gateway', {
       httpResponse: { statusCode: HTTP_STATUS_CODES.ACCEPTED },
     });
     await postEventToPohttpClient(outgoingServiceMessageEvent);
 
-    await sleep(1000);
     const requests = await getMockServerRequests('mock-gateway');
     expect(requests).toHaveLength(1);
     const [request] = requests;
     expect(request.headers).toHaveProperty('Content-Type', ['application/vnd.awala.parcel']);
-  });
+  }, 10_000);
 });
