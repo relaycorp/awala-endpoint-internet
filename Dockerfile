@@ -13,5 +13,5 @@ COPY --chown=node:node --from=build /tmp/awala-endpoint ./
 ENV NODE_ENV=production \
     NPM_CONFIG_UPDATE_NOTIFIER=false \
     NODE_OPTIONS="--unhandled-rejections=strict --experimental-vm-modules --enable-source-maps"
-ENTRYPOINT ["npm", "exec"]
+ENTRYPOINT ["npm", "exec", "--offline", "--loglevel=warn"]
 EXPOSE 8080
