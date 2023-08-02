@@ -23,8 +23,6 @@ spec:
                 secretKeyRef:
                   name: credentials
                   key: mongodb_password
-            - name: MONGODB_URI
-              value: mongodb://mongodb.default
 
             - name: KS_VAULT_TOKEN
               valueFrom:
