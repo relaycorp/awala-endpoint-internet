@@ -79,6 +79,16 @@ describe('createMongooseConnectionFromEnv', () => {
     );
   });
 
+  test('Server selection timeout should be set to 3s', () => {
+    createMongooseConnectionFromEnv();
+
+    expect(MOCK_MONGOOSE_CREATE_CONNECTION).toHaveBeenCalledWith(
+      expect.anything(),
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      expect.objectContaining({ serverSelectionTimeoutMS: 3000 }),
+    );
+  });
+
   test('Mongoose connection should be returned', () => {
     const connection = createMongooseConnectionFromEnv();
 

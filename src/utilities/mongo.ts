@@ -1,7 +1,13 @@
 import envVar from 'env-var';
 import { type Connection, type ConnectOptions, createConnection } from 'mongoose';
 
-const CONNECTION_TIMEOUT_MS = 3000;
+const TIMEOUT_MS = 3000;
+const TIMEOUT_CONFIG: ConnectOptions = {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  serverSelectionTimeoutMS: TIMEOUT_MS,
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  connectTimeoutMS: TIMEOUT_MS,
+};
 
 function omitUndefinedOptions(initialOptions: ConnectOptions): ConnectOptions {
   const entries = Object.entries(initialOptions).filter(([, value]) => value !== undefined);
@@ -15,8 +21,7 @@ export function createMongooseConnectionFromEnv(): Connection {
   const pass = envVar.get('MONGODB_PASSWORD').asString();
   const options: ConnectOptions = {
     ...omitUndefinedOptions({ dbName, user, pass }),
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    connectTimeoutMS: CONNECTION_TIMEOUT_MS,
+    ...TIMEOUT_CONFIG,
   };
   return createConnection(mongoUri, options);
 }
