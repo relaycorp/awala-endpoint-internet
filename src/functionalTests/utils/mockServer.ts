@@ -6,13 +6,10 @@ import { getServiceUrl } from './knative.js';
 
 const SERVICE_PORT = 80;
 
-const PORT_FORWARDING_DELAY_SECONDS = 0.5;
-
 type Command = (client: MockServerClient) => Promise<unknown>;
 
 async function connectToMockServer(serviceName: string, command: Command): Promise<void> {
   const serviceUrl = new URL(await getServiceUrl(serviceName));
-  await sleep(PORT_FORWARDING_DELAY_SECONDS);
 
   const client = mockServerClient(serviceUrl.host, SERVICE_PORT);
   try {
