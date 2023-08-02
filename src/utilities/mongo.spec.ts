@@ -35,7 +35,7 @@ describe('createMongooseConnectionFromEnv', () => {
 
     expect(MOCK_MONGOOSE_CREATE_CONNECTION).toHaveBeenCalledWith(
       MONGO_ENV_VARS.MONGODB_URI,
-      undefined,
+      expect.anything(),
     );
   });
 
@@ -66,6 +66,16 @@ describe('createMongooseConnectionFromEnv', () => {
     expect(MOCK_MONGOOSE_CREATE_CONNECTION).toHaveBeenCalledWith(
       expect.anything(),
       expect.not.toContainKeys([optionName]),
+    );
+  });
+
+  test('Connection timeout should be set to 3s', () => {
+    createMongooseConnectionFromEnv();
+
+    expect(MOCK_MONGOOSE_CREATE_CONNECTION).toHaveBeenCalledWith(
+      expect.anything(),
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      expect.objectContaining({ connectTimeoutMS: 3000 }),
     );
   });
 
