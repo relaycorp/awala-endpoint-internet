@@ -9,11 +9,11 @@ const { logger: mockLogger, logs } = makeMockLogging();
 jest.unstable_mockModule('./utilities/logging.js', () => ({
   makeLogger: () => mockLogger,
 }));
-jest.unstable_mockModule('./utilities/exitHandling.js', () => ({
-  configureExitHandling: jest.fn(),
+jest.unstable_mockModule('./utilities/errorHandling.js', () => ({
+  configureErrorHandling: jest.fn(),
 }));
 const { bootstrapData } = await import('./bootstrap.js');
-const { configureExitHandling } = await import('./utilities/exitHandling.js');
+const { configureErrorHandling } = await import('./utilities/errorHandling.js');
 
 describe('bootstrapData', () => {
   configureMockEnvVars(REQUIRED_ENV_VARS);
@@ -45,10 +45,10 @@ describe('bootstrapData', () => {
   });
 
   test('Exit handler should be configured', async () => {
-    expect(configureExitHandling).not.toHaveBeenCalled();
+    expect(configureErrorHandling).not.toHaveBeenCalled();
 
     await bootstrapData();
 
-    expect(configureExitHandling).toHaveBeenCalledWith(mockLogger);
+    expect(configureErrorHandling).toHaveBeenCalledWith(mockLogger);
   });
 });

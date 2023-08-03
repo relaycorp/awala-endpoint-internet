@@ -4,7 +4,7 @@ import type { BaseLogger } from 'pino';
 import { createMongooseConnectionFromEnv } from './utilities/mongo.js';
 import { InternetEndpoint } from './utilities/awala/InternetEndpoint.js';
 import { makeLogger } from './utilities/logging.js';
-import { configureExitHandling } from './utilities/exitHandling.js';
+import { configureErrorHandling } from './utilities/errorHandling.js';
 
 async function makeInitialSessionKey(connection: Connection, logger: BaseLogger) {
   const endpoint = await InternetEndpoint.getActive(connection);
@@ -14,7 +14,7 @@ async function makeInitialSessionKey(connection: Connection, logger: BaseLogger)
 
 export async function bootstrapData(): Promise<void> {
   const logger = makeLogger();
-  configureExitHandling(logger);
+  configureErrorHandling(logger);
 
   const connection = createMongooseConnectionFromEnv();
   try {

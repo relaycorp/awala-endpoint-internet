@@ -2,8 +2,8 @@ import type { FastifyInstance, FastifyPluginCallback, RouteOptions } from 'fasti
 import type { BaseLogger } from 'pino';
 
 import { makeFastify } from '../utilities/fastify/server.js';
+import healthcheckRoutes from '../utilities/fastify/plugins/healthCheck.js';
 
-import healthcheckRoutes from './routes/healthcheck.routes.js';
 import connectionParamsRoutes from './routes/connectionParams.routes.js';
 import parcelDeliveryRoutes from './routes/parcelDelivery.routes.js';
 

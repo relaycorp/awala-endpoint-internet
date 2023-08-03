@@ -1,6 +1,7 @@
 import { jest } from '@jest/globals';
 import type { FastifyInstance } from 'fastify';
 import pino from 'pino';
+import fastifyGracefulShutdown from 'fastify-graceful-shutdown';
 
 import { configureMockEnvVars } from '../../testUtils/envVars.js';
 import { getMockContext, getMockInstance, mockSpy } from '../../testUtils/jest.js';
@@ -24,9 +25,9 @@ jest.unstable_mockModule('fastify', () => ({
 const mockMakeLogger = jest.fn().mockReturnValue({});
 jest.unstable_mockModule('../../utilities/logging.js', () => ({ makeLogger: mockMakeLogger }));
 
-const mockExitHandler = jest.fn().mockReturnValue({});
-jest.unstable_mockModule('../../utilities/exitHandling.js', () => ({
-  configureExitHandling: mockExitHandler,
+const mockErrorHandler = jest.fn().mockReturnValue({});
+jest.unstable_mockModule('../../utilities/errorHandling.js', () => ({
+  configureErrorHandling: mockErrorHandler,
 }));
 
 const { makeFastify, runFastify } = await import('./server.js');
@@ -47,7 +48,7 @@ describe('makeFastify', () => {
     expect(mockMakeLogger).toHaveBeenCalledWith();
     const logger = getMockContext(mockMakeLogger).results[0].value;
     expect(fastify).toHaveBeenCalledWith(expect.objectContaining({ logger }));
-    expect(mockExitHandler).toHaveBeenCalledWith(logger);
+    expect(mockErrorHandler).toHaveBeenCalledWith(logger);
   });
 
   test('Any explicit logger should be honored', async () => {
@@ -56,7 +57,7 @@ describe('makeFastify', () => {
     await makeFastify(mockPlugin, logger);
 
     expect(fastify).toHaveBeenCalledWith(expect.objectContaining({ logger }));
-    expect(mockExitHandler).toHaveBeenCalledWith(logger);
+    expect(mockErrorHandler).toHaveBeenCalledWith(logger);
   });
 
   test('It should wait for the Fastify server to be ready', async () => {
@@ -101,19 +102,27 @@ describe('makeFastify', () => {
     expect(fastifyCallArguments).toHaveProperty('trustProxy', true);
   });
 
-  test('fastifyMongoose plugin should be configured', async () => {
+  test('fastify-graceful-shutdown plugin should be registered', async () => {
+    await makeFastify(mockPlugin);
+
+    expect(mockFastify.register).toHaveBeenCalledWith(fastifyGracefulShutdown, {
+      resetHandlersOnInit: true,
+    });
+  });
+
+  test('fastifyMongoose plugin should be registered', async () => {
     await makeFastify(mockPlugin);
 
     expect(mockFastify.register).toHaveBeenCalledWith(fastifyMongoose);
   });
 
-  test('fastifyActiveEndpoint plugin should be configured', async () => {
+  test('fastifyActiveEndpoint plugin should be registered', async () => {
     await makeFastify(mockPlugin);
 
     expect(mockFastify.register).toHaveBeenCalledWith(fastifyActiveEndpoint);
   });
 
-  test('notFoundHandler plugin should be configured', async () => {
+  test('notFoundHandler plugin should be registered', async () => {
     await makeFastify(mockPlugin);
 
     expect(mockFastify.register).toHaveBeenCalledWith(notFoundHandler);

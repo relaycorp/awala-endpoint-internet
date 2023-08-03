@@ -24,6 +24,8 @@ spec:
                   key: vault_token
             - name: VAULT_DEV_LISTEN_ADDRESS
               value: "0.0.0.0:8080"
+            - name: VAULT_LOG_LEVEL
+              value: "debug"
           livenessProbe:
             httpGet:
               path: /v1/sys/health
