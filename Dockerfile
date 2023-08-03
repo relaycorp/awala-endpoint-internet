@@ -11,7 +11,7 @@ EXPOSE 8080
 WORKDIR /opt/awala-endpoint
 ENV NODE_ENV=production \
     NPM_CONFIG_UPDATE_NOTIFIER=false \
-    NODE_OPTIONS="--unhandled-rejections=strict --experimental-vm-modules --enable-source-maps"
+    NODE_OPTIONS="--experimental-vm-modules --enable-source-maps"
 COPY --chown=node:node --from=build /tmp/awala-endpoint ./
 RUN npm link --save=false --fund=false
 USER node

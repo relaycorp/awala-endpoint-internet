@@ -76,6 +76,7 @@ describe('makePohttpClient', () => {
     const mockFastify: FastifyInstance = {
       addContentTypeParser: jest.fn(),
       removeAllContentTypeParsers: jest.fn(),
+      register: jest.fn(),
       get: jest.fn(),
       post: jest.fn(),
     } as any;
@@ -105,15 +106,6 @@ describe('makePohttpClient', () => {
       });
 
       await expect(makePohttpClientPlugin(mockFastify)).toResolve();
-    });
-  });
-
-  describe('GET', () => {
-    test('Response should be 200 OK', async () => {
-      const response = await server.inject({ method: 'GET', url: '/' });
-
-      expect(response.statusCode).toBe(HTTP_STATUS_CODES.OK);
-      expect(response.body).toBe('It works');
     });
   });
 
