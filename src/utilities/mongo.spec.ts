@@ -69,23 +69,16 @@ describe('createMongooseConnectionFromEnv', () => {
     );
   });
 
-  test('Connection timeout should be set to 3s', () => {
+  test.each([
+    ['serverSelectionTimeoutMS', 3000],
+    ['connectTimeoutMS', 3000],
+    ['maxIdleTimeMS', 60_000],
+  ])('Timeout setting %s should be set to %d', (optionName, expectedValue) => {
     createMongooseConnectionFromEnv();
 
     expect(MOCK_MONGOOSE_CREATE_CONNECTION).toHaveBeenCalledWith(
       expect.anything(),
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      expect.objectContaining({ connectTimeoutMS: 3000 }),
-    );
-  });
-
-  test('Server selection timeout should be set to 3s', () => {
-    createMongooseConnectionFromEnv();
-
-    expect(MOCK_MONGOOSE_CREATE_CONNECTION).toHaveBeenCalledWith(
-      expect.anything(),
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      expect.objectContaining({ serverSelectionTimeoutMS: 3000 }),
+      expect.objectContaining({ [optionName]: expectedValue }),
     );
   });
 
