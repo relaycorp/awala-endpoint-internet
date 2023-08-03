@@ -35,7 +35,7 @@ describe('createMongooseConnectionFromEnv', () => {
 
     expect(MOCK_MONGOOSE_CREATE_CONNECTION).toHaveBeenCalledWith(
       MONGO_ENV_VARS.MONGODB_URI,
-      undefined,
+      expect.anything(),
     );
   });
 
@@ -66,6 +66,19 @@ describe('createMongooseConnectionFromEnv', () => {
     expect(MOCK_MONGOOSE_CREATE_CONNECTION).toHaveBeenCalledWith(
       expect.anything(),
       expect.not.toContainKeys([optionName]),
+    );
+  });
+
+  test.each([
+    ['serverSelectionTimeoutMS', 3000],
+    ['connectTimeoutMS', 3000],
+    ['maxIdleTimeMS', 60_000],
+  ])('Timeout setting %s should be set to %d', (optionName, expectedValue) => {
+    createMongooseConnectionFromEnv();
+
+    expect(MOCK_MONGOOSE_CREATE_CONNECTION).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ [optionName]: expectedValue }),
     );
   });
 

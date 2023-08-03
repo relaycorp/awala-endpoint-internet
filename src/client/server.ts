@@ -18,6 +18,7 @@ import {
   type OutgoingServiceMessageOptions,
 } from '../events/outgoingServiceMessage.event.js';
 import { DEFAULT_TRANSPORT } from '../utilities/eventing/transport.js';
+import healthcheckRoutes from '../utilities/fastify/plugins/healthCheck.js';
 
 const DEFAULT_SENDER_ID_KEYWORD = 'default';
 
@@ -74,9 +75,7 @@ export async function makePohttpClientPlugin(server: FastifyInstance): Promise<v
     next(null, payload);
   });
 
-  server.get('/', async (_request, reply) => {
-    await reply.status(HTTP_STATUS_CODES.OK).send('It works');
-  });
+  await server.register(healthcheckRoutes);
 
   const transport = envVar.get('CE_TRANSPORT').default(DEFAULT_TRANSPORT).asString();
   const convertMessageToEvent = await makeReceiver(transport);

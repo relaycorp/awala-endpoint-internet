@@ -44,3 +44,4 @@ spec:
   selector:
     app: mongodb
   type: ClusterIP
+  clusterIP: None
