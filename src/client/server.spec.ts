@@ -209,7 +209,7 @@ describe('makePohttpClient', () => {
 
         await postEvent(event, fastifyServer);
 
-        expect(mockDeliverParcel).toHaveBeenCalledOnceWith(
+        expect(mockDeliverParcel).toHaveBeenCalledExactlyOnceWith(
           expect.anything(),
           expect.anything(),
           expect.objectContaining({
@@ -224,7 +224,7 @@ describe('makePohttpClient', () => {
 
         await postEvent(event, fastifyServer);
 
-        expect(mockDeliverParcel).toHaveBeenCalledOnceWith(
+        expect(mockDeliverParcel).toHaveBeenCalledExactlyOnceWith(
           expect.anything(),
           expect.anything(),
           expect.objectContaining({
@@ -239,7 +239,7 @@ describe('makePohttpClient', () => {
 
         await postEvent(event, fastifyServer);
 
-        expect(mockDeliverParcel).toHaveBeenCalledOnceWith(
+        expect(mockDeliverParcel).toHaveBeenCalledExactlyOnceWith(
           expect.anything(),
           expect.anything(),
           expect.objectContaining({
