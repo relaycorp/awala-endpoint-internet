@@ -1,6 +1,7 @@
 import envVar from 'env-var';
 import { type Connection, type ConnectOptions, createConnection } from 'mongoose';
 
+// See: https://www.mongodb.com/community/forums/t/unstable-connection-between-gcp-cloud-run-and-mongodb-atlas-2/209084/2
 const MAX_IDLE_TIMEOUT_MS = 60_000;
 const TIMEOUT_MS = 3000;
 const TIMEOUT_CONFIG: ConnectOptions = {
@@ -8,8 +9,6 @@ const TIMEOUT_CONFIG: ConnectOptions = {
   serverSelectionTimeoutMS: TIMEOUT_MS,
   // eslint-disable-next-line @typescript-eslint/naming-convention
   connectTimeoutMS: TIMEOUT_MS,
-
-  // See: https://www.mongodb.com/community/forums/t/unstable-connection-between-gcp-cloud-run-and-mongodb-atlas-2/209084/2
   // eslint-disable-next-line @typescript-eslint/naming-convention
   maxIdleTimeMS: MAX_IDLE_TIMEOUT_MS,
 };
