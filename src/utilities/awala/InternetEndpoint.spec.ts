@@ -165,7 +165,7 @@ describe('getActive', () => {
     test('Private key store should be the cloud-based one', async () => {
       const manager = await InternetEndpoint.getActive(dbConnection);
 
-      expect(mockCloudKeystoreInit).toHaveBeenCalledOnceWith(
+      expect(mockCloudKeystoreInit).toHaveBeenCalledExactlyOnceWith(
         REQUIRED_ENV_VARS.PRIVATE_KEY_STORE_ADAPTER,
         dbConnection,
       );
