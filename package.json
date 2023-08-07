@@ -34,7 +34,7 @@
     "@relaycorp/relaynet-core": "^1.86.2",
     "@relaycorp/relaynet-pohttp": "^1.7.61",
     "@relaycorp/relaynet-testing": "^2.2.28",
-    "@relaycorp/webcrypto-kms": "^1.5.12",
+    "@relaycorp/webcrypto-kms": "^1.5.16",
     "@typegoose/typegoose": "^11.4.0",
     "cloudevents": "^7.0.1",
     "date-fns": "^2.30.0",
