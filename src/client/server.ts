@@ -1,5 +1,5 @@
 import { makeReceiver } from '@relaycorp/cloudevents-transport';
-import { Parcel, ServiceMessage } from '@relaycorp/relaynet-core';
+import { MAX_SDU_PLAINTEXT_LENGTH, Parcel, ServiceMessage } from '@relaycorp/relaynet-core';
 import {
   deliverParcel,
   PoHTTPClientBindingError,
@@ -137,5 +137,5 @@ export async function makePohttpClientPlugin(server: FastifyInstance): Promise<v
 }
 
 export async function makePohttpClient(logger?: BaseLogger): Promise<FastifyInstance> {
-  return makeFastify(makePohttpClientPlugin, logger);
+  return makeFastify(makePohttpClientPlugin, { logger, bodyLimit: MAX_SDU_PLAINTEXT_LENGTH });
 }

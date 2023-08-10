@@ -54,7 +54,7 @@ describe('makeFastify', () => {
   test('Any explicit logger should be honored', async () => {
     const logger = pino();
 
-    await makeFastify(mockPlugin, logger);
+    await makeFastify(mockPlugin, { logger });
 
     expect(fastify).toHaveBeenCalledWith(expect.objectContaining({ logger }));
     expect(mockErrorHandler).toHaveBeenCalledWith(logger);
@@ -100,6 +100,20 @@ describe('makeFastify', () => {
 
     const [[fastifyCallArguments]] = getMockContext(fastify).calls;
     expect(fastifyCallArguments).toHaveProperty('trustProxy', true);
+  });
+
+  test('Request body should not be set by default', async () => {
+    await makeFastify(mockPlugin);
+
+    expect(fastify).toHaveBeenCalledWith(expect.objectContaining({ bodyLimit: undefined }));
+  });
+
+  test('Request body should not specified if set', async () => {
+    const bodyLimit = 100;
+
+    await makeFastify(mockPlugin, { bodyLimit });
+
+    expect(fastify).toHaveBeenCalledWith(expect.objectContaining({ bodyLimit }));
   });
 
   test('fastify-graceful-shutdown plugin should be registered', async () => {

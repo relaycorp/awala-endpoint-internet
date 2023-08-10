@@ -7,6 +7,7 @@ import type { Connection } from 'mongoose';
 import { generatePDACertificationPath } from '@relaycorp/relaynet-testing';
 import {
   CertificationPath,
+  MAX_SDU_PLAINTEXT_LENGTH,
   Parcel,
   PrivateEndpointConnParams,
   ServiceMessage,
@@ -106,6 +107,39 @@ describe('makePohttpClient', () => {
       });
 
       await expect(makePohttpClientPlugin(mockFastify)).toResolve();
+    });
+  });
+
+  describe('Request body', () => {
+    test('should be accepted if it is as big than biggest service message', async () => {
+      const event = new CloudEvent({
+        id: CE_ID,
+        source: server.activeEndpoint.id,
+        type: OUTGOING_SERVICE_MESSAGE_TYPE,
+        datacontenttype: SERVICE_MESSAGE_CONTENT_TYPE,
+        expiry: formatISO(addDays(Date.now(), 1)),
+        data: Buffer.from('a'.repeat(MAX_SDU_PLAINTEXT_LENGTH)),
+      });
+
+      const response = await postEvent(event, server);
+
+      expect(response.statusCode).toBe(HTTP_STATUS_CODES.BAD_REQUEST);
+    });
+
+    test('should be refused if bigger than biggest service message', async () => {
+      const event = new CloudEvent({
+        id: CE_ID,
+        source: server.activeEndpoint.id,
+        subject: 'the subject',
+        type: OUTGOING_SERVICE_MESSAGE_TYPE,
+        datacontenttype: SERVICE_MESSAGE_CONTENT_TYPE,
+        expiry: formatISO(addDays(Date.now(), 1)),
+        data: Buffer.from('a'.repeat(MAX_SDU_PLAINTEXT_LENGTH + 1)),
+      });
+
+      const response = await postEvent(event, server);
+
+      expect(response.statusCode).toBe(HTTP_STATUS_CODES.CONTENT_TOO_LARGE);
     });
   });
 

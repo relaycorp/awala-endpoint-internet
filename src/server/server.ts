@@ -1,3 +1,4 @@
+import { MAX_RAMF_MESSAGE_LENGTH } from '@relaycorp/relaynet-core';
 import type { FastifyInstance, FastifyPluginCallback, RouteOptions } from 'fastify';
 import type { BaseLogger } from 'pino';
 
@@ -16,6 +17,6 @@ export async function makePohttpServerPlugin(server: FastifyInstance): Promise<v
   await Promise.all(rootRoutes.map((route) => server.register(route)));
 }
 
-export async function makePohttpServer(customLogger?: BaseLogger): Promise<FastifyInstance> {
-  return makeFastify(makePohttpServerPlugin, customLogger);
+export async function makePohttpServer(logger?: BaseLogger): Promise<FastifyInstance> {
+  return makeFastify(makePohttpServerPlugin, { logger, bodyLimit: MAX_RAMF_MESSAGE_LENGTH });
 }
