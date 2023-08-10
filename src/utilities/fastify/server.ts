@@ -32,23 +32,30 @@ export const HTTP_METHODS: readonly HTTPMethods[] = [
   'OPTIONS',
 ];
 
+export interface FastifyOptions {
+  readonly logger: BaseLogger;
+  readonly bodyLimit: number;
+}
+
 export async function makeFastify(
   appPlugin: FastifyPluginAsync | FastifyPluginCallback,
-  customLogger?: BaseLogger,
+  options: Partial<FastifyOptions> = {},
 ) {
-  const logger = customLogger ?? makeLogger();
+  const logger = options.logger ?? makeLogger();
   configureErrorHandling(logger);
 
   const server = fastify({
     logger,
+
+    bodyLimit: options.bodyLimit,
+
+    trustProxy: true,
 
     requestIdHeader: env
       .get('REQUEST_ID_HEADER')
       .default(DEFAULT_REQUEST_ID_HEADER)
       .asString()
       .toLowerCase(),
-
-    trustProxy: true,
   });
   await server.register(fastifyGracefulShutdown, { resetHandlersOnInit: true });
 

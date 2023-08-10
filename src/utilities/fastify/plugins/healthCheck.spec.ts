@@ -12,7 +12,7 @@ import registerHealthCheck from './healthCheck.js';
 describe('healthcheck routes', () => {
   const getTestServerFixture = makeTestServer(
     async (logger?: BaseLogger) =>
-      makeFastify(registerHealthCheck as FastifyPluginCallback, logger),
+      makeFastify(registerHealthCheck as FastifyPluginCallback, { logger }),
     REQUIRED_ENV_VARS,
   );
 
