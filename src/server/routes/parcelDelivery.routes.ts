@@ -81,9 +81,10 @@ async function createOrUpdateChannel(
     return;
   }
 
+  const { expiryDate: authExpiry } = privateEndpointConnParams.deliveryAuth.leafCertificate;
   try {
     await activeEndpoint.saveChannel(privateEndpointConnParams, dbConnection);
-    logger.info('Peer connection params stored');
+    logger.info({ authExpiry }, 'Peer connection params stored');
   } catch (err) {
     logger.info({ err }, 'Refusing to store invalid peer connection params');
   }

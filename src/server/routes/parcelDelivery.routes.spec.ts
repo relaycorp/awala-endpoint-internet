@@ -222,7 +222,11 @@ describe('Parcel delivery route', () => {
       const [[connectionParams]] = spyOnSaveChannel.mock.calls;
       expect(Buffer.from(await connectionParams.serialize())).toStrictEqual(messageContent);
       expect(response).toHaveProperty('statusCode', HTTP_STATUS_CODES.ACCEPTED);
-      expect(logs).toContainEqual(partialPinoLog('info', 'Peer connection params stored'));
+      expect(logs).toContainEqual(
+        partialPinoLog('info', 'Peer connection params stored', {
+          authExpiry: certificatePath.pdaGrantee.expiryDate.toISOString(),
+        }),
+      );
     });
 
     test('Invalid connection params should be accepted but not stored', async () => {
