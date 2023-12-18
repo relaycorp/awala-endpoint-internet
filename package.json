@@ -29,7 +29,7 @@
     "@fastify/type-provider-json-schema-to-ts": "^2.2.2",
     "@relaycorp/awala-keystore-cloud": "^2.1.8",
     "@relaycorp/awala-keystore-mongodb": "^1.1.16",
-    "@relaycorp/cloudevents-transport": "^1.3.0",
+    "@relaycorp/cloudevents-transport": "^2.0.2",
     "@relaycorp/pino-cloud": "^1.0.28",
     "@relaycorp/relaynet-core": "^1.87.0",
     "@relaycorp/relaynet-pohttp": "^1.7.61",
