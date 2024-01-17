@@ -1,7 +1,5 @@
 import {
-  derDeserializeECDHPublicKey,
   derDeserializeRSAPublicKey,
-  derSerializePublicKey,
   Endpoint,
   getIdFromIdentityKey,
   InvalidMessageError,
@@ -10,7 +8,6 @@ import {
   type Parcel,
   type PrivateEndpointConnParams,
   type SessionKey,
-  SessionKeyPair,
 } from '@relaycorp/relaynet-core';
 import envVar from 'env-var';
 import type { Connection } from 'mongoose';
@@ -18,7 +15,6 @@ import { initPrivateKeystoreFromEnv } from '@relaycorp/awala-keystore-cloud';
 import { MongoCertificateStore, MongoPublicKeyStore } from '@relaycorp/awala-keystore-mongodb';
 import { getModelForClass } from '@typegoose/typegoose';
 
-import { Config, ConfigKey } from '../config.js';
 import { Kms } from '../kms/Kms.js';
 import { PeerEndpoint } from '../../models/PeerEndpoint.model.js';
 
@@ -53,11 +49,6 @@ async function getIdentityPublicKey() {
   return derDeserializeRSAPublicKey(keyDer);
 }
 
-async function getEcdhPublicKeyFromPrivateKey(privateKey: CryptoKey): Promise<CryptoKey> {
-  const serializedPublicKey = await derSerializePublicKey(privateKey);
-  return derDeserializeECDHPublicKey(serializedPublicKey);
-}
-
 export class InternetEndpoint extends Endpoint {
   public static async getActive(dbConnection: Connection): Promise<InternetEndpoint> {
     const privateKey = await retrieveIdentityPrivateKeyRef();
@@ -65,13 +56,11 @@ export class InternetEndpoint extends Endpoint {
     const endpointId = await getIdFromIdentityKey(publicKey);
     const internetAddress = envVar.get('INTERNET_ADDRESS').required().asString();
     const keyStoreSet = initKeyStoreSet(dbConnection);
-    const config = new Config(dbConnection);
     return new InternetEndpoint(
       endpointId,
       internetAddress,
       { privateKey, publicKey },
       keyStoreSet,
-      config,
     );
   }
 
@@ -82,7 +71,6 @@ export class InternetEndpoint extends Endpoint {
     public readonly internetAddress: string,
     identityKeyPair: CryptoKeyPair,
     keyStores: KeyStoreSet,
-    protected readonly config: Config,
   ) {
     super(id, identityKeyPair, keyStores, {});
   }
@@ -136,49 +124,32 @@ export class InternetEndpoint extends Endpoint {
     return channel;
   }
 
-  protected async retrieveInitialSessionKeyId(): Promise<Buffer | null> {
-    const keyIdBase64 = await this.config.get(ConfigKey.INITIAL_SESSION_KEY_ID_BASE64);
-    if (keyIdBase64 === null) {
-      return null;
-    }
-    return Buffer.from(keyIdBase64, 'base64');
-  }
-
   /**
    * Generate the initial session key if it doesn't exist yet.
    * @returns Whether the initial session key was created.
    */
   public async makeInitialSessionKeyIfMissing(): Promise<boolean> {
-    const keyIdBase64 = await this.retrieveInitialSessionKeyId();
-    if (keyIdBase64 !== null) {
+    const existingKey = await this.keyStores.privateKeyStore.retrieveUnboundSessionPublicKey(
+      this.id,
+    );
+    if (existingKey !== null) {
       return false;
     }
 
-    const { privateKey, sessionKey } = await SessionKeyPair.generate();
-    await this.keyStores.privateKeyStore.saveSessionKey(privateKey, sessionKey.keyId, this.id);
-    await this.config.set(
-      ConfigKey.INITIAL_SESSION_KEY_ID_BASE64,
-      sessionKey.keyId.toString('base64'),
-    );
+    await this.generateSessionKey();
     return true;
   }
 
-  public async retrieveInitialSessionPublicKey(): Promise<SessionKey> {
-    const keyId = await this.retrieveInitialSessionKeyId();
-    if (keyId === null) {
-      throw new Error('Initial session key id is missing from config');
+  public async retrieveInitialSessionKey(): Promise<SessionKey> {
+    const key = await this.keyStores.privateKeyStore.retrieveUnboundSessionPublicKey(this.id);
+    if (!key) {
+      throw new Error('Initial session key id is missing');
     }
-
-    const privateKey = await this.keyStores.privateKeyStore.retrieveUnboundSessionKey(
-      keyId,
-      this.id,
-    );
-    const publicKey = await getEcdhPublicKeyFromPrivateKey(privateKey);
-    return { keyId, publicKey };
+    return key;
   }
 
   public async getConnectionParams(): Promise<Buffer> {
-    const initialSessionKey = await this.retrieveInitialSessionPublicKey();
+    const initialSessionKey = await this.retrieveInitialSessionKey();
     const params = new NodeConnectionParams(
       this.internetAddress,
       this.identityKeyPair.publicKey,

@@ -1,6 +1,5 @@
 import { jest } from '@jest/globals';
 
-import { setUpTestDbConnection } from './testUtils/db.js';
 import { mockInternetEndpoint } from './testUtils/awala/mockInternetEndpoint.js';
 import { makeMockLogging, partialPinoLog } from './testUtils/logging.js';
 import { configureMockEnvVars, REQUIRED_ENV_VARS } from './testUtils/envVars.js';
@@ -17,8 +16,7 @@ const { configureErrorHandling } = await import('./utilities/errorHandling.js');
 
 describe('bootstrapData', () => {
   configureMockEnvVars(REQUIRED_ENV_VARS);
-  const getDbConnection = setUpTestDbConnection();
-  const getEndpoint = mockInternetEndpoint(getDbConnection);
+  const getEndpoint = mockInternetEndpoint();
 
   test('Active endpoint should have session key created if missing', async () => {
     const endpoint = getEndpoint();

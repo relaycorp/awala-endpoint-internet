@@ -4,7 +4,7 @@ import fastify from 'fastify';
 
 import { configureMockEnvVars } from '../../../testUtils/envVars.js';
 import { mockInternetEndpoint } from '../../../testUtils/awala/mockInternetEndpoint.js';
-import { MONGODB_URI, setUpTestDbConnection } from '../../../testUtils/db.js';
+import { MONGODB_URI } from '../../../testUtils/db.js';
 import { getPromiseRejection } from '../../../testUtils/jest.js';
 import type { InternetEndpoint } from '../../awala/InternetEndpoint.js';
 
@@ -14,9 +14,7 @@ import fastifyMongoose from './fastifyMongoose.js';
 describe('fastifyActiveEndpoint', () => {
   configureMockEnvVars({ MONGODB_URI });
 
-  const getConnection = setUpTestDbConnection();
-
-  const getInternetEndpoint = mockInternetEndpoint(getConnection);
+  const getInternetEndpoint = mockInternetEndpoint();
   let internetEndpoint: InternetEndpoint;
   beforeEach(() => {
     internetEndpoint = getInternetEndpoint();
