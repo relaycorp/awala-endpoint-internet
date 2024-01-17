@@ -5,12 +5,9 @@ import { randomUUID } from 'node:crypto';
 import { createConnection, type Connection, type ConnectOptions, STATES } from 'mongoose';
 import { deleteModelWithClass } from '@typegoose/typegoose';
 
-import { ConfigItem } from '../models/ConfigItem.model.js';
 import { PeerEndpoint } from '../models/PeerEndpoint.model.js';
 
-const MODELS = Object.values([ConfigItem, PeerEndpoint]).filter(
-  (schema) => typeof schema === 'function',
-);
+const MODELS = Object.values([PeerEndpoint]).filter((schema) => typeof schema === 'function');
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,no-underscore-dangle
 const BASE_MONGO_URI = (global as any).__MONGO_URI__ as string;

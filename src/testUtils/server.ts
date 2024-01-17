@@ -28,7 +28,7 @@ export function makeTestServer(
   const envVarMocker = configureMockEnvVars(envVars);
   const mockLogging = makeMockLogging();
   const getConnection = setUpTestDbConnection();
-  const getEndpoint = mockInternetEndpoint(getConnection);
+  const getEndpoint = mockInternetEndpoint();
 
   let server: FastifyInstance;
   beforeEach(async () => {

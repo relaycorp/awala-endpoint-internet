@@ -7,6 +7,7 @@ import {
   PrivateEndpointConnParams,
   type Recipient,
   type SessionKey,
+  SessionKeyPair,
 } from '@relaycorp/relaynet-core';
 import { generatePDACertificationPath } from '@relaycorp/relaynet-testing';
 
@@ -27,6 +28,8 @@ import { mockEmitter } from '../../testUtils/eventing/mockEmitter.js';
 const getEmittedEvents = mockEmitter();
 configureMockEnvVars(REQUIRED_ENV_VARS);
 
+const { sessionKey: peerSessionKey } = await SessionKeyPair.generate();
+
 describe('Parcel delivery route', () => {
   const getTestServerFixture = makeTestPohttpServer();
   const validRequestOptions: InjectOptions = {
@@ -43,7 +46,7 @@ describe('Parcel delivery route', () => {
   let server: FastifyInstance;
   let logs: MockLogSet;
   let parcelRecipient: Recipient;
-  let sessionKey: SessionKey;
+  let ownSessionKey: SessionKey;
 
   beforeEach(async () => {
     ({ server, logs } = getTestServerFixture());
@@ -52,7 +55,7 @@ describe('Parcel delivery route', () => {
       id: server.activeEndpoint.id,
       internetAddress: server.activeEndpoint.internetAddress,
     };
-    sessionKey = await server.activeEndpoint.retrieveInitialSessionPublicKey();
+    ownSessionKey = await server.activeEndpoint.retrieveInitialSessionKey();
   });
 
   test('Valid parcel should be accepted', async () => {
@@ -60,7 +63,7 @@ describe('Parcel delivery route', () => {
       parcelRecipient,
       KEY_PAIR_SET,
       new Date(),
-      sessionKey,
+      ownSessionKey,
       SERVICE_MESSAGE_CONTENT_TYPE,
       SERVICE_MESSAGE_CONTENT,
     );
@@ -114,7 +117,7 @@ describe('Parcel delivery route', () => {
       parcelRecipient,
       KEY_PAIR_SET,
       subDays(new Date(), 1),
-      sessionKey,
+      ownSessionKey,
       SERVICE_MESSAGE_CONTENT_TYPE,
       SERVICE_MESSAGE_CONTENT,
     );
@@ -143,7 +146,7 @@ describe('Parcel delivery route', () => {
       parcelRecipient,
       KEY_PAIR_SET,
       new Date(),
-      { ...sessionKey, keyId: Buffer.from('invalid key id') },
+      { ...ownSessionKey, keyId: Buffer.from('invalid key id') },
       SERVICE_MESSAGE_CONTENT_TYPE,
       SERVICE_MESSAGE_CONTENT,
     );
@@ -168,7 +171,7 @@ describe('Parcel delivery route', () => {
       parcelRecipient,
       KEY_PAIR_SET,
       new Date(),
-      sessionKey,
+      ownSessionKey,
       SERVICE_MESSAGE_CONTENT_TYPE,
       SERVICE_MESSAGE_CONTENT,
     );
@@ -202,13 +205,14 @@ describe('Parcel delivery route', () => {
         PEER_KEY_PAIR.privateGateway.publicKey,
         PEER_ADDRESS,
         pdaPath,
+        peerSessionKey,
       );
       const messageContent = Buffer.from(await peerConnectionParams.serialize());
       const { parcelSerialized } = await generateParcel(
         parcelRecipient,
         KEY_PAIR_SET,
         new Date(),
-        sessionKey,
+        ownSessionKey,
         pdaContentType,
         messageContent,
       );
@@ -237,13 +241,14 @@ describe('Parcel delivery route', () => {
         PEER_KEY_PAIR.privateGateway.publicKey,
         PEER_ADDRESS,
         invalidPda,
+        peerSessionKey,
       );
       const messageContent = Buffer.from(await peerConnectionParams.serialize());
       const { parcelSerialized } = await generateParcel(
         parcelRecipient,
         KEY_PAIR_SET,
         new Date(),
-        sessionKey,
+        ownSessionKey,
         pdaContentType,
         messageContent,
       );
@@ -267,7 +272,7 @@ describe('Parcel delivery route', () => {
         parcelRecipient,
         KEY_PAIR_SET,
         new Date(),
-        sessionKey,
+        ownSessionKey,
         pdaContentType,
         Buffer.from('Malformed PDA'),
       );

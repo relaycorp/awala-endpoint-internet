@@ -16,6 +16,7 @@ import {
   SessionKeyPair,
   PrivateEndpointConnParams,
   getIdFromIdentityKey,
+  type SessionKey,
 } from '@relaycorp/relaynet-core';
 import { MongoCertificateStore, MongoPublicKeyStore } from '@relaycorp/awala-keystore-mongodb';
 import { addMinutes, subSeconds } from 'date-fns';
@@ -25,7 +26,6 @@ import { generatePDACertificationPath } from '@relaycorp/relaynet-testing';
 import { getModelForClass, type ReturnModelType } from '@typegoose/typegoose';
 
 import { bufferToArrayBuffer } from '../buffer.js';
-import { Config, ConfigKey } from '../config.js';
 import { setUpTestDbConnection } from '../../testUtils/db.js';
 import {
   ENDPOINT_ADDRESS,
@@ -58,10 +58,6 @@ const REQUIRED_ENV_VARS = {
   ACTIVE_ID_PUBLIC_KEY: ENDPOINT_ID_PUBLIC_KEY_DER.toString('base64'),
   PRIVATE_KEY_STORE_ADAPTER: 'GCP',
 };
-
-function hexToBase64(keyIdHex: string) {
-  return Buffer.from(keyIdHex, 'hex').toString('base64');
-}
 
 const getMockKms = mockKms();
 const getDbConnection = setUpTestDbConnection();
@@ -175,47 +171,35 @@ describe('getActive', () => {
 });
 
 describe('InternetEndpoint instance', () => {
-  let config: Config;
   let endpoint: InternetEndpointType;
   let dbConnection: Connection;
   beforeEach(() => {
     dbConnection = getDbConnection();
-    config = new Config(dbConnection);
 
-    endpoint = new InternetEndpoint(
-      ENDPOINT_ID,
-      ENDPOINT_ADDRESS,
-      ENDPOINT_ID_KEY_PAIR,
-      keyStores,
-      config,
-    );
+    endpoint = new InternetEndpoint(ENDPOINT_ID, ENDPOINT_ADDRESS, ENDPOINT_ID_KEY_PAIR, keyStores);
   });
 
   describe('makeInitialSessionKeyIfMissing', () => {
-    test('Key should be generated if config item is unset', async () => {
+    test('Key should be generated if there are no existing unbound keys', async () => {
+      await expect(
+        keyStores.privateKeyStore.retrieveUnboundSessionPublicKey(endpoint.id),
+      ).resolves.toBeNull();
+
       await expect(endpoint.makeInitialSessionKeyIfMissing()).resolves.toBeTrue();
 
-      const { sessionKeys } = keyStores.privateKeyStore;
-      const [[keyIdHex, keyData]] = Object.entries(sessionKeys);
-      expect(keyData.nodeId).toBe(ENDPOINT_ID);
-      expect(keyData.peerId).toBeUndefined();
-      await expect(config.get(ConfigKey.INITIAL_SESSION_KEY_ID_BASE64)).resolves.toBe(
-        hexToBase64(keyIdHex),
-      );
+      await expect(
+        keyStores.privateKeyStore.retrieveUnboundSessionPublicKey(endpoint.id),
+      ).resolves.not.toBeNull();
     });
 
-    test('Key should not be generated if config item is set', async () => {
-      const { privateKey, sessionKey } = await SessionKeyPair.generate();
-      const keyIdBase64 = sessionKey.keyId.toString('base64');
-      await config.set(ConfigKey.INITIAL_SESSION_KEY_ID_BASE64, keyIdBase64);
-      await keyStores.privateKeyStore.saveSessionKey(privateKey, sessionKey.keyId, ENDPOINT_ID);
+    test('Key should not be generated if there are existing unbound keys', async () => {
+      const preExistingKey = await endpoint.generateSessionKey();
 
       await expect(endpoint.makeInitialSessionKeyIfMissing()).resolves.toBeFalse();
 
-      expect(keyStores.privateKeyStore.sessionKeys).toHaveProperty(
-        sessionKey.keyId.toString('hex'),
-      );
-      await expect(config.get(ConfigKey.INITIAL_SESSION_KEY_ID_BASE64)).resolves.toBe(keyIdBase64);
+      await expect(
+        keyStores.privateKeyStore.retrieveUnboundSessionPublicKey(endpoint.id),
+      ).resolves.toSatisfy<SessionKey>((key) => key.keyId.equals(preExistingKey.keyId));
     });
   });
 
@@ -229,10 +213,12 @@ describe('InternetEndpoint instance', () => {
         certificatePath.privateEndpoint,
         certificatePath.privateGateway,
       ]);
+      const peerSessionKeyPair = await SessionKeyPair.generate();
       peerConnectionParams = new PrivateEndpointConnParams(
         PEER_KEY_PAIR.privateGateway.publicKey,
         PEER_ADDRESS,
         pdaPath,
+        peerSessionKeyPair.sessionKey,
       );
       peerEndpointModel = getModelForClass(PeerEndpoint, {
         existingConnection: dbConnection,
@@ -274,10 +260,12 @@ describe('InternetEndpoint instance', () => {
         certificatePath.privateEndpoint,
         certificatePath.privateGateway,
       ]);
+      const peerSessionKeyPair = await SessionKeyPair.generate();
       const peerConnectionParams = new PrivateEndpointConnParams(
         PEER_KEY_PAIR.privateGateway.publicKey,
         PEER_ADDRESS,
         pdaPath,
+        peerSessionKeyPair.sessionKey,
       );
       const privateEndpointChannel = await endpoint.savePrivateEndpointChannel(
         peerConnectionParams,
@@ -294,13 +282,11 @@ describe('InternetEndpoint instance', () => {
 
       expect(channel?.peer.id).toBe(privateEndpointChannel.peer.id);
       expect(channel?.peer.internetAddress).toBe(PEER_ADDRESS);
-      const checkPeerConnectionParams = new PrivateEndpointConnParams(
-        channel!.peer.identityPublicKey,
-        channel!.peer.internetAddress,
-        channel!.deliveryAuthPath,
+      await expect(derSerializePublicKey(channel!.peer.identityPublicKey)).resolves.toMatchObject(
+        await derSerializePublicKey(peerConnectionParams.identityKey),
       );
-      expect(Buffer.from(await peerConnectionParams.serialize())).toStrictEqual(
-        Buffer.from(await checkPeerConnectionParams.serialize()),
+      expect(Buffer.from(channel!.deliveryAuthPath.serialize())).toStrictEqual(
+        Buffer.from(privateEndpointChannel.deliveryAuthPath.serialize()),
       );
     });
 
@@ -333,7 +319,7 @@ describe('InternetEndpoint instance', () => {
     test('Error should be thrown if config item is unset', async () => {
       await expect(endpoint.getConnectionParams()).rejects.toThrowWithMessage(
         Error,
-        'Initial session key id is missing from config',
+        'Initial session key id is missing',
       );
     });
 
