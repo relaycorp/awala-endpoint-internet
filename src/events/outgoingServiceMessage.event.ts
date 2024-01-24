@@ -1,5 +1,5 @@
 import type { CloudEventV1 } from 'cloudevents';
-import { differenceInSeconds, isValid, parseISO } from 'date-fns';
+import { differenceInSeconds, isValid, parseISO, subHours } from 'date-fns';
 import type { BaseLogger } from 'pino';
 import type { FastifyBaseLogger } from 'fastify';
 
@@ -43,6 +43,8 @@ export interface OutgoingServiceMessageOptions {
   creationDate: Date;
 }
 
+export const CLOCK_DRIFT_TOLERANCE_HOURS = 3;
+
 export const OUTGOING_SERVICE_MESSAGE_TYPE =
   'tech.relaycorp.awala.endpoint-internet.outgoing-service-message';
 
@@ -82,12 +84,13 @@ export function getOutgoingServiceMessageOptions(
     return null;
   }
 
+  const creationDateWithTolerance = subHours(new Date(creationDate), CLOCK_DRIFT_TOLERANCE_HOURS);
   return {
     parcelId: event.id,
     peerId: event.subject,
     contentType: event.datacontenttype,
     content,
     ttl,
-    creationDate,
+    creationDate: creationDateWithTolerance,
   };
 }
