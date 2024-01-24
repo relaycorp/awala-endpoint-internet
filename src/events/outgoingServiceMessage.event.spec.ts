@@ -1,5 +1,5 @@
 import { CloudEvent } from 'cloudevents';
-import { addDays, differenceInSeconds, formatISO, subDays } from 'date-fns';
+import { addDays, differenceInSeconds, formatISO, subDays, subHours } from 'date-fns';
 
 import { CE_CONTENT_TYPE, CE_DATA, CE_ID, CE_SOURCE } from '../testUtils/eventing/stubs.js';
 import { makeMockLogging, partialPinoLog } from '../testUtils/logging.js';
@@ -73,10 +73,15 @@ describe('getOutgoingServiceMessageOptions', () => {
       expect(result?.content).toStrictEqual(Buffer.from(''));
     });
 
-    test('Creation date should be taken from event time', () => {
+    test('Creation date should allow for clock drift tolerance', () => {
       const { creationDate: creation } = outgoingServiceMessageOptions;
 
-      expect(creation).toStrictEqual(new Date(cloudEvent.time!));
+      const expectedClockDriftToleranceHours = 3;
+      const expectedCreationDate = subHours(
+        new Date(cloudEvent.time!),
+        expectedClockDriftToleranceHours,
+      );
+      expect(creation).toStrictEqual(expectedCreationDate);
     });
 
     describe('TTL', () => {

@@ -1,11 +1,13 @@
 import type { CloudEventV1 } from 'cloudevents';
-import { differenceInSeconds, isValid, parseISO } from 'date-fns';
+import { differenceInSeconds, isValid, parseISO, subHours } from 'date-fns';
 import type { BaseLogger } from 'pino';
 import type { FastifyBaseLogger } from 'fastify';
 
 const secondsInMonths = 2_629_746;
 const DEFAULT_TTL_MONTHS = 6;
 const DEFAULT_TTL_SECONDS = secondsInMonths * DEFAULT_TTL_MONTHS;
+
+const CLOCK_DRIFT_TOLERANCE_HOURS = 3;
 
 function getTtl(expiry: unknown, creationDate: Date, logger: BaseLogger) {
   if (expiry === undefined) {
@@ -82,12 +84,13 @@ export function getOutgoingServiceMessageOptions(
     return null;
   }
 
+  const creationDateWithTolerance = subHours(new Date(creationDate), CLOCK_DRIFT_TOLERANCE_HOURS);
   return {
     parcelId: event.id,
     peerId: event.subject,
     contentType: event.datacontenttype,
     content,
     ttl,
-    creationDate,
+    creationDate: creationDateWithTolerance,
   };
 }
