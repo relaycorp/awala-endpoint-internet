@@ -13,7 +13,14 @@ import {
   ServiceMessage,
   SessionKeyPair,
 } from '@relaycorp/relaynet-core';
-import { addDays, addSeconds, differenceInSeconds, formatISO, subSeconds } from 'date-fns';
+import {
+  addDays,
+  addSeconds,
+  differenceInSeconds,
+  formatISO,
+  subHours,
+  subSeconds,
+} from 'date-fns';
 import envVar from 'env-var';
 
 import { HTTP_STATUS_CODES } from '../utilities/http.js';
@@ -30,7 +37,10 @@ import {
   SERVICE_MESSAGE_CONTENT_TYPE,
 } from '../testUtils/awala/stubs.js';
 import type { EnvVarMocker } from '../testUtils/envVars.js';
-import { OUTGOING_SERVICE_MESSAGE_TYPE } from '../events/outgoingServiceMessage.event.js';
+import {
+  CLOCK_DRIFT_TOLERANCE_HOURS,
+  OUTGOING_SERVICE_MESSAGE_TYPE,
+} from '../events/outgoingServiceMessage.event.js';
 
 const mockDeliverParcel = mockSpy(
   jest.fn<
@@ -187,11 +197,11 @@ describe('makePohttpClient', () => {
       let payload: ServiceMessage;
       let parcel: Parcel;
       let ttl: number;
-      let time: Date;
+      let testStartDate: Date;
 
       beforeEach(async () => {
-        time = new Date();
-        ttl = differenceInSeconds(expiry, time);
+        testStartDate = new Date();
+        ttl = differenceInSeconds(expiry, testStartDate);
         response = await postEvent(event, server);
 
         [[internetAddress, parcelBuffer]] = mockDeliverParcel.mock.calls;
@@ -228,10 +238,11 @@ describe('makePohttpClient', () => {
         expect(parcel.ttl).toBeLessThan(ttl + tenSecondsInMilliseconds);
       });
 
-      test('Parcel creation should be event time', () => {
+      test('Parcel creation should be event time, minus clock drift tolerance', () => {
+        const expectedCreationDate = subHours(testStartDate, CLOCK_DRIFT_TOLERANCE_HOURS);
         expect(parcel.creationDate).toBeBetween(
-          subSeconds(new Date(time), 20),
-          addSeconds(time, 20),
+          subSeconds(expectedCreationDate, 20),
+          addSeconds(expectedCreationDate, 20),
         );
       });
     });

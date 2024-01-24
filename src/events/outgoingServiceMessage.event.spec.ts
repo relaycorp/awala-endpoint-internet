@@ -7,6 +7,7 @@ import { assertNotNull, assertNull } from '../testUtils/assertions.js';
 import { PEER_ID } from '../testUtils/awala/stubs.js';
 
 import {
+  CLOCK_DRIFT_TOLERANCE_HOURS,
   getOutgoingServiceMessageOptions,
   OUTGOING_SERVICE_MESSAGE_TYPE,
   type OutgoingServiceMessageOptions,
@@ -76,10 +77,9 @@ describe('getOutgoingServiceMessageOptions', () => {
     test('Creation date should allow for clock drift tolerance', () => {
       const { creationDate: creation } = outgoingServiceMessageOptions;
 
-      const expectedClockDriftToleranceHours = 3;
       const expectedCreationDate = subHours(
         new Date(cloudEvent.time!),
-        expectedClockDriftToleranceHours,
+        CLOCK_DRIFT_TOLERANCE_HOURS,
       );
       expect(creation).toStrictEqual(expectedCreationDate);
     });

@@ -7,8 +7,6 @@ const secondsInMonths = 2_629_746;
 const DEFAULT_TTL_MONTHS = 6;
 const DEFAULT_TTL_SECONDS = secondsInMonths * DEFAULT_TTL_MONTHS;
 
-const CLOCK_DRIFT_TOLERANCE_HOURS = 3;
-
 function getTtl(expiry: unknown, creationDate: Date, logger: BaseLogger) {
   if (expiry === undefined) {
     return DEFAULT_TTL_SECONDS;
@@ -44,6 +42,8 @@ export interface OutgoingServiceMessageOptions {
   ttl: number;
   creationDate: Date;
 }
+
+export const CLOCK_DRIFT_TOLERANCE_HOURS = 3;
 
 export const OUTGOING_SERVICE_MESSAGE_TYPE =
   'tech.relaycorp.awala.endpoint-internet.outgoing-service-message';
