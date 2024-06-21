@@ -36,7 +36,7 @@
     "@relaycorp/relaynet-testing": "^2.2.28",
     "@relaycorp/webcrypto-kms": "^1.5.17",
     "@typegoose/typegoose": "^12.1.0",
-    "cloudevents": "^7.0.1",
+    "cloudevents": "^8.0.1",
     "date-fns": "^2.30.0",
     "env-var": "^7.4.1",
     "fastify": "^4.19.2",
