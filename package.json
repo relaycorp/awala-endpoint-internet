@@ -39,7 +39,7 @@
     "cloudevents": "^7.0.1",
     "date-fns": "^2.30.0",
     "env-var": "^7.4.1",
-    "fastify": "^4.19.2",
+    "fastify": "^4.28.1",
     "fastify-graceful-shutdown": "^3.5.1",
     "fastify-plugin": "^4.5.0",
     "mongoose": "^8.1.0",
